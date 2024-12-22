@@ -1,0 +1,14 @@
+// generated from rosidl_generator_cpp/resource/idl.hpp.em
+// generated code does not contain a copyright notice
+
+{% set header_guard_variable = upper(package_name) + "__" + upper(join(interface_path.parents.parts, "__")) + "__" + upper(convert_camel_case_to_lower_case_underscore(interface_path.stem)) + "_HPP_" %}
+{% set include_base = package_name + "/" + join(interface_path.parents.parts, "/") + "/detail/" + convert_camel_case_to_lower_case_underscore(interface_path.stem) %}
+#ifndef {{ header_guard_variable }}
+#define {{ header_guard_variable }}
+
+#include "{{ include_base }}__struct.hpp"
+#include "{{ include_base }}__builder.hpp"
+#include "{{ include_base }}__traits.hpp"
+#include "{{ include_base }}__type_support.hpp"
+
+#endif  // {{ header_guard_variable }}

@@ -1,0 +1,36 @@
+// generated from rosidl_generator_cpp/resource/idl__struct.hpp.em
+// with input from {{ package_name }}:{{ interface_path.parent }}/{{ interface_path.stem }}.idl
+// generated code does not contain a copyright notice
+
+// IWYU pragma: private, include "{{ package_name }}/{{ interface_path.parent }}/{{ convert_camel_case_to_lower_case_underscore(interface_path.stem) }}.hpp"
+
+{% set header_guard_variable = upper(package_name) + "__" + upper(join(interface_path.parents.parts, "__")) + "__DETAIL__" + upper(convert_camel_case_to_lower_case_underscore(interface_path.stem)) + "__STRUCT_HPP_" %}
+
+#ifndef {{ header_guard_variable }}
+#define {{ header_guard_variable }}
+
+#include <algorithm>
+#include <array>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "rosidl_runtime_cpp/bounded_vector.hpp"
+#include "rosidl_runtime_cpp/message_initialization.hpp"
+
+{########################################################################}
+{# Handle message #}
+{########################################################################}
+{% for msg_object in messages %}
+{% set message=msg_object.message %}
+{% set message_typename=msg_object.message_typename %}
+{% include "msg__struct.hpp.template" %}
+
+{% endfor %}
+{% for service_object in services %}
+{% set service=service_object.service %}
+{% set service_typename=service_object.service_typename %}
+{% include "srv__struct.hpp.template" %}
+
+{% endfor %}
+#endif  // {{ header_guard_variable }}

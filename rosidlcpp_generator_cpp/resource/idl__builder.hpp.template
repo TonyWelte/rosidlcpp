@@ -1,0 +1,31 @@
+// generated from rosidl_generator_cpp/resource/idl__builder.hpp.em
+// with input from {{ package_name }}:{{ interface_path.parent }}/{{ interface_path.stem }}.idl
+// generated code does not contain a copyright notice
+
+// IWYU pragma: private, include "{{ package_name }}/{{ interface_path.parent }}/{{ convert_camel_case_to_lower_case_underscore(interface_path.stem) }}.hpp"
+
+
+{% set header_guard_variable = upper(package_name) + "__" + upper(join(interface_path.parents.parts, "__")) + "__DETAIL__" + upper(convert_camel_case_to_lower_case_underscore(interface_path.stem)) + "__BUILDER_HPP_" %}
+#ifndef {{ header_guard_variable }}
+#define {{ header_guard_variable }}
+
+#include <algorithm>
+#include <utility>
+
+#include "{{ package_name }}/{{ join(interface_path.parents.parts, "/") }}/detail/{{ convert_camel_case_to_lower_case_underscore(interface_path.stem) }}__struct.hpp"
+#include "rosidl_runtime_cpp/message_initialization.hpp"
+
+
+{% for msg_object in messages %}
+{% set message=msg_object.message %}
+{% set message_typename=msg_object.message_typename %}
+{% include "msg__builder.hpp.template" %}
+
+{% endfor %}
+{% for service_object in services %}
+{% set service=service_object.service %}
+{% set service_typename=service_object.service_typename %}
+{% include "srv__builder.hpp.template" %}
+
+{% endfor %}
+#endif  // {{ header_guard_variable }}

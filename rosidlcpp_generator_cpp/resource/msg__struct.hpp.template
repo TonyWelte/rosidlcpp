@@ -1,0 +1,280 @@
+{% set message_typename = join(message.structure.namespaced_type.namespaces, "::") + "::" + message.structure.namespaced_type.name %}
+{% set msvc_common_macros = ["DELETE", "ERROR", "NO_ERROR"] %}
+{# Collect necessary include directives for all members #}
+{% set includes = get_includes(message, "__struct.hpp") %}
+{% set include_directives = [] %}
+{% if includes %}
+
+// Include directives for member types
+{% for include in includes %}
+{% for name in include.member_names %}
+// Member '{{ name }}'
+{% endfor %}
+#include "{{ include.header_file }}"
+{% endfor %}
+{% endif %}
+
+{% set deprecated_macro_name = "DEPRECATED__" + join(message.structure.namespaced_type.namespaces, "__") + "__" + message.structure.namespaced_type.name %}
+#ifndef _WIN32
+# define {{ deprecated_macro_name }} __attribute__((deprecated))
+#else
+# define {{ deprecated_macro_name }} __declspec(deprecated)
+#endif
+
+{% for ns in message.structure.namespaced_type.namespaces %}
+namespace {{ ns }}
+{
+
+{% endfor %}
+// message struct
+template<class ContainerAllocator>
+struct {{ message.structure.namespaced_type.name }}_
+{
+  using Type = {{ message.structure.namespaced_type.name }}_<ContainerAllocator>;
+
+  {% set lists = create_init_alloc_and_member_lists(message) %}
+  {% set init_list = lists.init_list %}
+  {% set alloc_list = lists.alloc_list %}
+  {% set member_list = lists.member_list %}
+  explicit {{ message.structure.namespaced_type.name }}_(rosidl_runtime_cpp::MessageInitialization _init = rosidl_runtime_cpp::MessageInitialization::ALL)
+  {% if init_list %}
+  : {{ join(init_list, ",\n    ") }}
+  {% endif %}
+  {
+    {% if not member_list %}
+    (void)_init;
+    {% endif %}
+    {% if lists.default_value_members %}
+    if (rosidl_runtime_cpp::MessageInitialization::ALL == _init ||
+      rosidl_runtime_cpp::MessageInitialization::DEFAULTS_ONLY == _init)
+    {
+    {% for membset in member_list %}
+    {% if at(membset, 0).default_value != "" %}
+    {% for line in generate_default_string(membset, "_init") %}
+      {{ line }}
+    {% endfor %}
+    {% endif %}
+    {% endfor %}
+{%  if lists.zero_value_members %}
+    } else if (rosidl_runtime_cpp::MessageInitialization::ZERO == _init) {
+{%    for membset in member_list %}
+{%      if at(membset, 0).zero_value != "" %}
+{%      for line in generate_zero_string(membset, "_init") %}
+      {{ line }}
+{%      endfor %}
+    {% endif %}
+{%    endfor %}
+{%  endif %}
+    }
+{% endif %}
+{% if lists.non_defaulted_zero_initialized_members %}
+    if (rosidl_runtime_cpp::MessageInitialization::ALL == _init ||
+      rosidl_runtime_cpp::MessageInitialization::ZERO == _init)
+    {
+{% for membset in member_list %}
+{% if (at(membset, 0).zero_value != "" or at(membset, 0).zero_need_array_override) and at(membset, 0).default_value == "" %}
+{% for line in generate_zero_string(membset, "_init") %}
+      {{ line }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+    }
+{% endif %}
+  }
+
+  explicit {{ message.structure.namespaced_type.name }}_(const ContainerAllocator & _alloc, rosidl_runtime_cpp::MessageInitialization _init = rosidl_runtime_cpp::MessageInitialization::ALL)
+  {% if alloc_list %}
+  : {{ join(alloc_list, ",\n    ") }}
+  {% endif %}
+  {
+{% if not member_list %}
+    (void)_init;
+{% endif %}
+{% if not alloc_list %}
+    (void)_alloc;
+{% endif %}
+{% if lists.default_value_members %}
+    if (rosidl_runtime_cpp::MessageInitialization::ALL == _init ||
+      rosidl_runtime_cpp::MessageInitialization::DEFAULTS_ONLY == _init)
+    {
+{% for membset in member_list %}
+{% if at(membset, 0).default_value != "" %}
+{%    for line in generate_default_string(membset, "") %}
+      {{ line }}
+{%    endfor %}
+{%  endif %}
+{%  endfor %}
+{%  if lists.zero_value_members %}
+    } else if (rosidl_runtime_cpp::MessageInitialization::ZERO == _init) {
+{%    for membset in member_list %}
+{%      if at(membset, 0).zero_value != "" %}
+{%      for line in generate_zero_string(membset, "_alloc, _init") %}
+      {{ line }}
+{%      endfor %}
+{%      endif %}
+{%    endfor %}
+{%  endif %}
+    }
+{% endif %}
+{% if lists.non_defaulted_zero_initialized_members %}
+    if (rosidl_runtime_cpp::MessageInitialization::ALL == _init ||
+      rosidl_runtime_cpp::MessageInitialization::ZERO == _init)
+    {
+{% for membset in member_list %}
+{% if (at(membset, 0).zero_value != "" or at(membset, 0).zero_need_array_override) and at(membset, 0).default_value == "" %}
+{% for line in generate_zero_string(membset, "_alloc, _init") %}
+      {{ line }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+    }
+{% endif %}
+  }
+
+  // field types and members
+{% for member in message.structure.members %}
+  using _{{ member.name }}_type =
+    {{ msg_type_to_cpp(member.type) }};
+  _{{ member.name }}_type {{ member.name }};
+{% endfor %}
+
+{% set first_member = at(message.structure.members, 0) %}
+  {% if length(message.structure.members) != 1 or first_member.name != "structure_needs_at_least_one_member" %}
+  // setters for named parameter idiom
+  {% for member in message.structure.members %}
+  Type & set__{{ member.name }}(
+    const {{ msg_type_to_cpp(member.type) }} & _arg)
+  {
+    this->{{ member.name }} = _arg;
+    return *this;
+  }
+  {% endfor %}
+  {% endif %}
+
+  // constant declarations
+  {% for constant in message.constants %}
+  {% if constant.name in msvc_common_macros %}
+  // guard against '{{ constant.name }}' being predefined by MSVC by temporarily undefining it
+#if defined(_WIN32)
+#  if defined({{ constant.name }})
+#    pragma push_macro("{{ constant.name }}")
+#    undef {{ constant.name }}
+#  endif
+#endif
+  {% endif %}
+  {% if constant.type.typename == "string" %}
+  static const {{ MSG_TYPE_TO_CPP("string") }} {{ constant.name }};
+  {% else if constant.type.typename == "wstring" %}
+  static const {{ MSG_TYPE_TO_CPP("wstring") }} {{ constant.name }};
+  {% else %}
+  static constexpr {{ MSG_TYPE_TO_CPP(constant.type.typename) }} {{ constant.name }} =
+    {% if is_type_integer(constant.type.typename) %}
+    {{ int(constant.value) }}{% if is_type_unsigned(constant.type.typename) %}u{% endif %};
+    {% else if constant.type.typename == "float" %}
+    {{ constant.value }}f;
+    {% else %}
+    {{ constant.value }};
+    {% endif %}
+  {% endif %}
+  {% if constant.name in msvc_common_macros %}
+#if defined(_WIN32)
+#  pragma warning(suppress : 4602)
+#  pragma pop_macro("{{ constant.name }}")
+#endif
+  {% endif %}
+  {% endfor %}
+
+  // pointer types
+  using RawPtr =
+    {{ message_typename }}_<ContainerAllocator> *;
+  using ConstRawPtr =
+    const {{ message_typename }}_<ContainerAllocator> *;
+  using SharedPtr =
+    std::shared_ptr<{{ message_typename }}_<ContainerAllocator>>;
+  using ConstSharedPtr =
+    std::shared_ptr<{{ message_typename }}_<ContainerAllocator> const>;
+
+  template<typename Deleter = std::default_delete<
+      {{ message_typename }}_<ContainerAllocator>>>
+  using UniquePtrWithDeleter =
+    std::unique_ptr<{{ message_typename }}_<ContainerAllocator>, Deleter>;
+
+  using UniquePtr = UniquePtrWithDeleter<>;
+
+  template<typename Deleter = std::default_delete<
+      {{ message_typename }}_<ContainerAllocator>>>
+  using ConstUniquePtrWithDeleter =
+    std::unique_ptr<{{ message_typename }}_<ContainerAllocator> const, Deleter>;
+  using ConstUniquePtr = ConstUniquePtrWithDeleter<>;
+
+  using WeakPtr =
+    std::weak_ptr<{{ message_typename }}_<ContainerAllocator>>;
+  using ConstWeakPtr =
+    std::weak_ptr<{{ message_typename }}_<ContainerAllocator> const>;
+
+  // pointer types similar to ROS 1, use SharedPtr / ConstSharedPtr instead
+  // NOTE: Can't use 'using' here because GNU C++ can't parse attributes properly
+  typedef {{ deprecated_macro_name }}
+    std::shared_ptr<{{ message_typename }}_<ContainerAllocator>>
+    Ptr;
+  typedef {{ deprecated_macro_name }}
+    std::shared_ptr<{{ message_typename }}_<ContainerAllocator> const>
+    ConstPtr;
+
+  // comparison operators
+  bool operator==(const {{ message.structure.namespaced_type.name }}_ & other) const
+  {
+    {% for member in message.structure.members %}
+    if (this->{{ member.name }} != other.{{ member.name }}) {
+      return false;
+    }
+    {% endfor %}
+    return true;
+  }
+  bool operator!=(const {{ message.structure.namespaced_type.name }}_ & other) const
+  {
+    return !this->operator==(other);
+  }
+};  // struct {{ message.structure.namespaced_type.name }}_
+
+// alias to use template instance with default allocator
+using {{ message.structure.namespaced_type.name }} =
+  {{ message_typename }}_<std::allocator<void>>;
+
+// constant definitions
+{%for c in message.constants%}
+{% if c.name in msvc_common_macros%}
+// guard against '{{ c.name }}' being predefined by MSVC by temporarily undefining it
+#if defined(_WIN32)
+#  if defined({{ c.name }})
+#    pragma push_macro("{{ c.name }}")
+#    undef {{ c.name }}
+#  endif
+#endif
+{% endif %}
+{% if is_type_string(c.type.typename) %}
+template<typename ContainerAllocator>
+const {{ MSG_TYPE_TO_CPP("string") }}
+{{ message.structure.namespaced_type.name }}_<ContainerAllocator>::{{ c.name }} = "{{ c.value }}";
+{% else if c.type.typename == "wstring" %}
+template<typename ContainerAllocator>
+const {{ MSG_TYPE_TO_CPP("wstring") }}
+{{ message.structure.namespaced_type.name }}_<ContainerAllocator>::{{ c.name }} = u"{{ c.value }}";
+{% else %}
+#if __cplusplus < 201703L
+// static constexpr member variable definitions are only needed in C++14 and below, deprecated in C++17
+template<typename ContainerAllocator>
+constexpr {{ MSG_TYPE_TO_CPP(c.type.typename) }} {{ message.structure.namespaced_type.name }}_<ContainerAllocator>::{{ c.name }};
+#endif  // __cplusplus < 201703L
+{% endif %}
+{% if c.name in msvc_common_macros%}
+#if defined(_WIN32)
+#  pragma warning(suppress : 4602)
+#  pragma pop_macro("{{ c.name }}")
+#endif
+{% endif %}
+{% endfor %}
+{% for i in range(length(message.structure.namespaced_type.namespaces)) %}
+
+}  // namespace {{ at(message.structure.namespaced_type.namespaces, length(message.structure.namespaced_type.namespaces) - 1 - i) }}
+{% endfor %}
