@@ -5,6 +5,7 @@
 #include <regex>
 #include <set>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <nlohmann/json.hpp>
@@ -44,22 +45,17 @@ bool is_namespaced_type(const std::string &str) {
   return !is_primitive(str) && !is_nestedtype(str) && !is_bounded_string(str);
 }
 
-std::vector<std::string> split_string(const std::string &value, char sep) {
+std::vector<std::string> split_string(std::string_view value, std::string_view sep) {
   std::vector<std::string> result;
-  std::string tmp;
-  for (const auto &c : value) {
-    if (c == sep) {
-      if (!tmp.empty()) {
-        result.push_back(tmp);
-        tmp = "";
-      }
-    } else {
-      tmp += c;
-    }
+
+  auto cursor = value.find(sep);
+  while(cursor != std::string::npos) {
+    result.push_back(std::string{value.substr(0, cursor)});
+    value.remove_prefix(cursor + sep.size());
+    cursor = value.find(sep);
   }
-  if (!tmp.empty()) {
-    result.push_back(tmp);
-  }
+  result.push_back(std::string{value});
+
   return result;
 }
 

@@ -1,0 +1,713 @@
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+{% set include_base = package_name + "/" + interface_path.filedir + "/detail/" + convert_camel_case_to_lower_case_underscore(interface_path.filename) %}
+{% set header_struct = include_base + "__struct.h" %}
+{% set header_functions = include_base + "__functions.h" %}
+{% set header_files = ["Python.h", "stdbool.h", "numpy/ndarrayobject.h", "rosidl_runtime_c/visibility_control.h"] %}
+{% set header_files = push_back(push_back(header_files, header_struct), header_functions) %}
+{% for header_file in header_files %}
+{%   set include_directives = get_global_variable("include_directives") %}
+{%   set repeated_header_file = header_file in include_directives %}
+{%   if repeated_header_file %}
+// already included above
+// {%   else %}
+{%     if header_file == "numpy/ndarrayobject.h" %}
+#ifndef _WIN32
+# pragma GCC diagnostic push
+# pragma GCC diagnostic ignored "-Wunused-function"
+#endif
+{%     endif %}
+{%     set include_directives = set_global_variable("include_directives", push_back(include_directives, header_file)) %}
+{%   endif %}
+{%   if not string_contains(header_file, "/") %}
+#include <{{ header_file }}>
+{%   else %}
+#include "{{ header_file }}"
+{%   endif %}
+{%   if header_file == "numpy/ndarrayobject.h" and not repeated_header_file %}
+#ifndef _WIN32
+# pragma GCC diagnostic pop
+#endif
+{%   endif %}
+{% endfor %}
+
+{% set have_not_included_primitive_arrays = true %}
+{% set have_not_included_string = true %}
+{% set have_not_included_wstring = true %}
+{% set nested_types = [] %}
+{% for member in message.members %}
+{%   set type_ = member.type %}
+{%   if is_nestedtype(type_) %}
+{%     set type_ = type_.value_type %}
+{%   endif %}
+{%   set header_files = [] %}
+{%   if is_nestedtype(member.type) and have_not_included_primitive_arrays %}
+{%     set have_not_included_primitive_arrays = false %}
+{%     set header_files = push_back(header_files, ["rosidl_runtime_c/primitives_sequence.h", "rosidl_runtime_c/primitives_sequence_functions.h"]) %}
+{%   endif %}
+{%   if type_.name == "string" and have_not_included_string %}
+{%     set have_not_included_string = false %}
+{%     set header_files = push_back(header_files, ["rosidl_runtime_c/string.h", "rosidl_runtime_c/string_functions.h"]) %}
+{%   endif %}
+{%   if type_.name == "wstring" and have_not_included_wstring %}
+{%     set have_not_included_wstring = false %}
+{%     set header_files = push_back(header_files, ["rosidl_runtime_c/u16string.h", "rosidl_runtime_c/u16string_functions.h"]) %}
+{%   endif %}
+{%   if header_files %}
+{%     for header_file in header_files %}
+{%       if header_file in include_directives %}
+// already included above
+// #include "{{ header_file }}"
+{%       else %}
+{%         set include_directives = set_global_variable("include_directives", push_back(include_directives, header_file)) %}
+#include "{{ header_file }}"
+{%       endif %}
+{%     endfor %}
+
+{%   endif %}
+{%   if is_nestedtype(member.type) and existsIn(member.type.value_type, "namespaces") %}
+{%     set nested_types = push_back(nested_types, member.type.value_type) %}
+{%   endif %}
+{% endfor %}
+{% if nested_types %}
+// Nested array functions includes
+{%   for type_ in unique(nested_types) %}
+{% set nested_header = join(type_.namespaces, "/") + "/detail/" + convert_camel_case_to_lower_case_underscore(type_.name) + "__functions.h" %}
+{%     if is_service_type(type_) %}
+{# Service request/response messages are included in the srv__struct #}
+
+{%     else if nested_header in include_directives %}
+// already included above
+// #include "{{ nested_header }}"
+{%     else %}
+{%       set include_directives = set_global_variable("include_directives", push_back(include_directives, nested_header)) %}
+#include "{{ nested_header }}"
+{%     endif %}
+{%   endfor %}
+// end nested array functions include
+{% endif %}
+{% set msg_typename = join(message.type.namespaces, "__") + "__" + message.type.name %}
+{% for member in message.members %}
+{% set type_ = member.type %}
+{% if existsIn(type_, "value_type") %}
+{% set type_ = member.type.value_type %}
+{% endif %}
+{%   if existsIn(type_, "namespaces") %}
+{%     if type_.namespaces.0 != package_name %}
+ROSIDL_GENERATOR_C_IMPORT
+{%     endif %}
+bool {{join(type_.namespaces, "__") + "__" + convert_camel_case_to_lower_case_underscore(type_.name) + "__convert_from_py(PyObject * _pymsg, void * _ros_message);" }}
+{%     if type_.namespaces.0 != package_name %}
+ROSIDL_GENERATOR_C_IMPORT
+{%     endif %}
+PyObject * {{join(type_.namespaces, "__") + "__" + convert_camel_case_to_lower_case_underscore(type_.name) + "__convert_to_py(void * raw_ros_message);" }}
+{%   endif %}
+{% endfor %}
+
+{% set module_name = "_" + convert_camel_case_to_lower_case_underscore(interface_path.filename) %}
+ROSIDL_GENERATOR_C_EXPORT
+bool {{join(message.type.namespaces, "__") + "__" + convert_camel_case_to_lower_case_underscore(message.type.name) + "__convert_from_py(PyObject * _pymsg, void * _ros_message)" }}
+{
+{% set full_classname = join(message.type.namespaces, ".") + "." + module_name + "." + message.type.name %}
+  // check that the passed message is of the expected Python class
+  {
+    char full_classname_dest[{{ length(full_classname) + 1 }}];
+    {
+      char * class_name = NULL;
+      char * module_name = NULL;
+      {
+        PyObject * class_attr = PyObject_GetAttrString(_pymsg, "__class__");
+        if (class_attr) {
+          PyObject * name_attr = PyObject_GetAttrString(class_attr, "__name__");
+          if (name_attr) {
+            class_name = (char *)PyUnicode_1BYTE_DATA(name_attr);
+            Py_DECREF(name_attr);
+          }
+          PyObject * module_attr = PyObject_GetAttrString(class_attr, "__module__");
+          if (module_attr) {
+            module_name = (char *)PyUnicode_1BYTE_DATA(module_attr);
+            Py_DECREF(module_attr);
+          }
+          Py_DECREF(class_attr);
+        }
+      }
+      if (!class_name || !module_name) {
+        return false;
+      }
+      snprintf(full_classname_dest, sizeof(full_classname_dest), "%s.%s", module_name, class_name);
+    }
+    assert(strncmp("{{ full_classname }}", full_classname_dest, {{ length(full_classname) }}) == 0);
+  }
+  {{ msg_typename }} * ros_message = _ros_message;
+{% for member in message.members %}
+{%   if length(message.members) == 1 and member.name == EMPTY_STRUCTURE_REQUIRED_MEMBER_NAME %}
+  ros_message->{{ member.name }} = 0;
+{%   else %}
+{%   set type_ = member.type %}
+{%   if is_nestedtype(type_) %}
+{%     set type_ = type_.value_type %}
+{%   endif %}
+  {  // {{ member.name }}
+    PyObject * field = PyObject_GetAttrString(_pymsg, "{{ member.name }}");
+    if (!field) {
+      return false;
+    }
+{%   if existsIn(type_, "namespaces") %}
+{% set nested_type = join(type_.namespaces, "__") + "__" + type_.name %}
+{%     if is_nestedtype(member.type) %}
+    PyObject * seq_field = PySequence_Fast(field, "expected a sequence in '{{ member.name }}'");
+    if (!seq_field) {
+      Py_DECREF(field);
+      return false;
+    }
+{%       if member.type.name == "sequence" %}
+    Py_ssize_t size = PySequence_Size(field);
+    if (-1 == size) {
+      Py_DECREF(seq_field);
+      Py_DECREF(field);
+      return false;
+    }
+    if (!{{ nested_type }}__Sequence__init(&(ros_message->{{ member.name }}), size)) {
+      PyErr_SetString(PyExc_RuntimeError, "unable to create {{ nested_type }}__Sequence ros_message");
+      Py_DECREF(seq_field);
+      Py_DECREF(field);
+      return false;
+    }
+    {{ nested_type }} * dest = ros_message->{{ member.name }}.data;
+{%       else %}
+    Py_ssize_t size = {{ member.type.size }};
+    {{ nested_type }} * dest = ros_message->{{ member.name }};
+{%       endif %}
+    for (Py_ssize_t i = 0; i < size; ++i) {
+      if (!{{join(type_.namespaces, "__") + "__" + convert_camel_case_to_lower_case_underscore(type_.name) }}__convert_from_py(PySequence_Fast_GET_ITEM(seq_field, i), &dest[i])) {
+        Py_DECREF(seq_field);
+        Py_DECREF(field);
+        return false;
+      }
+    }
+    Py_DECREF(seq_field);
+{%     else %}
+    if (!{{ join(type_.namespaces, "__") + "__" + convert_camel_case_to_lower_case_underscore(type_.name) }}__convert_from_py(field, &ros_message->{{ member.name }})) {
+      Py_DECREF(field);
+      return false;
+    }
+{%     endif %}
+{%   else if is_nestedtype(member.type) %}
+{%     if member.type.name == "sequence" and (is_primitive(member.type.value_type) and not is_string(member.type.value_type)) %}
+    if (PyObject_CheckBuffer(field)) {
+      // Optimization for converting arrays of primitives
+      Py_buffer view;
+      int rc = PyObject_GetBuffer(field, &view, PyBUF_SIMPLE);
+      if (rc < 0) {
+        Py_DECREF(field);
+        return false;
+      }
+      Py_ssize_t size = view.len / sizeof({{ primitive_msg_type_to_c(member.type.value_type) }});
+      if (!rosidl_runtime_c__{{ member.type.value_type.name }}__Sequence__init(&(ros_message->{{ member.name }}), size)) {
+        PyErr_SetString(PyExc_RuntimeError, "unable to create {{ member.type.value_type.name }}__Sequence ros_message");
+        PyBuffer_Release(&view);
+        Py_DECREF(field);
+        return false;
+      }
+      {{ primitive_msg_type_to_c(member.type.value_type) }} * dest = ros_message->{{ member.name }}.data;
+      rc = PyBuffer_ToContiguous(dest, &view, view.len, 'C');
+      if (rc < 0) {
+        PyBuffer_Release(&view);
+        Py_DECREF(field);
+        return false;
+      }
+      PyBuffer_Release(&view);
+    } else {
+{%     else %}
+    {
+{%     endif %}
+{%     if member.type.name == "array" and (is_primitive(member.type.value_type) and not is_string(member.type.value_type)) and get_special_nested_basic_type(member.type.value_type) %}
+      // TODO(dirk-thomas) use a better way to check the type before casting
+      assert(field->ob_type != NULL);
+      assert(field->ob_type->tp_name != NULL);
+      assert(strcmp(field->ob_type->tp_name, "numpy.ndarray") == 0);
+      PyArrayObject * seq_field = (PyArrayObject *)field;
+      Py_INCREF(seq_field);
+      assert(PyArray_NDIM(seq_field) == 1);
+      assert(PyArray_TYPE(seq_field) == {{ upper(replace(get_special_nested_basic_type(member.type.value_type).dtype, "numpy.", "NPY_")) }});
+{%     else %}
+      PyObject * seq_field = PySequence_Fast(field, "expected a sequence in '{{ member.name }}'");
+      if (!seq_field) {
+        Py_DECREF(field);
+        return false;
+      }
+{%     endif %}
+{%     if member.type.name == "sequence" %}
+      Py_ssize_t size = PySequence_Size(field);
+      if (-1 == size) {
+        Py_DECREF(seq_field);
+        Py_DECREF(field);
+        return false;
+      }
+{%       if member.type.value_type.name == "string" %}
+      if (!rosidl_runtime_c__String__Sequence__init(&(ros_message->{{ member.name }}), size)) {
+        PyErr_SetString(PyExc_RuntimeError, "unable to create String__Sequence ros_message");
+        Py_DECREF(seq_field);
+        Py_DECREF(field);
+        return false;
+      }
+{%       else if member.type.value_type.name == "wstring" %}
+      if (!rosidl_runtime_c__U16String__Sequence__init(&(ros_message->{{ member.name }}), size)) {
+        PyErr_SetString(PyExc_RuntimeError, "unable to create U16String__Sequence ros_message");
+        Py_DECREF(seq_field);
+        Py_DECREF(field);
+        return false;
+      }
+{%       else %}
+      if (!rosidl_runtime_c__{{ member.type.value_type.name }}__Sequence__init(&(ros_message->{{ member.name }}), size)) {
+        PyErr_SetString(PyExc_RuntimeError, "unable to create {{ member.type.value_type.name }}__Sequence ros_message");
+        Py_DECREF(seq_field);
+        Py_DECREF(field);
+        return false;
+      }
+{%       endif %}
+      {{ primitive_msg_type_to_c(member.type.value_type) }} * dest = ros_message->{{ member.name }}.data;
+{%     else %}
+      Py_ssize_t size = {{ member.type.size }};
+      {{ primitive_msg_type_to_c(member.type.value_type) }} * dest = ros_message->{{ member.name }};
+{%     endif %}
+      for (Py_ssize_t i = 0; i < size; ++i) {
+{%     if member.type.name != "array" or not get_special_nested_basic_type(member.type.value_type) %}
+        PyObject * item = PySequence_Fast_GET_ITEM(seq_field, i);
+        if (!item) {
+          Py_DECREF(seq_field);
+          Py_DECREF(field);
+          return false;
+        }
+{%     endif %}
+{%     if member.type.name == "array" and (is_primitive(member.type.value_type) and not is_string(member.type.value_type)) and get_special_nested_basic_type(member.type.value_type) %}
+        {{ primitive_msg_type_to_c(member.type.value_type) }} tmp = *({{replace(get_special_nested_basic_type(member.type.value_type).dtype, "numpy.", "npy_") }} *)PyArray_GETPTR1(seq_field, i);
+{%     else if (is_primitive(member.type.value_type) and not is_string(member.type.value_type)) and member.type.value_type.name == "char" %}
+        assert(PyUnicode_Check(item));
+        PyObject * encoded_item = PyUnicode_AsUTF8String(item);
+        if (!encoded_item) {
+          Py_DECREF(seq_field);
+          Py_DECREF(field);
+          return false;
+        }
+        {{ primitive_msg_type_to_c(member.type.value_type) }} tmp = PyBytes_AS_STRING(encoded_item)[0];
+        Py_DECREF(encoded_item);
+{%     else if (is_primitive(member.type.value_type) and not is_string(member.type.value_type)) and member.type.value_type.name == "octet" %}
+        assert(PyBytes_Check(item));
+        {{ primitive_msg_type_to_c(member.type.value_type) }} tmp = PyBytes_AS_STRING(item)[0];
+{%     else if member.type.value_type.name == "string" %}
+        assert(PyUnicode_Check(item));
+        PyObject * encoded_item = PyUnicode_AsUTF8String(item);
+        if (!encoded_item) {
+          Py_DECREF(seq_field);
+          Py_DECREF(field);
+          return false;
+        }
+        rosidl_runtime_c__String__assign(&dest[i], PyBytes_AS_STRING(encoded_item));
+        Py_DECREF(encoded_item);
+{%     else if member.type.value_type.name == "wstring" %}
+        assert(PyUnicode_Check(item));
+        // the returned string starts with a BOM mark and uses native byte order
+        PyObject * encoded_item = PyUnicode_AsUTF16String(item);
+        if (!encoded_item) {
+          Py_DECREF(seq_field);
+          Py_DECREF(field);
+          return false;
+        }
+        char * buffer;
+        Py_ssize_t length;
+        int rc = PyBytes_AsStringAndSize(encoded_item, &buffer, &length);
+        if (rc) {
+          Py_DECREF(encoded_item);
+          Py_DECREF(seq_field);
+          Py_DECREF(field);
+          return false;
+        }
+        // use offset of 2 to skip BOM mark
+        bool succeeded = rosidl_runtime_c__U16String__assignn_from_char(&dest[i], buffer + 2, length - 2);
+        Py_DECREF(encoded_item);
+        if (!succeeded) {
+          Py_DECREF(seq_field);
+          Py_DECREF(field);
+          return false;
+        }
+{%     else if (is_primitive(member.type.value_type) and not is_string(member.type.value_type)) and member.type.value_type.name == "boolean" %}
+        assert(PyBool_Check(item));
+        {{ primitive_msg_type_to_c(member.type.value_type) }} tmp = (item == Py_True);
+{%     else if (is_primitive(member.type.value_type) and not is_string(member.type.value_type)) and is_float(member.type.value_type) %}
+        assert(PyFloat_Check(item));
+{%       if member.type.value_type.name == "float" %}
+        {{ primitive_msg_type_to_c(member.type.value_type) }} tmp = (float)PyFloat_AS_DOUBLE(item);
+{%       else %}
+        {{ primitive_msg_type_to_c(member.type.value_type) }} tmp = PyFloat_AS_DOUBLE(item);
+{%       endif %}
+{%     else if (is_primitive(member.type.value_type) and not is_string(member.type.value_type)) and (is_signed_integer(member.type.value_type) and member.type.value_type.name != "int64") %}
+        assert(PyLong_Check(item));
+        {{ primitive_msg_type_to_c(member.type.value_type) }} tmp = ({{ primitive_msg_type_to_c(member.type.value_type) }})PyLong_AsLong(item);
+{%     else if (is_primitive(member.type.value_type) and not is_string(member.type.value_type)) and (is_unsigned_integer(member.type.value_type) and member.type.value_type.name != "uint64") %}
+        assert(PyLong_Check(item));
+{%       if (is_primitive(member.type.value_type) and not is_string(member.type.value_type)) and member.type.value_type.name == "uint32" %}
+        {{ primitive_msg_type_to_c(member.type.value_type) }} tmp = PyLong_AsUnsignedLong(item);
+
+{%       else %}
+        {{ primitive_msg_type_to_c(member.type.value_type) }} tmp = ({{ primitive_msg_type_to_c(member.type.value_type) }})PyLong_AsUnsignedLong(item);
+
+{%       endif %}
+{%     else if (is_primitive(member.type.value_type) and not is_string(member.type.value_type)) and member.type.value_type.name == "int64" %}
+        assert(PyLong_Check(item));
+        {{ primitive_msg_type_to_c(member.type.value_type) }} tmp = PyLong_AsLongLong(item);
+{%     else if (is_primitive(member.type.value_type) and not is_string(member.type.value_type)) and member.type.value_type.name == "uint64" %}
+        assert(PyLong_Check(item));
+        {{ primitive_msg_type_to_c(member.type.value_type) }} tmp = PyLong_AsUnsignedLongLong(item);
+{%     endif %}
+{%     if (is_primitive(member.type.value_type) and not is_string(member.type.value_type)) %}
+        memcpy(&dest[i], &tmp, sizeof({{ primitive_msg_type_to_c(member.type.value_type) }}));
+{%     endif %}
+      }
+      Py_DECREF(seq_field);
+    }
+{%   else if (is_primitive(member.type) and not is_string(member.type)) and member.type.name == "char" %}
+    assert(PyUnicode_Check(field));
+    PyObject * encoded_field = PyUnicode_AsUTF8String(field);
+    if (!encoded_field) {
+      Py_DECREF(field);
+      return false;
+    }
+    ros_message->{{ member.name }} = PyBytes_AS_STRING(encoded_field)[0];
+    Py_DECREF(encoded_field);
+{%   else if (is_primitive(member.type) and not is_string(member.type)) and member.type.name == "octet" %}
+    assert(PyBytes_Check(field));
+    ros_message->{{ member.name }} = PyBytes_AS_STRING(field)[0];
+{%   else if member.type.name == "string" %}
+    assert(PyUnicode_Check(field));
+    PyObject * encoded_field = PyUnicode_AsUTF8String(field);
+    if (!encoded_field) {
+      Py_DECREF(field);
+      return false;
+    }
+    rosidl_runtime_c__String__assign(&ros_message->{{ member.name }}, PyBytes_AS_STRING(encoded_field));
+    Py_DECREF(encoded_field);
+{%   else if member.type.name == "wstring" %}
+    assert(PyUnicode_Check(field));
+    // the returned string starts with a BOM mark and uses native byte order
+    PyObject * encoded_field = PyUnicode_AsUTF16String(field);
+    if (!encoded_field) {
+      Py_DECREF(field);
+      return false;
+    }
+    char * buffer;
+    Py_ssize_t length;
+    int rc = PyBytes_AsStringAndSize(encoded_field, &buffer, &length);
+    if (rc) {
+      Py_DECREF(encoded_field);
+      Py_DECREF(field);
+      return false;
+    }
+    // use offset of 2 to skip BOM mark
+    {
+      bool succeeded = rosidl_runtime_c__U16String__assignn_from_char(&ros_message->{{ member.name }}, buffer + 2, length - 2);
+      Py_DECREF(encoded_field);
+      if (!succeeded) {
+        Py_DECREF(field);
+        return false;
+      }
+    }
+{%   else if (is_primitive(member.type) and not is_string(member.type)) and member.type.name == "boolean" %}
+    assert(PyBool_Check(field));
+    ros_message->{{ member.name }} = (Py_True == field);
+{%   else if (is_primitive(member.type) and not is_string(member.type)) and is_float(member.type) %}
+    assert(PyFloat_Check(field));
+{%     if member.type.name == "float" %}
+    ros_message->{{ member.name }} = (float)PyFloat_AS_DOUBLE(field);
+{%     else %}
+    ros_message->{{ member.name }} = PyFloat_AS_DOUBLE(field);
+{%     endif %}
+{%   else if (is_primitive(member.type) and not is_string(member.type)) and (is_signed_integer(member.type) and member.type.name != "int64") %}
+    assert(PyLong_Check(field));
+    ros_message->{{ member.name }} = ({{ primitive_msg_type_to_c(member.type) }})PyLong_AsLong(field);
+{%   else if (is_primitive(member.type) and not is_string(member.type)) and (is_unsigned_integer(member.type) and member.type.name != "uint64") %}
+    assert(PyLong_Check(field));
+{%     if member.type.name == "uint32" %}
+    ros_message->{{ member.name }} = PyLong_AsUnsignedLong(field);
+{%     else %}
+    ros_message->{{ member.name }} = ({{ primitive_msg_type_to_c(member.type) }})PyLong_AsUnsignedLong(field);
+{%     endif %}
+{%   else if (is_primitive(member.type) and not is_string(member.type)) and member.type.name == "int64" %}
+    assert(PyLong_Check(field));
+    ros_message->{{ member.name }} = PyLong_AsLongLong(field);
+{%   else if (is_primitive(member.type) and not is_string(member.type)) and member.type.name == "uint64" %}
+    assert(PyLong_Check(field));
+    ros_message->{{ member.name }} = PyLong_AsUnsignedLongLong(field);
+{%   else %}
+    assert(false);
+{%   endif %}
+    Py_DECREF(field);
+  }
+{%   endif %}
+{% endfor %}
+
+  return true;
+}
+
+ROSIDL_GENERATOR_C_EXPORT
+PyObject * {{ join(message.type.namespaces, "__") + "__" + convert_camel_case_to_lower_case_underscore(message.type.name) }}__convert_to_py(void * raw_ros_message)
+{
+  /* NOTE(esteve): Call constructor of {{ message.type.name }} */
+  PyObject * _pymessage = NULL;
+  {
+    PyObject * pymessage_module = PyImport_ImportModule("{{join(message.type.namespaces, ".") }}.{{ module_name }}");
+    assert(pymessage_module);
+    PyObject * pymessage_class = PyObject_GetAttrString(pymessage_module, "{{ message.type.name }}");
+    assert(pymessage_class);
+    Py_DECREF(pymessage_module);
+    _pymessage = PyObject_CallObject(pymessage_class, NULL);
+    Py_DECREF(pymessage_class);
+    if (!_pymessage) {
+      return NULL;
+    }
+  }
+{% if length(message.members) == 1 and message.members.0.name == EMPTY_STRUCTURE_REQUIRED_MEMBER_NAME %}
+  (void)raw_ros_message;
+{% else %}
+  {{ msg_typename }} * ros_message = ({{ msg_typename }} *)raw_ros_message;
+{% endif %}
+{% for member in message.members %}
+{%   if length(message.members) != 1 or member.name != EMPTY_STRUCTURE_REQUIRED_MEMBER_NAME %}
+{%   set type_ = member.type %}
+{%   if is_nestedtype(type_) %}
+{%     set type_ = type_.value_type %}
+{%   endif %}
+  {  // {{ member.name }}
+    PyObject * field = NULL;
+{%  if is_nestedtype(member.type) and (is_primitive(member.type.value_type) and not is_string(member.type.value_type)) and get_special_nested_basic_type(member.type.value_type) %}
+{%     if member.type.name == "array" %}
+    field = PyObject_GetAttrString(_pymessage, "{{ member.name }}");
+    if (!field) {
+      return NULL;
+    }
+    assert(field->ob_type != NULL);
+    assert(field->ob_type->tp_name != NULL);
+    assert(strcmp(field->ob_type->tp_name, "numpy.ndarray") == 0);
+    PyArrayObject * seq_field = (PyArrayObject *)field;
+    assert(PyArray_NDIM(seq_field) == 1);
+    assert(PyArray_TYPE(seq_field) == {{ upper(replace(get_special_nested_basic_type(member.type.value_type).dtype, "numpy.", "NPY_")) }});
+    assert(sizeof({{ replace(get_special_nested_basic_type(member.type.value_type).dtype, "numpy.", "npy_") }}) == sizeof({{ primitive_msg_type_to_c(member.type.value_type) }}));
+    {{ replace(get_special_nested_basic_type(member.type.value_type).dtype, "numpy.", "npy_") }} * dst = ({{ replace(get_special_nested_basic_type(member.type.value_type).dtype, "numpy.", "npy_") }} *)PyArray_GETPTR1(seq_field, 0);
+    {{ primitive_msg_type_to_c(member.type.value_type) }} * src = &(ros_message->{{ member.name }}[0]);
+    memcpy(dst, src, {{ member.type.size }} * sizeof({{ primitive_msg_type_to_c(member.type.value_type) }}));
+    Py_DECREF(field);
+{%     else if member.type.name == "sequence" %}
+    field = PyObject_GetAttrString(_pymessage, "{{ member.name }}");
+    if (!field) {
+      return NULL;
+    }
+    assert(field->ob_type != NULL);
+    assert(field->ob_type->tp_name != NULL);
+    assert(strcmp(field->ob_type->tp_name, "array.array") == 0);
+    // ensure that itemsize matches the sizeof of the ROS message field
+    PyObject * itemsize_attr = PyObject_GetAttrString(field, "itemsize");
+    assert(itemsize_attr != NULL);
+    size_t itemsize = PyLong_AsSize_t(itemsize_attr);
+    Py_DECREF(itemsize_attr);
+    if (itemsize != sizeof({{ primitive_msg_type_to_c(member.type.value_type) }})) {
+      PyErr_SetString(PyExc_RuntimeError, "itemsize doesn't match expectation");
+      Py_DECREF(field);
+      return NULL;
+    }
+    // clear the array, poor approach to remove potential default values
+    Py_ssize_t length = PyObject_Length(field);
+    if (-1 == length) {
+      Py_DECREF(field);
+      return NULL;
+    }
+    if (length > 0) {
+      PyObject * pop = PyObject_GetAttrString(field, "pop");
+      assert(pop != NULL);
+      for (Py_ssize_t i = 0; i < length; ++i) {
+        PyObject * ret = PyObject_CallFunctionObjArgs(pop, NULL);
+        if (!ret) {
+          Py_DECREF(pop);
+          Py_DECREF(field);
+          return NULL;
+        }
+        Py_DECREF(ret);
+      }
+      Py_DECREF(pop);
+    }
+    if (ros_message->{{ member.name }}.size > 0) {
+      // populating the array.array using the frombytes method
+      PyObject * frombytes = PyObject_GetAttrString(field, "frombytes");
+      assert(frombytes != NULL);
+      {{ primitive_msg_type_to_c(member.type.value_type) }} * src = &(ros_message->{{ member.name }}.data[0]);
+      PyObject * data = PyBytes_FromStringAndSize((const char *)src, ros_message->{{ member.name }}.size * sizeof({{ primitive_msg_type_to_c(member.type.value_type) }}));
+      assert(data != NULL);
+      PyObject * ret = PyObject_CallFunctionObjArgs(frombytes, data, NULL);
+      Py_DECREF(data);
+      Py_DECREF(frombytes);
+      if (!ret) {
+        Py_DECREF(field);
+        return NULL;
+      }
+      Py_DECREF(ret);
+    }
+    Py_DECREF(field);
+{%     endif %}
+{%  else %}
+{%   if existsIn(type_, "namespaces") %}
+{% set nested_type = join(type_.namespaces, "__") + "__" + type_.name %}
+{%     if is_nestedtype(member.type) %}
+{%       if member.type.name == "sequence" %}
+    size_t size = ros_message->{{ member.name }}.size;
+{%       else %}
+    size_t size = {{ member.type.size }};
+{%       endif %}
+    field = PyList_New(size);
+    if (!field) {
+      return NULL;
+    }
+    {{ nested_type }} * item;
+    for (size_t i = 0; i < size; ++i) {
+{%       if member.type.name == "sequence" %}
+      item = &(ros_message->{{ member.name }}.data[i]);
+{%       else %}
+      item = &(ros_message->{{ member.name }}[i]);
+{%       endif %}
+      PyObject * pyitem = {{ join(type_.namespaces, "__") + "__" + convert_camel_case_to_lower_case_underscore(type_.name) }}__convert_to_py(item);
+      if (!pyitem) {
+        Py_DECREF(field);
+        return NULL;
+      }
+      int rc = PyList_SetItem(field, i, pyitem);
+      (void)rc;
+      assert(rc == 0);
+    }
+    assert(PySequence_Check(field));
+{%     else %}
+    field = {{ join(type_.namespaces, "__") + "__" + convert_camel_case_to_lower_case_underscore(type_.name) }}__convert_to_py(&ros_message->{{ member.name }});
+    if (!field) {
+      return NULL;
+    }
+{%     endif %}
+{%   else if is_nestedtype(member.type) %}
+{%     if member.type.name == "sequence" %}
+    size_t size = ros_message->{{ member.name }}.size;
+    {{ primitive_msg_type_to_c(member.type.value_type) }} * src = ros_message->{{ member.name }}.data;
+{%     else %}
+    size_t size = {{ member.type.size }};
+    {{ primitive_msg_type_to_c(member.type.value_type) }} * src = ros_message->{{ member.name }};
+{%     endif %}
+    field = PyList_New(size);
+    if (!field) {
+      return NULL;
+    }
+    for (size_t i = 0; i < size; ++i) {
+{%     if (is_primitive(member.type.value_type) and not is_string(member.type.value_type)) and member.type.value_type.name == "char" %}
+      int rc = PyList_SetItem(field, i, Py_BuildValue("C", src[i]));
+      (void)rc;
+      assert(rc == 0);
+{%     else if (is_primitive(member.type.value_type) and not is_string(member.type.value_type)) and member.type.value_type.name == "octet" %}
+      int rc = PyList_SetItem(field, i, PyBytes_FromStringAndSize((const char *)&src[i], 1));
+      (void)rc;
+      assert(rc == 0);
+{%     else if member.type.value_type.name == "string" %}
+      PyObject * decoded_item = PyUnicode_DecodeUTF8(src[i].data, strlen(src[i].data), "replace");
+      if (!decoded_item) {
+        return NULL;
+      }
+      int rc = PyList_SetItem(field, i, decoded_item);
+      (void)rc;
+      assert(rc == 0);
+{%     else if member.type.value_type.name == "wstring" %}
+      int byteorder = 0;
+      PyObject * decoded_item = PyUnicode_DecodeUTF16((const char *)src[i].data, src[i].size * sizeof(uint16_t), NULL, &byteorder);
+      if (!decoded_item) {
+        return NULL;
+      }
+      int rc = PyList_SetItem(field, i, decoded_item);
+      (void)rc;
+      assert(rc == 0);
+{%     else if (is_primitive(member.type.value_type) and not is_string(member.type.value_type)) and member.type.value_type.name == "boolean" %}
+{# using PyBool_FromLong because PyList_SetItem will steal ownership of the passed item #}
+      int rc = PyList_SetItem(field, i, PyBool_FromLong(src[i] ? 1 : 0));
+      (void)rc;
+      assert(rc == 0);
+{%     else if (is_primitive(member.type.value_type) and not is_string(member.type.value_type)) and is_float(member.type.value_type) %}
+      int rc = PyList_SetItem(field, i, PyFloat_FromDouble(src[i]));
+      (void)rc;
+      assert(rc == 0);
+{%    else if (is_primitive(member.type.value_type) and not is_string(member.type.value_type)) and (is_signed_integer(member.type.value_type) and member.type.value_type.name != "int64") %}
+      int rc = PyList_SetItem(field, i, PyLong_FromLong(src[i]));
+      (void)rc;
+      assert(rc == 0);
+{%    else if (is_primitive(member.type.value_type) and not is_string(member.type.value_type)) and (is_unsigned_integer(member.type.value_type) and member.type.value_type.name != "uint64") %}
+      int rc = PyList_SetItem(field, i, PyLong_FromUnsignedLong(src[i]));
+      (void)rc;
+      assert(rc == 0);
+{%     else if (is_primitive(member.type.value_type) and not is_string(member.type.value_type)) and member.type.value_type.name == "int64" %}
+      int rc = PyList_SetItem(field, i, PyLong_FromLongLong(src[i]));
+      (void)rc;
+      assert(rc == 0);
+{%     else if (is_primitive(member.type.value_type) and not is_string(member.type.value_type)) and member.type.value_type.name == "uint64" %}
+      int rc = PyList_SetItem(field, i, PyLong_FromUnsignedLongLong(src[i]));
+      (void)rc;
+      assert(rc == 0);
+{%     endif %}
+    }
+    assert(PySequence_Check(field));
+{%   else if (is_primitive(member.type) and not is_string(member.type)) and member.type.name == "char" %}
+    field = Py_BuildValue("C", ros_message->{{ member.name }});
+    if (!field) {
+      return NULL;
+    }
+{%   else if (is_primitive(member.type) and not is_string(member.type)) and member.type.name == "octet" %}
+    field = PyBytes_FromStringAndSize((const char *)&ros_message->{{ member.name }}, 1);
+    if (!field) {
+      return NULL;
+    }
+{%   else if member.type.name == "string" %}
+    field = PyUnicode_DecodeUTF8(
+      ros_message->{{ member.name }}.data,
+      strlen(ros_message->{{ member.name }}.data),
+      "replace");
+    if (!field) {
+      return NULL;
+    }
+{%   else if member.type.name == "wstring" %}
+    int byteorder = 0;
+    field = PyUnicode_DecodeUTF16(
+      (const char *)ros_message->{{ member.name }}.data,
+      ros_message->{{ member.name }}.size * sizeof(uint16_t),
+      NULL, &byteorder);
+    if (!field) {
+      return NULL;
+    }
+{%   else if (is_primitive(member.type) and not is_string(member.type)) and member.type.name == "boolean" %}
+{# using PyBool_FromLong allows treating the variable uniformly by calling Py_DECREF on it later #}
+    field = PyBool_FromLong(ros_message->{{ member.name }} ? 1 : 0);
+{%   else if (is_primitive(member.type) and not is_string(member.type)) and is_float(member.type) %}
+    field = PyFloat_FromDouble(ros_message->{{ member.name }});
+{%  else if (is_primitive(member.type) and not is_string(member.type)) and (is_signed_integer(member.type) and member.type.name != "int64") %}
+    field = PyLong_FromLong(ros_message->{{ member.name }});
+{%  else if (is_primitive(member.type) and not is_string(member.type)) and (is_unsigned_integer(member.type) and member.type.name != "uint64") %}
+    field = PyLong_FromUnsignedLong(ros_message->{{ member.name }});
+{%   else if (is_primitive(member.type) and not is_string(member.type)) and member.type.name == "int64" %}
+    field = PyLong_FromLongLong(ros_message->{{ member.name }});
+{%   else if (is_primitive(member.type) and not is_string(member.type)) and member.type.name == "uint64" %}
+    field = PyLong_FromUnsignedLongLong(ros_message->{{ member.name }});
+{%   else %}
+    assert(false);
+{%   endif %}
+    {
+      int rc = PyObject_SetAttrString(_pymessage, "{{ member.name }}", field);
+      Py_DECREF(field);
+      if (rc) {
+        return NULL;
+      }
+    }
+{%  endif %}
+  }
+{%   endif %}
+{% endfor %}
+
+  // ownership of _pymessage is transferred to the caller
+  return _pymessage;
+}

@@ -1,0 +1,48 @@
+{# Included from rosidl_generator_py/resource/_idl.py.em #}
+{% set service_name = "_" + convert_camel_case_to_lower_case_underscore(service.type.name) %}
+{% set module_name = "_" + convert_camel_case_to_lower_case_underscore(interface_path.filename) %}
+{% set message = service.request_message %}
+{% include "_msg.py.template" %}
+{% set message = service.response_message %}
+{% include "_msg.py.template" %}
+{% set message = service.event_message %}
+{% include "_msg.py.template" %}
+
+
+class Metaclass_{{ service.type.name }}(type):
+    """Metaclass of service '{{ service.type.name }}'."""
+
+    _TYPE_SUPPORT = None
+
+    @classmethod
+    def __import_type_support__(cls):
+        try:
+            from rosidl_generator_py import import_type_support
+            module = import_type_support('{{ package_name }}')
+        except ImportError:
+            import logging
+            import traceback
+            logger = logging.getLogger(
+                '{{ join(service.type.namespaces, ".") + "." + service.type.name }}')
+            logger.debug(
+                'Failed to import needed modules for type support:\n' +
+                traceback.format_exc())
+        else:
+            cls._TYPE_SUPPORT = module.type_support_srv__{{ join(span(service.type.namespaces, 1, length(service.type.namespaces)), "__") }}_{{ service_name }}
+
+            from {{ join(service.type.namespaces, ".") }} import {{ module_name }}
+            if {{ module_name }}.Metaclass_{{ service.request_message.type.name }}._TYPE_SUPPORT is None:
+                {{ module_name }}.Metaclass_{{ service.request_message.type.name }}.__import_type_support__()
+            if {{ module_name }}.Metaclass_{{ service.response_message.type.name }}._TYPE_SUPPORT is None:
+                {{ module_name }}.Metaclass_{{ service.response_message.type.name }}.__import_type_support__()
+            if {{ module_name }}.Metaclass_{{ service.event_message.type.name }}._TYPE_SUPPORT is None:
+                {{ module_name }}.Metaclass_{{ service.event_message.type.name }}.__import_type_support__()
+
+
+class {{ service.type.name }}(metaclass=Metaclass_{{ service.type.name }}):
+    from {{ join(service.type.namespaces, ".") }}.{{ module_name }} import {{ service.request_message.type.name }} as Request
+    from {{ join(service.type.namespaces, ".") }}.{{ module_name }} import {{ service.response_message.type.name }} as Response
+    from {{ join(service.type.namespaces, ".") }}.{{ module_name }} import {{ service.event_message.type.name }} as Event
+
+    def __init__(self):
+        raise NotImplementedError('Service classes can not be instantiated')

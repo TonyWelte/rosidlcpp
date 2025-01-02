@@ -1,29 +1,42 @@
 #pragma once
 
+#include <nlohmann/json_fwd.hpp>
+#include <string>
 #include <string_view>
 
 #include <nlohmann/json.hpp>
+#include <utility>
 
 namespace rosidlcpp_parser {
 
-auto remove_white_space(std::string_view& content_view) -> void;
-auto remove_comment(std::string_view& content_view) -> void;
-auto remove_white_space_and_comment(std::string_view& content_view) -> void;
+using TypedefMap = std::unordered_map<std::string, std::string>;
+
+std::vector<std::string> split_string(std::string_view value, std::string_view sep);
+
+auto consume_white_space(std::string_view& content_view) -> void;
+auto consume_comment(std::string_view& content_view) -> void;
+auto consume_white_space_and_comment(std::string_view& content_view) -> void;
 
 
 auto parse_include(std::string_view& content_view) -> std::string_view;
-auto parse_string(std::string_view& content_view, char delimiter) -> std::string;
-auto parse_string_part(std::string_view& content_view, char delimiter) -> std::string_view;
+auto parse_string(std::string_view& content_view) -> std::string;
+auto parse_string_part(std::string_view& content_view) -> std::string;
+auto parse_string_python(std::string_view& content_view) -> std::string;
+auto interpret_type(std::string_view content_view, TypedefMap typedefs = {}) -> nlohmann::json;
+auto parse_type(std::string_view& content_view) -> std::string_view;
 auto parse_name(std::string_view& content_view) -> std::string_view;
 auto parse_value(std::string_view& content_view) -> nlohmann::json;
-auto parse_constant(std::string_view& content_view) -> nlohmann::json;
-auto parse_member(std::string_view& content_view) -> nlohmann::json;
+auto parse_constant(std::string_view& content_view, TypedefMap typedefs = {}) -> nlohmann::json;
+auto parse_member(std::string_view& content_view, TypedefMap typedefs = {}) -> nlohmann::json;
 auto parse_attribute(std::string_view& content_view) -> nlohmann::json;
-auto parse_typedef(std::string_view& content_view) -> nlohmann::json;
-auto parse_structure(std::string_view& content_view) -> nlohmann::json;
-auto parse_module(std::string_view& content_view) -> nlohmann::json;
+auto parse_typedef(std::string_view& content_view) -> std::pair<std::string, std::string>;
+auto parse_structure(std::string_view& content_view, TypedefMap typedefs = {}) -> nlohmann::json;
+auto parse_module(std::string_view& content_view, TypedefMap tyepdefs = {}) -> nlohmann::json;
+
+auto parse_default_list(std::string_view default_value) -> nlohmann::json;
 
 auto parse_idl_file(const std::string& filename) -> nlohmann::json;
 auto parse_ros_idl_file(const std::string& filename) -> nlohmann::json;
 
+auto convert_idljson_to_rosjson(const nlohmann::json& idl_json) -> nlohmann::json;
 }

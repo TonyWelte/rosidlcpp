@@ -1,0 +1,67 @@
+// generated from rosidl_generator_py/resource/_idl_pkg_typesupport_entry_point.c.em
+// generated code does not contain a copyright notice
+{########################################################################}
+{# Handle messages #}
+{########################################################################}
+{% set include_directives = set_global_variable("include_directives", []) %}
+{% set register_functions = set_global_variable("register_functions", []) %}
+#include <Python.h>
+
+static PyMethodDef {{ package_name }}__methods[] = {
+  {NULL, NULL, 0, NULL}  /* sentinel */
+};
+
+static struct PyModuleDef {{ package_name }}__module = {
+  PyModuleDef_HEAD_INIT,
+  "_{{ package_name }}_support",
+  "_{{ package_name }}_doc",
+  -1,  /* -1 means that the module keeps state in global variables */
+  {{ package_name }}__methods,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+};
+
+{% for message_obj in messages %}
+{% set message = message_obj.message %}
+{% set interface_path = message_obj.interface_path %}
+{% include "_msg_pkg_typesupport_entry_point.c.template" %}
+
+{% endfor %}
+{########################################################################}
+{# Handle services #}
+{########################################################################}
+{% for service in services %}
+{% set interface_path = service.interface_path %}
+{% include "_srv_pkg_typesupport_entry_point.c.template" %}
+
+{% endfor %}
+{########################################################################}
+{# Handle actions #}
+{########################################################################}
+{% for action in actions %}
+{% set interface_path = action.interface_path %}
+{% include "_action_pkg_typesupport_entry_point.c.template" %}
+
+{% endfor %}
+PyMODINIT_FUNC
+PyInit_{{ package_name }}_s__{{ typesupport_impl }}(void)
+{
+  PyObject * pymodule = NULL;
+  pymodule = PyModule_Create(&{{ package_name }}__module);
+  if (!pymodule) {
+    return NULL;
+  }
+  int8_t err;
+{% for register_function in get_global_variable("register_functions") %}
+
+  err = {{ register_function }}(pymodule);
+  if (err) {
+    Py_XDECREF(pymodule);
+    return NULL;
+  }
+{% endfor %}
+
+  return pymodule;
+}

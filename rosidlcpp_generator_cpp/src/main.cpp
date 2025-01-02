@@ -30,16 +30,16 @@ nlohmann::json value_array_from_string(std::string_view str) {
     assert(str[0] == '(' && "Array of value should start with '('");
 
     str.remove_prefix(1); // Remove (
-    rosidlcpp_parser::remove_white_space_and_comment(str);
+    rosidlcpp_parser::consume_white_space_and_comment(str);
 
     json result = json::array();
     while (str[0] != ')') {
         result.push_back(rosidlcpp_parser::parse_value(str));
-        rosidlcpp_parser::remove_white_space(str);
+        rosidlcpp_parser::consume_white_space(str);
 
         if (str[0] == ',') {
             str.remove_prefix(1);
-            rosidlcpp_parser::remove_white_space(str);
+            rosidlcpp_parser::consume_white_space(str);
         }
     }
 

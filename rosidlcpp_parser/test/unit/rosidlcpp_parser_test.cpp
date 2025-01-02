@@ -5,7 +5,9 @@
 
 #include <nlohmann/json.hpp>
 
+#include <string>
 #include <string_view>
+#include <utility>
 
 using namespace rosidlcpp_parser;
 
@@ -15,16 +17,16 @@ TEST(RosIdlParserTest, RemoveWhiteSpace) {
     std::string_view test_string_3 = "  \ta";
     std::string_view test_string_4 = "b  \ta";
 
-    remove_white_space(test_string_1);
+    consume_white_space(test_string_1);
     EXPECT_EQ(test_string_1, "a");
 
-    remove_white_space(test_string_2);
+    consume_white_space(test_string_2);
     EXPECT_EQ(test_string_2, "a");
 
-    remove_white_space(test_string_3);
+    consume_white_space(test_string_3);
     EXPECT_EQ(test_string_3, "a");
 
-    remove_white_space(test_string_4);
+    consume_white_space(test_string_4);
     EXPECT_EQ(test_string_4, "b  \ta");
 }
 
@@ -33,13 +35,13 @@ TEST(RosIdlParserTest, RemoveComment) {
     std::string_view test_string_2 = "// This is a test comment\n// This is the next line";
     std::string_view test_string_3 = "This is not a comment";
 
-    remove_comment(test_string_1);
+    consume_comment(test_string_1);
     EXPECT_EQ(test_string_1, "");
 
-    remove_comment(test_string_2);
+    consume_comment(test_string_2);
     EXPECT_EQ(test_string_2, "// This is the next line");
 
-    remove_comment(test_string_3);
+    consume_comment(test_string_3);
     EXPECT_EQ(test_string_3, "This is not a comment");
 }
 
@@ -48,13 +50,13 @@ TEST(RosIdlParserTest, RemoveWhiteSpaceAndComment) {
     std::string_view test_string_2 = "  \t// This is another one line comment\nThis is not a comment";
     std::string_view test_string_3 = "  // This is a multiline comment\n// This is the next line\nThis is not a comment";
 
-    remove_white_space_and_comment(test_string_1);
+    consume_white_space_and_comment(test_string_1);
     EXPECT_EQ(test_string_1, "");
 
-    remove_white_space_and_comment(test_string_2);
+    consume_white_space_and_comment(test_string_2);
     EXPECT_EQ(test_string_2, "This is not a comment");
 
-    remove_white_space_and_comment(test_string_3);
+    consume_white_space_and_comment(test_string_3);
     EXPECT_EQ(test_string_3, "This is not a comment");
 }
 
@@ -91,17 +93,17 @@ TEST(RosIdlParserTest, ParseValueString) {
     std::string_view test_string_2 = "\"This is a test string\\\"with escaped elements\"Unparsed data";
     std::string_view test_string_3 = "\"This is a test string\\\"with multiple\\\" escaped elements\"Unparsed data";
 
-    EXPECT_EQ(parse_string(test_string_1, '"'), "This is a test string");
-    EXPECT_EQ(parse_string(test_string_2, '"'), "This is a test string\\\"with escaped elements");
-    EXPECT_EQ(parse_string(test_string_3, '"'), "This is a test string\\\"with multiple\\\" escaped elements");
+    EXPECT_EQ(parse_string(test_string_1), "This is a test string");
+    EXPECT_EQ(parse_string(test_string_2), "This is a test string\\\"with escaped elements");
+    EXPECT_EQ(parse_string(test_string_3), "This is a test string\\\"with multiple\\\" escaped elements");
 }
 
 TEST(RosIdlParserTest, ParseTypedef) {
     std::string_view test_string_1 = "typedef uint8 other_name;";
     std::string_view test_string_2 = "typedef uint8 other_name;\n";
 
-    nlohmann::json result_1 = {{"type", "uint8"}, {"alias", "other_name"}};
-    nlohmann::json result_2 = {{"type", "uint8"}, {"alias", "other_name"}};
+    std::pair<std::string, std::string> result_1 = {"uint8", "other_name"};
+    std::pair<std::string, std::string> result_2 = {"uint8", "other_name"};
 
     EXPECT_EQ(parse_typedef(test_string_1), result_1);
     EXPECT_EQ(parse_typedef(test_string_2), result_2);

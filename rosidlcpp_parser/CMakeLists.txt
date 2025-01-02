@@ -5,7 +5,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
@@ -19,11 +19,14 @@ target_include_directories(rosidlcpp_parser PUBLIC
   "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>")
 
 add_executable(main src/main.cpp)
-target_include_directories(main PUBLIC include)
+target_include_directories(main PUBLIC
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+  "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>")
 target_link_libraries(main rosidlcpp_parser)
 
-install(TARGETS ${PROJECT_NAME}
+install(TARGETS ${PROJECT_NAME} main
   EXPORT export_${PROJECT_NAME}
+  RUNTIME DESTINATION bin
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
 )

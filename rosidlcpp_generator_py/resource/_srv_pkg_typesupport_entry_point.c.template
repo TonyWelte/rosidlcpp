@@ -1,0 +1,42 @@
+{# Included from rosidl_generator_py/resource/_idl_pkg_typesupport_entry_point.c.em #}
+{% set message = service.request_message %}
+{% include "_msg_pkg_typesupport_entry_point.c.template" %}
+
+{% set message = service.response_message %}
+{% include "_msg_pkg_typesupport_entry_point.c.template" %}
+
+{% set message = service.event_message %}
+{% include "_msg_pkg_typesupport_entry_point.c.template" %}
+{% set type_name = convert_camel_case_to_lower_case_underscore(service.type.name) %}
+{% set function_name = "type_support" %}
+
+ROSIDL_GENERATOR_C_IMPORT
+const rosidl_service_type_support_t *
+ROSIDL_TYPESUPPORT_INTERFACE__SERVICE_SYMBOL_NAME(rosidl_typesupport_c, {{ join(service.type.namespaces, ", ") + ", " + service.type.name }})();
+
+{% set register_function = "_register_srv_type__" + join(span(service.type.namespaces, 1, length(service.type.namespaces)), "__") + "__" + type_name %}
+{% set register_functions = set_global_variable("register_functions", push_back(get_global_variable("register_functions"), register_function)) %}
+int8_t
+{{ register_function }}(PyObject * pymodule)
+{
+  int8_t err;
+  PyObject * pyobject_{{ function_name }} = NULL;
+  pyobject_{{ function_name }} = PyCapsule_New(
+    (void *)ROSIDL_TYPESUPPORT_INTERFACE__SERVICE_SYMBOL_NAME(rosidl_typesupport_c, {{ join(service.type.namespaces, ", ") + ", " + service.type.name }})(),
+    NULL, NULL);
+  if (!pyobject_{{ function_name }}) {
+    // previously added objects will be removed when the module is destroyed
+    return -1;
+  }
+  err = PyModule_AddObject(
+    pymodule,
+    "{{ function_name }}_srv__{{ join(span(service.type.namespaces, 1, length(service.type.namespaces)), "__") + "__" + type_name }}",
+    pyobject_{{ function_name }});
+  if (err) {
+    // the created capsule needs to be decremented
+    Py_XDECREF(pyobject_{{ function_name }});
+    // previously added objects will be removed when the module is destroyed
+    return err;
+  }
+  return 0;
+}

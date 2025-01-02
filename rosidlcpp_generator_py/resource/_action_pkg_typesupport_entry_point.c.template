@@ -1,0 +1,49 @@
+{% set action_name = "_" + convert_camel_case_to_lower_case_underscore(action.type.name) %}
+{% set module_name = "_" + convert_camel_case_to_lower_case_underscore(interface_path.filename) %}
+{% set message = action.goal %}
+{% include "_msg_pkg_typesupport_entry_point.c.template" %}
+
+{% set message = action.result %}
+{% include "_msg_pkg_typesupport_entry_point.c.template" %}
+
+{% set message = action.feedback %}
+{% include "_msg_pkg_typesupport_entry_point.c.template" %}
+
+{% set service = action.send_goal_service %}
+{% include "_srv_pkg_typesupport_entry_point.c.template" %}
+
+{% set service = action.get_result_service %}
+{% include "_srv_pkg_typesupport_entry_point.c.template" %}
+
+{% set message = action.feedback_message %}
+{% include "_msg_pkg_typesupport_entry_point.c.template" %}
+
+{% set type_name = convert_camel_case_to_lower_case_underscore(action.type.name) %}
+{% set function_name = "type_support" %}
+{% set register_function = "_register_action_type__" + join(span(action.type.namespaces, 1, length(action.type.namespaces)), "__") + "__" + type_name %}
+{% set register_functions = set_global_variable("register_functions", push_back(get_global_variable("register_functions"), register_function)) %}
+
+int8_t
+{{ register_function }}(PyObject * pymodule)
+{
+  int8_t err;
+  PyObject * pyobject_{{ function_name }} = NULL;
+  pyobject_{{ function_name }} = PyCapsule_New(
+    (void *)ROSIDL_TYPESUPPORT_INTERFACE__ACTION_SYMBOL_NAME(rosidl_typesupport_c, {{ join(action.type.namespaces, ", ") + ", " + action.type.name }})(),
+    NULL, NULL);
+  if (!pyobject_{{ function_name }}) {
+    // previously added objects will be removed when the module is destroyed
+    return -1;
+  }
+  err = PyModule_AddObject(
+    pymodule,
+    "{{ function_name }}_action__{{ join(span(action.type.namespaces, 1, length(action.type.namespaces)), "__") + "__" + type_name }}",
+    pyobject_{{ function_name }});
+  if (err) {
+    // the created capsule needs to be decremented
+    Py_XDECREF(pyobject_{{ function_name }});
+    // previously added objects will be removed when the module is destroyed
+    return err;
+  }
+  return 0;
+}

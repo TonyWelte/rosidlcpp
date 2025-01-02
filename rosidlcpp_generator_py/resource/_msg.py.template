@@ -1,0 +1,457 @@
+{% set imports = get_imports(message.members) %}
+{% if imports %}
+
+
+# Import statements for member types
+{%     for import_statement, member_names in imports %}
+
+{%         for member_name in member_names %}
+# Member '{{ member_name }}'
+{%         endfor %}
+{%         set import_statements = get_global_variable("import_statements") %}
+{%         if import_statement in import_statements %}
+# already imported above
+# {%         endif -%}
+{{ import_statement -}}
+{%        if import_statement in import_statements %}
+
+{%        else %}
+{% set import_statements = set_global_variable("import_statements", push_back(import_statements, import_statement)) %}
+  # noqa: E402, I100
+{%        endif %}
+{%     endfor %}
+{% endif %}
+
+
+class Metaclass_{{ message.type.name }}(type):
+    """Metaclass of message '{{ message.type.name }}'."""
+
+    _CREATE_ROS_MESSAGE = None
+    _CONVERT_FROM_PY = None
+    _CONVERT_TO_PY = None
+    _DESTROY_ROS_MESSAGE = None
+    _TYPE_SUPPORT = None
+
+    __constants = {
+{% for constant in message.constants %}
+        '{{ constant.name }}': {{ constant_value_to_py(constant.type, constant.value) }},
+{% endfor %}
+    }
+
+    @classmethod
+    def __import_type_support__(cls):
+        try:
+            from rosidl_generator_py import import_type_support
+            module = import_type_support('{{ package_name }}')
+        except ImportError:
+            import logging
+            import traceback
+            logger = logging.getLogger(
+                '{{ join(message.type.namespaces, ".") + "." + message.type.name }}')
+            logger.debug(
+                'Failed to import needed modules for type support:\n' +
+                traceback.format_exc())
+        else:
+{% set suffix = join(span(message.type.namespaces, 1, length(message.type.namespaces)), "__") + "__" + convert_camel_case_to_lower_case_underscore(message.type.name) %}
+            cls._CREATE_ROS_MESSAGE = module.create_ros_message_msg__{{ suffix }}
+            cls._CONVERT_FROM_PY = module.convert_from_py_msg__{{ suffix }}
+            cls._CONVERT_TO_PY = module.convert_to_py_msg__{{ suffix }}
+            cls._TYPE_SUPPORT = module.type_support_msg__{{ suffix }}
+            cls._DESTROY_ROS_MESSAGE = module.destroy_ros_message_msg__{{ suffix }}
+{% set importable_typesupports = get_importable_typesupports(message.members) %}
+
+{% for typesupport in unique(importable_typesupports) %}
+            from {{join(typesupport.namespaces, ".") }} import {{ typesupport.type }}
+            if {{ typesupport.type2 }}.__class__._TYPE_SUPPORT is None:
+                {{ typesupport.type2 }}.__class__.__import_type_support__()
+
+{% endfor %}
+    @classmethod
+    def __prepare__(cls, name, bases, **kwargs):
+        # list constant names here so that they appear in the help text of
+        # the message class under "Data and other attributes defined here:"
+        # as well as populate each message instance
+        return {
+{% for constant in message.constants %}
+            '{{ constant.name }}': cls.__constants['{{ constant.name }}'],
+{% endfor %}
+{% for member in message.members %}
+{%   if existsIn(member, "default") %}
+            '{{ upper(member.name) }}__DEFAULT': {{ value_to_py(member.type, member.default) }},
+{%   endif %}
+{% endfor %}
+        }
+{% for constant in message.constants %}
+
+    @property
+    def {{ constant.name }}(self):
+        """Message constant '{{ constant.name }}'."""
+        return Metaclass_{{ message.type.name }}.__constants['{{ constant.name }}']
+{% endfor %}
+{% for member in message.members %}
+{%   if existsIn(member, "default") %}
+
+    @property
+    def {{ upper(member.name) }}__DEFAULT(cls):
+        """Return default value for message field '{{ member.name }}'."""
+        return {{ value_to_py(member.type, member.default) }}
+{%   endif %}
+{% endfor %}
+
+
+class {{ message.type.name }}(metaclass=Metaclass_{{ message.type.name }}):
+{% if not message.constants %}
+    """Message class '{{ message.type.name }}'."""
+{% else %}
+    """
+    Message class '{{ message.type.name }}'.
+
+    Constants:
+{%   for constant in message.constants  %}
+      {{ constant.name }}
+{%   endfor %}
+    """
+{% endif %}
+
+    __slots__ = [
+{% for member in message.members %}
+{%   if length(message.members) != 1 or member.name != EMPTY_STRUCTURE_REQUIRED_MEMBER_NAME %}
+        '_{{ member.name }}',
+{%   endif %}
+{% endfor %}
+        '_check_fields',
+    ]
+
+    _fields_and_field_types = {
+{% for member in message.members %}
+{%   if length(message.members) != 1 or member.name != EMPTY_STRUCTURE_REQUIRED_MEMBER_NAME %}
+{% set type_ = member.type %}
+{% if existsIn(type_, "value_type") %}
+{% set type_ = member.type.value_type %}
+{% endif %}
+        '{{ member.name }}': '{% if member.type.name == "sequence" %}sequence<{% endif -%}
+{% if is_primitive(type_) and not is_string(type_) -%}
+{{ type_.name }}{% else if is_string(type_) -%}
+{% if type_.name == "wstring" %}
+w{% endif -%}
+string{% if existsIn(type_, "maximum_size") -%}
+<{{ type_.maximum_size }}>{% endif -%}
+{% else if existsIn(type_, "namespaces") %}
+{{ type_.namespaces.0 + "/" + type_.name }}{% endif -%}
+{# the suffix for nested types #}
+{%- if member.type.name == "sequence" %}
+{%- if existsIn(member.type, "maximum_size") %}
+, {{ member.type.maximum_size }}{% endif -%}
+>{% else if member.type.name == "array" -%}
+[{{ member.type.size }}]{% endif -%}
+',
+{%   endif %}
+{% endfor %}
+    }
+
+    # This attribute is used to store an rosidl_parser.definition variable
+    # related to the data type of each of the components the message.
+    SLOT_TYPES = (
+{% for member in message.members %}
+{% if length(message.members) != 1 or member.name != EMPTY_STRUCTURE_REQUIRED_MEMBER_NAME %}
+{% set type_ = member.type %}
+{% if existsIn(type_, "value_type") %}
+{% set type_ = member.type.value_type %}
+{% endif %}
+{{ "        " -}}
+{% if existsIn(member.type, "value_type") %}
+{{ get_rosidl_parser_type(member.type) }}({% endif %}
+{{ get_rosidl_parser_type(type_) }}({% if is_primitive(type_) and not is_string(type_) %}
+'{{ type_.name }}'{% else if is_string(type_) and existsIn(type_, "maximum_size") %}
+{{ member.type.maximum_size -}}
+{% else if existsIn(type_, "namespaces") %}
+[{{ "'" + join(type_.namespaces, "', '") + "'" }}], '{{ type_.name }}'{% endif %}
+){% if member.type.name == "array" %}
+, {{ member.type.size }}{% else if member.type.name == "sequence" and existsIn(member.type, "maximum_size") %}
+, {{ member.type.maximum_size }}{% endif %}
+{% if existsIn(member.type, "value_type") %}
+){% endif %}
+,  # noqa: E501
+{% endif %}
+{% endfor %}
+    )
+
+    def __init__(self, **kwargs):
+        if 'check_fields' in kwargs:
+            self._check_fields = kwargs['check_fields']
+        else:
+            self._check_fields = ros_python_check_fields == '1'
+        if self._check_fields:
+            assert all('_' + key in self.__slots__ for key in kwargs.keys()), \
+                'Invalid arguments passed to constructor: %s' % \
+                ', '.join(sorted(k for k in kwargs.keys() if '_' + k not in self.__slots__))
+{% for member in message.members %}
+{%   if length(message.members) != 1 or member.name != EMPTY_STRUCTURE_REQUIRED_MEMBER_NAME %}
+{% set type_ = member.type %}
+{% if existsIn(type_, "value_type") %}
+{% set type_ = member.type.value_type %}
+{% endif %}
+{%   if existsIn(member, "default") %}
+        self.{{ member.name }} = kwargs.get(
+            '{{ member.name }}', {{ message.type.name }}.{{ upper(member.name) }}__DEFAULT)
+{%   else %}
+{%     if existsIn(type_, "namespaces") and member.type.name != "sequence" %}
+{%       if is_action_type(type_) %}
+        from {{ join(type_.namespaces, ".") }}._{{ convert_camel_case_to_lower_case_underscore(at(split_string(type_.name, "_"), 0)) }} import {{ type_.name }}
+{%       else %}
+        from {{ join(type_.namespaces, ".") }} import {{ type_.name }}
+{%       endif %}
+{%     endif %}
+{%     if member.type.name == "array" %}
+{%       if is_primitive(type_) and type_.name == "octet" %}
+        self.{{ member.name }} = kwargs.get(
+            '{{ member.name }}',
+            [bytes([0]) for x in range({{ member.type.size }})]
+        )
+{%       else if is_primitive(type_) and is_character(type_) %}
+        self.{{ member.name }} = kwargs.get(
+            '{{ member.name }}',
+            [chr(0) for x in range({{ member.type.size }})]
+        )
+{%       else %}
+{%         if is_primitive(member.type.value_type) and get_special_nested_basic_type(member.type.value_type) %}
+        if '{{ member.name }}' not in kwargs:
+            self.{{ member.name }} = numpy.zeros({{ member.type.size }}, dtype={{ get_special_nested_basic_type(member.type.value_type).dtype }})
+        else:
+            self.{{ member.name }} = numpy.array(kwargs.get('{{ member.name}}'), dtype={{ get_special_nested_basic_type(member.type.value_type).dtype }})
+            assert self.{{ member.name }}.shape == ({{ member.type.size }}, )
+{%         else %}
+        self.{{ member.name }} = kwargs.get(
+            '{{ member.name }}',
+            [{{ get_python_type(type_) }}() for x in range({{ member.type.size }})]
+        )
+{%         endif %}
+{%       endif %}
+{%     else if member.type.name == "sequence" %}
+{%       if is_primitive(member.type.value_type) and get_special_nested_basic_type(member.type.value_type) %}
+        self.{{ member.name }} = array.array('{{ get_special_nested_basic_type(member.type.value_type).type_code }}', kwargs.get('{{ member.name }}', []))
+{%       else %}
+        self.{{ member.name }} = kwargs.get('{{ member.name }}', [])
+{%       endif %}
+{%     else if is_primitive(type_) and type_.name == "octet" %}
+        self.{{ member.name }} = kwargs.get('{{ member.name }}', bytes([0]))
+{%     else if is_primitive(type_) and is_character(type_) %}
+        self.{{ member.name }} = kwargs.get('{{ member.name }}', chr(0))
+{%     else %}
+        self.{{ member.name }} = kwargs.get('{{ member.name }}', {{ get_python_type(type_) }}())
+{%     endif %}
+{%   endif %}
+{%   endif %}
+{% endfor %}
+
+    def __repr__(self):
+        typename = self.__class__.__module__.split('.')
+        typename.pop()
+        typename.append(self.__class__.__name__)
+        args = []
+        for s, t in zip(self.get_fields_and_field_types().keys(), self.SLOT_TYPES):
+            field = getattr(self, s)
+            fieldstr = repr(field)
+            # We use Python array type for fields that can be directly stored
+            # in them, and "normal" sequences for everything else.  If it is
+            # a type that we store in an array, strip off the 'array' portion.
+            if (
+                isinstance(t, rosidl_parser.definition.AbstractSequence) and
+                isinstance(t.value_type, rosidl_parser.definition.BasicType) and
+                t.value_type.typename in ['float', 'double', 'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32', 'int64', 'uint64']
+            ):
+                if len(field) == 0:
+                    fieldstr = '[]'
+                else:
+                    if self._check_fields:
+                        assert fieldstr.startswith('array(')
+                    prefix = "array('X', "
+                    suffix = ')'
+                    fieldstr = fieldstr[len(prefix):-len(suffix)]
+            args.append(s + '=' + fieldstr)
+        return '%s(%s)' % ('.'.join(typename), ', '.join(args))
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+{% for member in message.members %}
+{%   if length(message.members) != 1 or member.name != EMPTY_STRUCTURE_REQUIRED_MEMBER_NAME  %}
+{%   if member.type.name == "array" and is_primitive(member.type.value_type) and get_special_nested_basic_type(member.type.value_type) %}
+        if all(self.{{ member.name }} != other.{{ member.name }}):
+{%   else %}
+        if self.{{ member.name }} != other.{{ member.name }}:
+{%   endif %}
+            return False
+{%   endif %}
+{% endfor %}
+        return True
+
+    @classmethod
+    def get_fields_and_field_types(cls):
+        from copy import copy
+        return copy(cls._fields_and_field_types)
+{%for member in message.members %}
+{%  if length(message.members) != 1 or member.name != EMPTY_STRUCTURE_REQUIRED_MEMBER_NAME  %}
+
+{% set type_ = member.type %}
+{% if existsIn(type_, "value_type") %}
+{% set type_ = member.type.value_type %}
+{% endif %}
+{% set noqa_string = "" %}
+{% if member.name in {} %}:
+{%   set noqa_string = "  # noqa: A003" %}
+{% endif %}
+    @builtins.property{{ noqa_string }}
+    def {{ member.name }}(self):{{ noqa_string }}
+        """Message field '{{ member.name }}'."""
+        return self._{{ member.name }}
+
+    @{{ member.name }}.setter{{ noqa_string }}
+    def {{ member.name }}(self, value):{{ noqa_string }}
+        if self._check_fields:
+{%  if is_nestedtype(member.type) and is_primitive(member.type.value_type) and get_special_nested_basic_type(member.type.value_type) %}
+{%    if member.type.name == "array" %}
+            if isinstance(value, numpy.ndarray):
+                assert value.dtype == {{ get_special_nested_basic_type(member.type.value_type).dtype }}, \
+                    "The '{{ member.name }}' numpy.ndarray() must have the dtype of '{{ get_special_nested_basic_type(member.type.value_type).dtype }}'"
+                assert value.size == {{ member.type.size }}, \
+                    "The '{{ member.name }}' numpy.ndarray() must have a size of {{ member.type.size }}"
+                self._{{ member.name }} = value
+                return
+{%    else if member.type.name == "sequence" %}
+            if isinstance(value, array.array):
+                assert value.typecode == '{{ get_special_nested_basic_type(member.type.value_type).type_code }}', \
+                    "The '{{ member.name }}' array.array() must have the type code of '{{ get_special_nested_basic_type(member.type.value_type).type_code }}'"
+{%      if existsIn(member.type, "maximum_size") %}
+                assert len(value) <= {{ member.type.maximum_size }}, \
+                    "The '{{ member.name }}' array.array() must have a size <= {{ member.type.maximum_size }}"
+{%      endif %}
+                self._{{ member.name }} = value
+                return
+{%    endif %}
+{%  endif %}
+{%  if existsIn(type_, "namespaces") %}
+{%      if is_action_type(type_) %}
+            from {{ join(type_.namespaces, ".") }}._{{ convert_camel_case_to_lower_case_underscore(at(split_string(type_.name, "_"), 0)) }} import {{ type_.name }}
+{%      else %}
+            from {{ join(type_.namespaces, ".") }} import {{ type_.name }}
+{%      endif %}
+{%  endif %}
+{%  if is_nestedtype(member.type) %}
+            from collections.abc import Sequence
+            from collections.abc import Set
+            from collections import UserList
+            from collections import UserString
+{%  else if is_string(type_) and existsIn(type_, "maximum_size") %}
+            from collections import UserString
+{%  else if is_primitive(type_) and type_.name == "octet" %}
+            from collections.abc import ByteString
+{%  else if is_primitive(type_) and is_character(type_) %}
+            from collections import UserString
+{%  endif %}
+            assert \
+{%  if is_nestedtype(member.type) %}
+                ((isinstance(value, Sequence) or
+                  isinstance(value, Set) or
+                  isinstance(value, UserList)) and
+                 not isinstance(value, str) and
+                 not isinstance(value, UserString) and
+{% set assert_msg_suffixes = ["a set or sequence"] %}
+{%    if is_string(type_) and existsIn(type_, "maximum_size") %}
+                 all(len(val) <= {{ type_.maximum_size }} for val in value) and
+{% set assert_msg_suffixes = push_back(assert_msg_suffixes, format("and each string value not longer than {}", type_.maximum_size)) %}
+{%    endif %}
+{%    if member.type.name == "array" or (member.type.name == "sequence" and existsIn(member.type, "maximum_size")) %}
+{%      if member.type.name == "sequence" and existsIn(member.type, "maximum_size") %}
+                 len(value) <= {{ member.type.maximum_size }} and
+{% set assert_msg_suffixes = insert(assert_msg_suffixes, 1, format("with length <= {}", member.type.maximum_size))  %}
+{%      else %}
+                 len(value) == {{ member.type.size }} and
+{% set assert_msg_suffixes = insert(assert_msg_suffixes, 1, format("with length {}", member.type.size)) %}
+{%      endif %}
+{%    endif %}
+                 all(isinstance(v, {{ get_python_type(type_) }}) for v in value) and
+{% set assert_msg_suffixes = push_back(assert_msg_suffixes, format("and each value of type '{}'", get_python_type(type_))) %}
+{%    if is_primitive(type_) and is_signed_integer(type_) %}
+{% set bound = get_bound(type_) %}
+                 all(val >= -{{ bound.max_plus_one }} and val < {{ bound.max_plus_one }} for val in value)), \
+{% set assert_msg_suffixes = push_back(assert_msg_suffixes, format("and each integer in [{}, {}]", 0 - 1 - bound.max, bound.max)) %}
+{%    else if is_primitive(type_) and is_unsigned_integer(type_) %}
+{% set bound = get_bound(type_)  %}
+                 all(val >= 0 and val < {{ bound.max_plus_one }} for val in value)), \
+{% set assert_msg_suffixes = push_back(assert_msg_suffixes, format("and each unsigned integer in [0, {}]", bound.max_string)) %}
+{%    else if type_.name == "char" %}
+                 all(ord(val) >= 0 and ord(val) < 256 for val in value)), \
+{% set assert_msg_suffixes = push_back(assert_msg_suffixes, "and each char in [0, 255]") %}
+{%    else if is_float(type_) %}
+{%      if type_.name == "float" %}
+{% set name = "float" %}
+{% set bound = 3.402823466e+38 %}
+                 all(not (val < -{{ bound }} or val > {{ bound }}) or math.isinf(val) for val in value)), \
+{% set assert_msg_suffixes = push_back(assert_msg_suffixes, format("and each float in [{}, {}]", 0 - bound, bound)) %}
+{%      else if type_.name == "double" %}
+{% set name = "double" %}
+{% set bound = 1.7976931348623157e+308 %}
+                 all(not (val < -{{ bound }} or val > {{ bound }}) or math.isinf(val) for val in value)), \
+{% set assert_msg_suffixes = push_back(assert_msg_suffixes, format("and each double in [{}, {}]", 0 - bound, bound)) %}
+{%      endif %}
+{%    else %}
+                 True), \
+{%    endif %}
+                "The '{{ member.name }}' field must be {{join(assert_msg_suffixes, " ") }}"
+{%  else if is_string(member.type) and existsIn(member.type, "maximum_size") %}
+                (isinstance(value, (str, UserString)) and
+                 len(value) <= {{ member.type.maximum_size }}), \
+                "The '{{ member.name }}' field must be string value " \
+                'not longer than {{ type_.maximum_size }}'
+{%  else if existsIn(type_, "namespaces") %}
+                isinstance(value, {{ type_.name }}), \
+                "The '{{ member.name }}' field must be a sub message of type '{{ type_.name }}'"
+{%  else if type_.name == "octet" %}
+                (isinstance(value, (bytes, ByteString)) and
+                 len(value) == 1), \
+                "The '{{ member.name }}' field must be of type 'bytes' or 'ByteString' with length 1"
+{%  else if type_.name == "char" %}
+                (isinstance(value, (str, UserString)) and
+                 len(value) == 1 and ord(value) >= -128 and ord(value) < 128), \
+                "The '{{ member.name }}' field must be of type 'str' or 'UserString' " \
+                'with length 1 and the character ord() in [-128, 127]'
+{%  else if is_string(type_) %}
+                isinstance(value, str), \
+                "The '{{ member.name }}' field must be of type '{{ get_python_type(type_) }}'"
+{%  else if type_.name == "boolean" or is_float(type_) or is_signed_integer(type_) or is_unsigned_integer(type_) %}
+                isinstance(value, {{ get_python_type(type_) }}), \
+                "The '{{ member.name }}' field must be of type '{{ get_python_type(type_) }}'"
+{%    if is_signed_integer(type_) %}
+{% set bound = get_bound(type_) %}
+            assert value >= -{{ bound.max_plus_one }} and value < {{ bound.max_plus_one }}, \
+                "The '{{ member.name }}' field must be an integer in [{{ 0 - bound.max - 1 }}, {{ bound.max }}]"
+{%    else if is_unsigned_integer(type_) %}
+{% set bound = get_bound(type_) %}
+            assert value >= 0 and value < {{ bound.max_plus_one }}, \
+                "The '{{ member.name }}' field must be an unsigned integer in [0, {{ bound.max_string }}]"
+{%    else if is_float(type_) %}
+{%      if type_.name == "float" %}
+{% set name = "float" %}
+{% set bound = get_bound(type_) %}
+{%      else if type_.name == "double" %}
+{% set name = "double" %}
+{% set bound = get_bound(type_) %}
+{%      endif %}
+            assert not (value < -{{ bound.max_string }} or value > {{ bound.max_string }}) or math.isinf(value), \
+                "The '{{ member.name }}' field must be a {{ name }} in [-{{ bound.max_string }}, {{ bound.max_string }}]"
+{%    endif %}
+{%  else %}
+                False
+{%  endif %}
+{%  if is_nestedtype(member.type) and is_primitive(member.type.value_type) and get_special_nested_basic_type(member.type.value_type) %}
+{%    if member.type.name == "array" %}
+        self._{{ member.name }} = numpy.array(value, dtype={{ get_special_nested_basic_type(member.type.value_type).dtype }})
+{%    else if member.type.name == "sequence" %}
+        self._{{ member.name }} = array.array('{{ get_special_nested_basic_type(member.type.value_type).type_code }}', value)
+{%    endif %}
+{%  else %}
+        self._{{ member.name }} = value
+{%  endif %}
+{%  endif %}
+{%endfor %}

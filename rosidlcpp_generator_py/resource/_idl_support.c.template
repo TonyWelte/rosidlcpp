@@ -1,0 +1,72 @@
+// generated from rosidl_generator_py/resource/_idl_support.c.em
+// with input from {{ package_name }}:{{ interface_path.filepath }}
+// generated code does not contain a copyright notice
+{########################################################################}
+{# Handle messages #}
+{########################################################################}
+{% set include_directives = set_global_variable("include_directives", []) %}
+{% for message_obj in messages %}
+{% set message = message_obj.message %}
+{% include "_msg_support.c.template" %}
+
+{% endfor %}
+{########################################################################}
+{# Handle services #}
+{########################################################################}
+{% for service in services %}
+{% set message = service.request_message %}
+{% include "_msg_support.c.template" %}
+
+
+{% set message = service.response_message %}
+{% include "_msg_support.c.template" %}
+
+
+{% set message = service.event_message %}
+{% include "_msg_support.c.template" %}
+
+{% endfor %}
+{########################################################################}
+{# Handle actions #}
+{########################################################################}
+{% for action in actions %}
+{% set message = action.goal %}
+{% include "_msg_support.c.template" %}
+
+
+{% set message = action.result %}
+{% include "_msg_support.c.template" %}
+
+
+{% set message = action.feedback %}
+{% include "_msg_support.c.template" %}
+
+
+{% set message = action.send_goal_service.request_message %}
+{% include "_msg_support.c.template" %}
+
+
+{% set message = action.send_goal_service.response_message %}
+{% include "_msg_support.c.template" %}
+
+
+{% set message = action.send_goal_service.event_message %}
+{% include "_msg_support.c.template" %}
+
+
+{% set message = action.get_result_service.request_message %}
+{% include "_msg_support.c.template" %}
+
+
+{% set message = action.get_result_service.response_message %}
+{% include "_msg_support.c.template" %}
+
+
+{% set message = action.get_result_service.event_message %}
+{% include "_msg_support.c.template" %}
+
+
+{% set message = action.feedback_message%}
+{% include "_msg_support.c.template" %}
+
+{% endfor %}
