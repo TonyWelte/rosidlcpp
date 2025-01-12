@@ -6,7 +6,11 @@
 
 #include <nlohmann/json.hpp>
 
+#include <inja/inja.hpp>
+
 namespace rosidlcpp_core {
+
+using CallbackArgs = std::vector<const nlohmann::json*>;
 
 constexpr std::string_view EMPTY_STRUCTURE_REQUIRED_MEMBER_NAME =
     "structure_needs_at_least_one_member";
@@ -26,8 +30,15 @@ GeneratorArguments parse_arguments(const std::string& filepath);
 
 std::string camel_to_snake(const std::string& input);
 
+class GeneratorEnvironment : public inja::Environment {
+ public:
+  void set_input_path(const std::string& directory) { input_path = directory; }
+  void set_output_path(const std::string& directory) { output_path = directory; }
+};
+
 class GeneratorBase {
  public:
+  GeneratorBase();
   virtual ~GeneratorBase() = default;
 
  protected:
@@ -35,6 +46,11 @@ class GeneratorBase {
       const std::string& name, std::size_t arg_count,
       std::function<nlohmann::json(std::vector<const nlohmann::json*>&)>
           callback);
+
+ protected:
+  GeneratorEnvironment m_env;
+
+  nlohmann::json m_global_storage;
 };
 
 bool is_sequence(const nlohmann::json& type);

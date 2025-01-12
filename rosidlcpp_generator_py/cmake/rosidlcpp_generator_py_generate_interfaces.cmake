@@ -255,13 +255,13 @@ if(BUILD_TESTING AND rosidl_generate_interfaces_ADD_LINTER_TESTS)
   )
     find_package(ament_cmake_cppcheck REQUIRED)
     ament_cppcheck(
-      TESTNAME "cppcheck_rosidl_generated_py"
+      TESTNAME "cppcheck_rosidlcpp_generated_py"
       "${_output_path}")
 
     find_package(ament_cmake_cpplint REQUIRED)
     get_filename_component(_cpplint_root "${_output_path}" DIRECTORY)
     ament_cpplint(
-      TESTNAME "cpplint_rosidl_generated_py"
+      TESTNAME "cpplint_rosidlcpp_generated_py"
       # the generated code might contain functions with more lines
       FILTERS "-readability/fn_size"
       # the generated code might contain longer lines for templated types
@@ -271,19 +271,19 @@ if(BUILD_TESTING AND rosidl_generate_interfaces_ADD_LINTER_TESTS)
 
     find_package(ament_cmake_flake8 REQUIRED)
     ament_flake8(
-      TESTNAME "flake8_rosidl_generated_py"
+      TESTNAME "flake8_rosidlcpp_generated_py"
       # the generated code might contain longer lines for templated types
       MAX_LINE_LENGTH 999
       "${_output_path}")
 
     find_package(ament_cmake_pep257 REQUIRED)
     ament_pep257(
-      TESTNAME "pep257_rosidl_generated_py"
+      TESTNAME "pep257_rosidlcpp_generated_py"
       "${_output_path}")
 
     find_package(ament_cmake_uncrustify REQUIRED)
     ament_uncrustify(
-      TESTNAME "uncrustify_rosidl_generated_py"
+      TESTNAME "uncrustify_rosidlcpp_generated_py"
       # the generated code might contain longer lines for templated types
       # a value of zero tells uncrustify to ignore line length
       MAX_LINE_LENGTH 0
