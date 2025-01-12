@@ -16,12 +16,12 @@ add_library(rosidlcpp_parser SHARED src/rosidlcpp_parser/rosidlcpp_parser.cpp)
 target_link_libraries(rosidlcpp_parser nlohmann_json::nlohmann_json)
 target_include_directories(rosidlcpp_parser PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
-  "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>")
+  "$<INSTALL_INTERFACE:include>")
 
 add_executable(main src/main.cpp)
 target_include_directories(main PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
-  "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>")
+  "$<INSTALL_INTERFACE:include>")
 target_link_libraries(main rosidlcpp_parser)
 
 install(TARGETS ${PROJECT_NAME} main

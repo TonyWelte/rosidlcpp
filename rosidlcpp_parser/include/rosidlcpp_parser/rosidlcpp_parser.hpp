@@ -1,11 +1,10 @@
 #pragma once
 
-#include <nlohmann/json_fwd.hpp>
 #include <string>
 #include <string_view>
+#include <utility>
 
 #include <nlohmann/json.hpp>
-#include <utility>
 
 namespace rosidlcpp_parser {
 
@@ -16,7 +15,6 @@ std::vector<std::string> split_string(std::string_view value, std::string_view s
 auto consume_white_space(std::string_view& content_view) -> void;
 auto consume_comment(std::string_view& content_view) -> void;
 auto consume_white_space_and_comment(std::string_view& content_view) -> void;
-
 
 auto parse_include(std::string_view& content_view) -> std::string_view;
 auto parse_string(std::string_view& content_view) -> std::string;
@@ -39,4 +37,5 @@ auto parse_idl_file(const std::string& filename) -> nlohmann::json;
 auto parse_ros_idl_file(const std::string& filename) -> nlohmann::json;
 
 auto convert_idljson_to_rosjson(const nlohmann::json& idl_json) -> nlohmann::json;
-}
+
+}  // namespace rosidlcpp_parser

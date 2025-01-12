@@ -18,7 +18,7 @@ add_library(${PROJECT_NAME} SHARED src/${PROJECT_NAME}/generator_base.cpp)
 target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json rosidlcpp_parser::rosidlcpp_parser)
 target_include_directories(${PROJECT_NAME} PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
-  "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>")
+  "$<INSTALL_INTERFACE:include>")
 
 install(TARGETS ${PROJECT_NAME}
   EXPORT export_${PROJECT_NAME}
