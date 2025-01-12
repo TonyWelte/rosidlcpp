@@ -4,6 +4,7 @@
 #include <cctype>
 #include <charconv>
 #include <cstddef>
+#include <format>
 #include <fstream>
 #include <iterator>
 #include <sstream>
@@ -737,8 +738,13 @@ auto make_action_feedback_message(const nlohmann::json& action_type) -> nlohmann
   return feedback;
 }
 
-auto convert_idljson_to_rosjson(const nlohmann::json& idl_json) -> nlohmann::json {
+auto convert_idljson_to_rosjson(const nlohmann::json& idl_json, std::string_view file_path) -> nlohmann::json {
   nlohmann::json result;
+
+  // Set file path
+  result["interface_path"]["filepath"] = file_path;
+  result["interface_path"]["filename"] = std::filesystem::path(file_path).stem().string();
+  result["interface_path"]["filedir"] = std::filesystem::path(file_path).parent_path().string();
 
   result["type"]["namespaces"] = {
       idl_json["modules"][0]["name"],
@@ -751,6 +757,7 @@ auto convert_idljson_to_rosjson(const nlohmann::json& idl_json) -> nlohmann::jso
   // Process structures
   auto& current_node = idl_json["modules"][0]["modules"][0];
   if (current_node["structures"].size() == 1) {  // Message
+    result["messages"][0]["interface_path"] = result["interface_path"];
     result["messages"][0]["message"] = current_node["structures"][0];
     result["messages"][0]["message"]["constants"] = (current_node.contains("modules") && current_node["modules"][0].contains("constants")) ? current_node["modules"][0]["constants"] : json::array();
     result["messages"][0]["message"]["type"] = {
@@ -758,6 +765,7 @@ auto convert_idljson_to_rosjson(const nlohmann::json& idl_json) -> nlohmann::jso
         {"namespaces", result["type"]["namespaces"]},
     };
   } else if (current_node["structures"].size() == 2) {  // Service
+    result["services"][0]["interface_path"] = result["interface_path"];
     // Handle request and response messages
     int request_structure_index = current_node["structures"][0]["name"].get<std::string>().ends_with("_Request") ? 0 : 1;
     result["services"][0]["request_message"] = current_node["structures"][request_structure_index];
@@ -780,6 +788,7 @@ auto convert_idljson_to_rosjson(const nlohmann::json& idl_json) -> nlohmann::jso
 
     result["services"][0]["event_message"] = make_service_event(result["services"][0]["type"]);
   } else if (current_node["structures"].size() == 3) {  // Action
+    result["actions"][0]["interface_path"] = result["interface_path"];
     // Handle Goal, Result and Feedback messages
     for (auto& structure : current_node["structures"]) {
       if (structure["name"].get<std::string>().ends_with("_Goal")) {

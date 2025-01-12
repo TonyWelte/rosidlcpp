@@ -36,6 +36,6 @@ auto parse_default_list(std::string_view default_value) -> nlohmann::json;
 auto parse_idl_file(const std::string& filename) -> nlohmann::json;
 auto parse_ros_idl_file(const std::string& filename) -> nlohmann::json;
 
-auto convert_idljson_to_rosjson(const nlohmann::json& idl_json) -> nlohmann::json;
+auto convert_idljson_to_rosjson(const nlohmann::json& idl_json, std::string_view file_path) -> nlohmann::json;
 
 }  // namespace rosidlcpp_parser

@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
     output_file.close();
     return 0;
   } else if (argc == 4) {
-    auto ros_json = rosidlcpp_parser::convert_idljson_to_rosjson(result);
+    auto ros_json = rosidlcpp_parser::convert_idljson_to_rosjson(result, argv[1]);
     std::ofstream output_file(argv[3]);
     output_file << ros_json.dump(2) << std::endl;
     output_file.close();
