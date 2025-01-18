@@ -1,8 +1,8 @@
-{% set message_typename = join(message.structure.namespaced_type.namespaces, "::") + "::" + message.structure.namespaced_type.name %}
+{% set message_typename = join(message.type.namespaces, "::") + "::" + message.type.name %}
 {% set msvc_common_macros = ["DELETE", "ERROR", "NO_ERROR"] %}
 {# Collect necessary include directives for all members #}
 {% set includes = get_includes(message, "__struct.hpp") %}
-{% set include_directives = [] %}
+{% set include_directives = get_global_variable("include_directives") %}
 {% if includes %}
 
 // Include directives for member types
@@ -10,33 +10,39 @@
 {% for name in include.member_names %}
 // Member '{{ name }}'
 {% endfor %}
+{% if include.header_file in include_directives %}
+// already included above
+// {{ "" -}}
+{% else %}
+{% set include_directives = set_global_variable("include_directives", push_back(include_directives, include.header_file)) %}
+{% endif %}
 #include "{{ include.header_file }}"
 {% endfor %}
 {% endif %}
 
-{% set deprecated_macro_name = "DEPRECATED__" + join(message.structure.namespaced_type.namespaces, "__") + "__" + message.structure.namespaced_type.name %}
+{% set deprecated_macro_name = "DEPRECATED__" + join(message.type.namespaces, "__") + "__" + message.type.name %}
 #ifndef _WIN32
 # define {{ deprecated_macro_name }} __attribute__((deprecated))
 #else
 # define {{ deprecated_macro_name }} __declspec(deprecated)
 #endif
 
-{% for ns in message.structure.namespaced_type.namespaces %}
+{% for ns in message.type.namespaces %}
 namespace {{ ns }}
 {
 
 {% endfor %}
 // message struct
 template<class ContainerAllocator>
-struct {{ message.structure.namespaced_type.name }}_
+struct {{ message.type.name }}_
 {
-  using Type = {{ message.structure.namespaced_type.name }}_<ContainerAllocator>;
+  using Type = {{ message.type.name }}_<ContainerAllocator>;
 
   {% set lists = create_init_alloc_and_member_lists(message) %}
   {% set init_list = lists.init_list %}
   {% set alloc_list = lists.alloc_list %}
   {% set member_list = lists.member_list %}
-  explicit {{ message.structure.namespaced_type.name }}_(rosidl_runtime_cpp::MessageInitialization _init = rosidl_runtime_cpp::MessageInitialization::ALL)
+  explicit {{ message.type.name }}_(rosidl_runtime_cpp::MessageInitialization _init = rosidl_runtime_cpp::MessageInitialization::ALL)
   {% if init_list %}
   : {{ join(init_list, ",\n    ") }}
   {% endif %}
@@ -58,7 +64,7 @@ struct {{ message.structure.namespaced_type.name }}_
 {%  if lists.zero_value_members %}
     } else if (rosidl_runtime_cpp::MessageInitialization::ZERO == _init) {
 {%    for membset in member_list %}
-{%      if at(membset, 0).zero_value != "" %}
+{%      if at(membset, 0).zero_value %}
 {%      for line in generate_zero_string(membset, "_init") %}
       {{ line }}
 {%      endfor %}
@@ -72,7 +78,7 @@ struct {{ message.structure.namespaced_type.name }}_
       rosidl_runtime_cpp::MessageInitialization::ZERO == _init)
     {
 {% for membset in member_list %}
-{% if (at(membset, 0).zero_value != "" or at(membset, 0).zero_need_array_override) and at(membset, 0).default_value == "" %}
+{% if (at(membset, 0).zero_value != "" or at(membset, 0).zero_need_array_override) and not at(membset, 0).default_value %}
 {% for line in generate_zero_string(membset, "_init") %}
       {{ line }}
 {% endfor %}
@@ -82,7 +88,7 @@ struct {{ message.structure.namespaced_type.name }}_
 {% endif %}
   }
 
-  explicit {{ message.structure.namespaced_type.name }}_(const ContainerAllocator & _alloc, rosidl_runtime_cpp::MessageInitialization _init = rosidl_runtime_cpp::MessageInitialization::ALL)
+  explicit {{ message.type.name }}_(const ContainerAllocator & _alloc, rosidl_runtime_cpp::MessageInitialization _init = rosidl_runtime_cpp::MessageInitialization::ALL)
   {% if alloc_list %}
   : {{ join(alloc_list, ",\n    ") }}
   {% endif %}
@@ -98,7 +104,7 @@ struct {{ message.structure.namespaced_type.name }}_
       rosidl_runtime_cpp::MessageInitialization::DEFAULTS_ONLY == _init)
     {
 {% for membset in member_list %}
-{% if at(membset, 0).default_value != "" %}
+{% if at(membset, 0).default_value %}
 {%    for line in generate_default_string(membset, "") %}
       {{ line }}
 {%    endfor %}
@@ -107,7 +113,7 @@ struct {{ message.structure.namespaced_type.name }}_
 {%  if lists.zero_value_members %}
     } else if (rosidl_runtime_cpp::MessageInitialization::ZERO == _init) {
 {%    for membset in member_list %}
-{%      if at(membset, 0).zero_value != "" %}
+{%      if at(membset, 0).zero_value %}
 {%      for line in generate_zero_string(membset, "_alloc, _init") %}
       {{ line }}
 {%      endfor %}
@@ -121,7 +127,7 @@ struct {{ message.structure.namespaced_type.name }}_
       rosidl_runtime_cpp::MessageInitialization::ZERO == _init)
     {
 {% for membset in member_list %}
-{% if (at(membset, 0).zero_value != "" or at(membset, 0).zero_need_array_override) and at(membset, 0).default_value == "" %}
+{% if (at(membset, 0).zero_value != "" or at(membset, 0).zero_need_array_override) and not at(membset, 0).default_value %}
 {% for line in generate_zero_string(membset, "_alloc, _init") %}
       {{ line }}
 {% endfor %}
@@ -132,16 +138,16 @@ struct {{ message.structure.namespaced_type.name }}_
   }
 
   // field types and members
-{% for member in message.structure.members %}
+{% for member in message.members %}
   using _{{ member.name }}_type =
     {{ msg_type_to_cpp(member.type) }};
   _{{ member.name }}_type {{ member.name }};
 {% endfor %}
 
-{% set first_member = at(message.structure.members, 0) %}
-  {% if length(message.structure.members) != 1 or first_member.name != "structure_needs_at_least_one_member" %}
+{% set first_member = at(message.members, 0) %}
+  {% if length(message.members) != 1 or first_member.name != "structure_needs_at_least_one_member" %}
   // setters for named parameter idiom
-  {% for member in message.structure.members %}
+  {% for member in message.members %}
   Type & set__{{ member.name }}(
     const {{ msg_type_to_cpp(member.type) }} & _arg)
   {
@@ -162,15 +168,21 @@ struct {{ message.structure.namespaced_type.name }}_
 #  endif
 #endif
   {% endif %}
-  {% if constant.type.typename == "string" %}
+  {% if constant.type.name == "string" %}
   static const {{ MSG_TYPE_TO_CPP("string") }} {{ constant.name }};
-  {% else if constant.type.typename == "wstring" %}
+  {% else if constant.type.name == "wstring" %}
   static const {{ MSG_TYPE_TO_CPP("wstring") }} {{ constant.name }};
   {% else %}
-  static constexpr {{ MSG_TYPE_TO_CPP(constant.type.typename) }} {{ constant.name }} =
-    {% if is_type_integer(constant.type.typename) %}
-    {{ int(constant.value) }}{% if is_type_unsigned(constant.type.typename) %}u{% endif %};
-    {% else if constant.type.typename == "float" %}
+  static constexpr {{ MSG_TYPE_TO_CPP(constant.type.name) }} {{ constant.name }} =
+    {% if is_integer(constant.type) %}
+    {{ constant.value }}{% if is_unsigned_integer(constant.type) %}u{% endif %};
+    {% else if constant.type.name == "boolean" %}
+      {% if constant.value %}
+    1;
+      {% else %}
+    0;
+      {% endif %}
+    {% else if constant.type.name == "float" %}
     {{ constant.value }}f;
     {% else %}
     {{ constant.value }};
@@ -222,23 +234,23 @@ struct {{ message.structure.namespaced_type.name }}_
     ConstPtr;
 
   // comparison operators
-  bool operator==(const {{ message.structure.namespaced_type.name }}_ & other) const
+  bool operator==(const {{ message.type.name }}_ & other) const
   {
-    {% for member in message.structure.members %}
+    {% for member in message.members %}
     if (this->{{ member.name }} != other.{{ member.name }}) {
       return false;
     }
     {% endfor %}
     return true;
   }
-  bool operator!=(const {{ message.structure.namespaced_type.name }}_ & other) const
+  bool operator!=(const {{ message.type.name }}_ & other) const
   {
     return !this->operator==(other);
   }
-};  // struct {{ message.structure.namespaced_type.name }}_
+};  // struct {{ message.type.name }}_
 
 // alias to use template instance with default allocator
-using {{ message.structure.namespaced_type.name }} =
+using {{ message.type.name }} =
   {{ message_typename }}_<std::allocator<void>>;
 
 // constant definitions
@@ -252,19 +264,19 @@ using {{ message.structure.namespaced_type.name }} =
 #  endif
 #endif
 {% endif %}
-{% if is_type_string(c.type.typename) %}
+{% if is_string(c.type) %}
 template<typename ContainerAllocator>
 const {{ MSG_TYPE_TO_CPP("string") }}
-{{ message.structure.namespaced_type.name }}_<ContainerAllocator>::{{ c.name }} = "{{ c.value }}";
-{% else if c.type.typename == "wstring" %}
+{{ message.type.name }}_<ContainerAllocator>::{{ c.name }} = "{{ c.value }}";
+{% else if c.type == "wstring" %}
 template<typename ContainerAllocator>
 const {{ MSG_TYPE_TO_CPP("wstring") }}
-{{ message.structure.namespaced_type.name }}_<ContainerAllocator>::{{ c.name }} = u"{{ c.value }}";
+{{ message.type.name }}_<ContainerAllocator>::{{ c.name }} = u"{{ c.value }}";
 {% else %}
 #if __cplusplus < 201703L
 // static constexpr member variable definitions are only needed in C++14 and below, deprecated in C++17
 template<typename ContainerAllocator>
-constexpr {{ MSG_TYPE_TO_CPP(c.type.typename) }} {{ message.structure.namespaced_type.name }}_<ContainerAllocator>::{{ c.name }};
+constexpr {{ MSG_TYPE_TO_CPP(c.type.name) }} {{ message.type.name }}_<ContainerAllocator>::{{ c.name }};
 #endif  // __cplusplus < 201703L
 {% endif %}
 {% if c.name in msvc_common_macros%}
@@ -274,7 +286,7 @@ constexpr {{ MSG_TYPE_TO_CPP(c.type.typename) }} {{ message.structure.namespaced
 #endif
 {% endif %}
 {% endfor %}
-{% for i in range(length(message.structure.namespaced_type.namespaces)) %}
+{% for i in range(length(message.type.namespaces)) %}
 
-}  // namespace {{ at(message.structure.namespaced_type.namespaces, length(message.structure.namespaced_type.namespaces) - 1 - i) }}
+}  // namespace {{ at(message.type.namespaces, length(message.type.namespaces) - 1 - i) }}
 {% endfor %}

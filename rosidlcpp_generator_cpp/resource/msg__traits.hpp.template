@@ -1,7 +1,8 @@
-{% set message_fully_qualified_name = join(message.structure.namespaced_type.namespaces , "/") + "/" + message.structure.namespaced_type.name %}
+{% set message_typename = join(message.type.namespaces, "::") + "::" + message.type.name %}
+{% set message_fully_qualified_name = join(message.type.namespaces , "/") + "/" + message.type.name %}
 {# Collect necessary include directives for all members #}
 {% set includes = get_includes(message, "__traits.hpp") %}
-{% set include_directives = [] %}
+{% set include_directives = get_global_variable("include_directives") %}
 {% if includes %}
 
 // Include directives for member types
@@ -9,60 +10,66 @@
 {% for name in include.member_names %}
 // Member '{{ name }}'
 {% endfor %}
+{% if include.header_file in include_directives %}
+// already included above
+// {{ "" -}}
+{% else %}
+{% set include_directives = set_global_variable("include_directives", push_back(include_directives, include.header_file)) %}
+{% endif %}
 #include "{{ include.header_file }}"
 {% endfor %}
 {% endif %}
 
 {% set char_type = ["octet", "char", "wchar"] %}
-{% for ns in message.structure.namespaced_type.namespaces %}
+{% for ns in message.type.namespaces %}
 namespace {{ ns }}
 {
 
 {% endfor %}
 inline void to_flow_style_yaml(
-  const {{ message.structure.namespaced_type.name }} & msg,
+  const {{ message.type.name }} & msg,
   std::ostream & out)
 {
-{% set first_member = at(message.structure.members, 0) %}
-{% if length(message.structure.members) == 1 and first_member.name == "structure_needs_at_least_one_member" %}
+{% set first_member = at(message.members, 0) %}
+{% if length(message.members) == 1 and first_member.name == "structure_needs_at_least_one_member" %}
   (void)msg;
   out << "null";
 {% else %}
   out << "{";
-{% for i in range(length(message.structure.members)) %}
-{%   set member = at(message.structure.members, i) %}
+{% for i in range(length(message.members)) %}
+{%   set member = at(message.members, i) %}
 {%   if i != 0 %}
 
 {%   endif %}
   // member: {{ member.name }}
   {
-{%   if is_primitive(member.type.typename) %}
+{%   if is_primitive(member.type) %}
     out << "{{ member.name }}: ";
-{%     if member.type.typename in char_type %}
+{%     if member.type.name in char_type %}
     rosidl_generator_traits::character_value_to_yaml(msg.{{ member.name }}, out);
 {%     else %}
     rosidl_generator_traits::value_to_yaml(msg.{{ member.name }}, out);
 {%     endif %}
-{%   else if is_type_string(member.type.typename) %}
+{%   else if is_string(member.type) %}
     out << "{{ member.name }}: ";
     rosidl_generator_traits::value_to_yaml(msg.{{ member.name }}, out);
-{%   else if is_type_namespaced(member.type.typename) %}
+{%   else if is_namespaced(member.type) %}
     out << "{{ member.name }}: ";
     to_flow_style_yaml(msg.{{ member.name }}, out);
-{%   else if is_type_nested(member.type.typename) %}
+{%   else if is_nestedtype(member.type) %}
     if (msg.{{ member.name }}.size() == 0) {
       out << "{{ member.name }}: []";
     } else {
       out << "{{ member.name }}: [";
       size_t pending_items = msg.{{ member.name }}.size();
       for (auto item : msg.{{ member.name }}) {
-{%     if member.type.value_type in char_type %}
+{%     if member.type.value_type.name in char_type %}
         rosidl_generator_traits::character_value_to_yaml(item, out);
 {%     else if is_primitive(member.type.value_type) %}
         rosidl_generator_traits::value_to_yaml(item, out);
-{%     else if is_type_string(member.type.value_type) %}
+{%     else if is_string(member.type.value_type) %}
         rosidl_generator_traits::value_to_yaml(item, out);
-{%     else if is_type_namespaced(member.type.value_type) %}
+{%     else if is_namespaced(member.type.value_type) %}
         to_flow_style_yaml(item, out);
 {%     endif %}
         if (--pending_items > 0) {
@@ -72,7 +79,7 @@ inline void to_flow_style_yaml(
       out << "]";
     }
 {%   endif %}
-{%   if i < length(message.structure.members) - 1 %}
+{%   if i < length(message.members) - 1 %}
     out << ", ";
 {%   endif %}
   }
@@ -82,15 +89,15 @@ inline void to_flow_style_yaml(
 }  // NOLINT(readability/fn_size)
 
 inline void to_block_style_yaml(
-  const {{ message.structure.namespaced_type.name }} & msg,
+  const {{ message.type.name }} & msg,
   std::ostream & out, size_t indentation = 0)
 {
-{% if length(message.structure.members) == 1 and first_member.name == "structure_needs_at_least_one_member" %}
+{% if length(message.members) == 1 and first_member.name == "structure_needs_at_least_one_member" %}
   (void)msg;
   (void)indentation;
   out << "null\n";
 {% else %}
-{%   for member in message.structure.members %}
+{%   for member in message.members %}
 {%     if not loop.is_first %}
 
 {%     endif %}
@@ -99,22 +106,22 @@ inline void to_block_style_yaml(
     if (indentation > 0) {
       out << std::string(indentation, ' ');
     }
-{%    if is_primitive(member.type.typename) %}
+{%    if is_primitive(member.type) %}
     out << "{{ member.name }}: ";
-{%      if member.type.typename in char_type %}
+{%      if member.type.name in char_type %}
     rosidl_generator_traits::character_value_to_yaml(msg.{{ member.name }}, out);
 {%      else %}
     rosidl_generator_traits::value_to_yaml(msg.{{ member.name }}, out);
 {%      endif %}
     out << "\n";
-{%    else if is_type_string(member.type.typename) %}
+{%    else if is_string(member.type) %}
     out << "{{ member.name }}: ";
     rosidl_generator_traits::value_to_yaml(msg.{{ member.name }}, out);
     out << "\n";
-{%    else if is_type_namespaced(member.type.typename) %}
+{%    else if is_namespaced(member.type) %}
     out << "{{ member.name }}:\n";
     to_block_style_yaml(msg.{{ member.name }}, out, indentation + 2);
-{%    else if is_type_nested(member.type.typename) %}
+{%    else if is_nestedtype(member.type) %}
     if (msg.{{ member.name }}.size() == 0) {
       out << "{{ member.name }}: []\n";
     } else {
@@ -125,17 +132,17 @@ inline void to_block_style_yaml(
         }
 {%      if is_primitive(member.type.value_type) %}
         out << "- ";
-{%        if member.type.value_type in char_type %}
+{%        if member.type.value_type.name in char_type %}
         rosidl_generator_traits::character_value_to_yaml(item, out);
 {%        else %}
         rosidl_generator_traits::value_to_yaml(item, out);
 {%        endif %}
         out << "\n";
-{%      else if is_type_string(member.type.value_type) %}
+{%      else if is_string(member.type.value_type) %}
         out << "- ";
         rosidl_generator_traits::value_to_yaml(item, out);
         out << "\n";
-{%      else if is_type_namespaced(member.type.value_type) %}
+{%      else if is_namespaced(member.type.value_type) %}
         out << "-\n";
         to_block_style_yaml(item, out, indentation + 2);
 {%      endif%}
@@ -147,7 +154,7 @@ inline void to_block_style_yaml(
 {% endif %}
 }  // NOLINT(readability/fn_size)
 
-inline std::string to_yaml(const {{ message.structure.namespaced_type.name }} & msg, bool use_flow_style = false)
+inline std::string to_yaml(const {{ message.type.name }} & msg, bool use_flow_style = false)
 {
   std::ostringstream out;
   if (use_flow_style) {
@@ -157,15 +164,15 @@ inline std::string to_yaml(const {{ message.structure.namespaced_type.name }} & 
   }
   return out.str();
 }
-{% for ns in custom_range(length(message.structure.namespaced_type.namespaces) - 1, -1, -1) %}
+{% for ns in custom_range(length(message.type.namespaces) - 1, -1, -1) %}
 
-}  // namespace {{ at(message.structure.namespaced_type.namespaces, ns) }}
+}  // namespace {{ at(message.type.namespaces, ns) }}
 {% endfor %}
 
 namespace rosidl_generator_traits
 {
 
-{% set message_namespace = join(message.structure.namespaced_type.namespaces, "::") %}
+{% set message_namespace = join(message.type.namespaces, "::") %}
 [[deprecated("use {{ message_namespace }}::to_block_style_yaml() instead")]]
 inline void to_yaml(
   const {{ message_typename }} & msg,
@@ -192,12 +199,12 @@ inline const char * name<{{ message_typename }}>()
   return "{{ message_fully_qualified_name }}";
 }
 
-{% set fixed_template_strings = get_fixed_template_strings(message.structure.members) %}
+{% set fixed_template_strings = get_fixed_template_strings(message.members) %}
 template<>
 struct has_fixed_size<{{ message_typename }}>
   : std::integral_constant<bool, {{ join(sort(fixed_template_strings), " && ") }}> {};
 
-{% set bounded_template_strings = get_bounded_template_strings(message.structure.members) %}
+{% set bounded_template_strings = get_bounded_template_strings(message.members) %}
 template<>
 struct has_bounded_size<{{ message_typename }}>
   : std::integral_constant<bool, {{ join(sort(bounded_template_strings), " && ") }}> {};

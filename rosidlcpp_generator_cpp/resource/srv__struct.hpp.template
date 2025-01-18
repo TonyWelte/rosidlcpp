@@ -7,19 +7,19 @@
 {% set message = service.event_message %}
 {% include "msg__struct.hpp.template" %}
 
-{% for ns in service.namespaced_type.namespaces %}
+{% for ns in service.type.namespaces %}
 namespace {{ ns }}
 {
 
 {% endfor %}
-struct {{ service.namespaced_type.name }}
+struct {{ service.type.name }}
 {
-{% set service_typename = join(service.namespaced_type.namespaced_name, "::") %}
+{% set service_typename = join(service.type.namespaces, "::") + "::" + service.type.name %}
   using Request = {{ service_typename }}_Request;
   using Response = {{ service_typename }}_Response;
   using Event = {{ service_typename }}_Event;
 };
-{% for i in range(length(service.namespaced_type.namespaces)) %}
+{% for i in range(length(service.type.namespaces)) %}
 
-}  // namespace {{ at(service.namespaced_type.namespaces, length(service.namespaced_type.namespaces) - 1 - i) }}
+}  // namespace {{ at(service.type.namespaces, length(service.type.namespaces) - 1 - i) }}
 {% endfor %}

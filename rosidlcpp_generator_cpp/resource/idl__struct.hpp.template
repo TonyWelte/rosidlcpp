@@ -1,10 +1,11 @@
 // generated from rosidl_generator_cpp/resource/idl__struct.hpp.em
-// with input from {{ package_name }}:{{ interface_path.parent }}/{{ interface_path.stem }}.idl
+// with input from {{ package_name }}:{{ interface_path.filedir }}/{{ interface_path.filename }}.idl
 // generated code does not contain a copyright notice
 
-// IWYU pragma: private, include "{{ package_name }}/{{ interface_path.parent }}/{{ convert_camel_case_to_lower_case_underscore(interface_path.stem) }}.hpp"
+// IWYU pragma: private, include "{{ package_name }}/{{ interface_path.filedir }}/{{ convert_camel_case_to_lower_case_underscore(interface_path.filename) }}.hpp"
 
-{% set header_guard_variable = upper(package_name) + "__" + upper(join(interface_path.parents.parts, "__")) + "__DETAIL__" + upper(convert_camel_case_to_lower_case_underscore(interface_path.stem)) + "__STRUCT_HPP_" %}
+{% set header_guard_variable = upper(package_name) + "__" + upper(join(split_string(interface_path.filedir, "/"), "__")) + "__DETAIL__" + upper(convert_camel_case_to_lower_case_underscore(interface_path.filename)) + "__STRUCT_HPP_" %}
+{% set include_directives = set_global_variable("include_directives", []) %}
 
 #ifndef {{ header_guard_variable }}
 #define {{ header_guard_variable }}
@@ -23,14 +24,15 @@
 {########################################################################}
 {% for msg_object in messages %}
 {% set message=msg_object.message %}
-{% set message_typename=msg_object.message_typename %}
 {% include "msg__struct.hpp.template" %}
 
 {% endfor %}
-{% for service_object in services %}
-{% set service=service_object.service %}
-{% set service_typename=service_object.service_typename %}
+{% for service in services %}
 {% include "srv__struct.hpp.template" %}
+
+{% endfor %}
+{% for action in actions %}
+{% include "action__struct.hpp.template" %}
 
 {% endfor %}
 #endif  // {{ header_guard_variable }}

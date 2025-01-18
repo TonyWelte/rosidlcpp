@@ -1,7 +1,7 @@
 // generated from rosidl_generator_cpp/resource/idl.hpp.em
 // generated code does not contain a copyright notice
-{% set include_base = join(message.structure.namespaced_type.namespaces, "/") + "/detail/" + convert_camel_case_to_lower_case_underscore(message.structure.namespaced_type.name) %}
-{% set header_guard_variable = upper(package_name) + "__" + upper(join(interface_path.parents.parts, "__")) + "__" + upper(convert_camel_case_to_lower_case_underscore(interface_path.stem)) + "_HPP_" %}
+{% set include_base = join(message.type.namespaces, "/") + "/detail/" + convert_camel_case_to_lower_case_underscore(message.type.name) %}
+{% set header_guard_variable = upper(package_name) + "__" + upper(join(split_string(interface_path.filedir, "/"), "__")) + "__" + upper(convert_camel_case_to_lower_case_underscore(interface_path.filename)) + "_HPP_" %}
 
 #ifndef {{ header_guard_variable }}
 #define {{ header_guard_variable }}

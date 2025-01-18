@@ -1,15 +1,15 @@
 {% set message = service.request_message %}
-{% set message_typename = service.request_message.structure.namespaced_type.typename %}
+{% set message_typename = service.request_message.type %}
 {% include "msg__traits.hpp.template" %}
 {% set message = service.response_message %}
-{% set message_typename = service.response_message.structure.namespaced_type.typename %}
+{% set message_typename = service.response_message.type %}
 {% include "msg__traits.hpp.template" %}
 {% set message = service.event_message %}
-{% set message_typename = service.event_message.structure.namespaced_type.typename %}
+{% set message_typename = service.event_message.type %}
 {% include "msg__traits.hpp.template" %}
 
-{% set service_typename = service.namespaced_type.namespaced_name %}
-{% set service_fully_qualified_name = join(service.namespaced_type.namespaces, "/") + "/" + service.namespaced_type.name %}
+{% set service_typename = join(service.type.namespaces, "::") + "::" + service.type.name %}
+{% set service_fully_qualified_name = join(service.type.namespaces, "/") + "/" + service.type.name %}
 namespace rosidl_generator_traits
 {
 

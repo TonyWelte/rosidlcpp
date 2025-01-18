@@ -1,0 +1,69 @@
+{% set action_includes = [
+    "action_msgs/srv/cancel_goal.hpp",
+    "action_msgs/msg/goal_info.hpp",
+    "action_msgs/msg/goal_status_array.hpp"] %}
+{% set action_name = join(action.type.namespaces, "::") + "::" + action.type.name %}
+{% set message = action.goal %}
+{% include "msg__struct.hpp.template" %}
+
+{% set message = action.result %}
+{% include "msg__struct.hpp.template" %}
+
+{% set message = action.feedback %}
+{% include "msg__struct.hpp.template" %}
+
+{% set service = action.send_goal_service %}
+{% include "srv__struct.hpp.template" %}
+
+{% set service = action.get_result_service %}
+{% include "srv__struct.hpp.template" %}
+
+{% set message = action.feedback_message %}
+{% include "msg__struct.hpp.template" %}
+
+{% for header_file in action_includes %}
+{% set include_directives = get_global_variable("include_directives") %}
+{% if header_file in include_directives %}
+// already included above
+// {{ "" -}}
+{% else %}
+{% set include_directives = set_global_variable("include_directives", push_back(include_directives, header_file)) %}
+{% endif %}
+#include "{{ header_file }}"
+{% endfor %}
+
+{% for ns in action.type.namespaces %}
+namespace {{ ns }}
+{
+
+{% endfor %}
+struct {{ action.type.name }}
+{
+  /// The goal message defined in the action definition.
+  using Goal = {{ action_name }}{{ ACTION_GOAL_SUFFIX }};
+  /// The result message defined in the action definition.
+  using Result = {{ action_name }}{{ ACTION_RESULT_SUFFIX }};
+  /// The feedback message defined in the action definition.
+  using Feedback = {{ action_name }}{{ ACTION_FEEDBACK_SUFFIX }};
+
+  struct Impl
+  {
+    /// The send_goal service using a wrapped version of the goal message as a request.
+    using SendGoalService = {{ action_name }}{{ ACTION_GOAL_SERVICE_SUFFIX }};
+    /// The get_result service using a wrapped version of the result message as a response.
+    using GetResultService = {{ action_name }}{{ ACTION_RESULT_SERVICE_SUFFIX }};
+    /// The feedback message with generic fields which wraps the feedback message.
+    using FeedbackMessage = {{ action_name }}{{ ACTION_FEEDBACK_MESSAGE_SUFFIX }};
+
+    /// The generic service to cancel a goal.
+    using CancelGoalService = action_msgs::srv::CancelGoal;
+    /// The generic message for the status of a goal.
+    using GoalStatusMessage = action_msgs::msg::GoalStatusArray;
+  };
+};
+
+typedef struct {{ action.type.name }} {{ action.type.name }};
+{% for i in range(length(action.type.namespaces)) %}
+
+}  // namespace {{ at(action.type.namespaces, length(action.type.namespaces) - 1 - i) }}
+{% endfor %}

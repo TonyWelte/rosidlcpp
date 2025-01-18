@@ -1,20 +1,21 @@
-{% for ns in message.structure.namespaced_type.namespaces %}
+{% set message_typename = join(message.type.namespaces, "::") + "::" + message.type.name %}
+{% for ns in message.type.namespaces %}
 namespace {{ ns }}
 {
 
 {% endfor %}
-{% if length(message.structure.members) != 1 or at(message.structure.members, 0).name != "structure_needs_at_least_one_member" %}
+{% if length(message.members) != 1 or at(message.members, 0).name != "structure_needs_at_least_one_member" %}
 namespace builder
 {
-{% for index in custom_range(length(message.structure.members) - 1, -1 , -1) %}
+{% for index in custom_range(length(message.members) - 1, -1 , -1) %}
 
-{% set member = at(message.structure.members, index) %}
-class Init_{{ message.structure.namespaced_type.name }}_{{ member.name }}
+{% set member = at(message.members, index) %}
+class Init_{{ message.type.name }}_{{ member.name }}
 {
 public:
   {% if index != 0 %}
   explicit {% else %}
-  {{ "" }}{% endif -%} Init_{{ message.structure.namespaced_type.name }}_{{ member.name }}{% if index == 0 %}
+  {{ "" }}{% endif -%} Init_{{ message.type.name }}_{{ member.name }}{% if index == 0 %}
 ()
   : msg_(::rosidl_runtime_cpp::MessageInitialization::SKIP)
 {% else %}
@@ -22,18 +23,18 @@ public:
   : msg_(msg)
 {% endif %}
   {}
-{% if index == length(message.structure.members) - 1 %}
+{% if index == length(message.members) - 1 %}
   ::{{ message_typename }}{{ " " -}} 
 {% else %}
-  Init_{{ message.structure.namespaced_type.name }}_{{ at(message.structure.members, index+1).name }}{{ " " -}}
+  Init_{{ message.type.name }}_{{ at(message.members, index+1).name }}{{ " " -}}
 {% endif %}
   {{- member.name }}(::{{ message_typename }}::_{{ member.name }}_type arg)
   {
     msg_.{{ member.name }} = std::move(arg);
-{% if index == length(message.structure.members) - 1 %}
+{% if index == length(message.members) - 1 %}
     return std::move(msg_);
 {% else %}
-    return Init_{{ message.structure.namespaced_type.name }}_{{ at(message.structure.members, index + 1).name }}(msg_);
+    return Init_{{ message.type.name }}_{{ at(message.members, index + 1).name }}(msg_);
 {% endif %}
   }
 
@@ -44,9 +45,9 @@ private:
 
 }  // namespace builder
 {% endif %}
-{% for i in range(length(message.structure.namespaced_type.namespaces)) %}
+{% for i in range(length(message.type.namespaces)) %}
 
-{% if i == length(message.structure.namespaced_type.namespaces) - 1 %}
+{% if i == length(message.type.namespaces) - 1 %}
 template<typename MessageType>
 auto build();
 
@@ -54,13 +55,13 @@ template<>
 inline
 auto build<::{{ message_typename }}>()
 {
-{% if length(message.structure.members) == 1 and at(message.structure.members, 0).name == "structure_needs_at_least_one_member" %}
+{% if length(message.members) == 1 and at(message.members, 0).name == "structure_needs_at_least_one_member" %}
   return ::{{ message_typename }}(rosidl_runtime_cpp::MessageInitialization::ZERO);
 {% else %}
-  return {{ join(message.structure.namespaced_type.namespaces, "::") }}::builder::Init_{{ message.structure.namespaced_type.name }}_{{ at(message.structure.members, 0).name }}();
+  return {{ join(message.type.namespaces, "::") }}::builder::Init_{{ message.type.name }}_{{ at(message.members, 0).name }}();
 {% endif %}
 }
 
 {% endif %}
-}  // namespace {{ at(message.structure.namespaced_type.namespaces, length(message.structure.namespaced_type.namespaces) - 1 - i) }}
+}  // namespace {{ at(message.type.namespaces, length(message.type.namespaces) - 1 - i) }}
 {% endfor %}
