@@ -9,13 +9,12 @@ set(CMAKE_CXX_STANDARD 23)
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-
 find_package(nlohmann_json REQUIRED)
-
+find_package(fmt REQUIRED)
 find_package(rosidlcpp_parser REQUIRED)
 
 add_library(${PROJECT_NAME} SHARED src/${PROJECT_NAME}/generator_base.cpp)
-target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json rosidlcpp_parser::rosidlcpp_parser)
+target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json fmt::fmt rosidlcpp_parser::rosidlcpp_parser)
 target_include_directories(${PROJECT_NAME} PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
   "$<INSTALL_INTERFACE:include>")
@@ -30,6 +29,8 @@ install(DIRECTORY include/ DESTINATION include)
 
 ament_export_include_directories("include/${PROJECT_NAME}")
 ament_export_libraries(${PROJECT_NAME})
+
+ament_export_dependencies(ament_cmake nlohmann_json fmt rosidlcpp_parser)
 
 # Export modern CMake targets
 ament_export_targets(export_${PROJECT_NAME})

@@ -1,13 +1,10 @@
 {% set message = service.request_message %}
-{% set message_typename = service.request_message.structure.namespaced_type.typename %}
 {% include "msg__builder.hpp.template" %}
 
 
 {% set message = service.response_message %}
-{% set message_typename = service.response_message.structure.namespaced_type.typename %}
 {% include "msg__builder.hpp.template" %}
 
 
 {% set message = service.event_message %}
-{% set message_typename = service.event_message.structure.namespaced_type.typename %}
 {% include "msg__builder.hpp.template" %}

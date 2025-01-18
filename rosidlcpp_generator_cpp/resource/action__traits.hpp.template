@@ -1,0 +1,44 @@
+{% set message = action.goal %}
+{% include "msg__traits.hpp.template" %}
+{% set message = action.result %}
+{% include "msg__traits.hpp.template" %}
+{% set message = action.feedback %}
+{% include "msg__traits.hpp.template" %}
+{% set service = action.send_goal_service %}
+{% include "srv__traits.hpp.template" %}
+{% set service = action.get_result_service %}
+{% include "srv__traits.hpp.template" %}
+{% set message = action.feedback_message %}
+{% include "msg__traits.hpp.template" %}
+
+
+{% set action_typename = join(action.type.namespaces, "::") + "::" + action.type.name %}
+namespace rosidl_generator_traits
+{
+
+template<>
+struct is_action<{{ action_typename }}>
+  : std::true_type
+{
+};
+
+template<>
+struct is_action_goal<{{ action_typename }}{{ ACTION_GOAL_SUFFIX }}>
+  : std::true_type
+{
+};
+
+template<>
+struct is_action_result<{{ action_typename }}{{ ACTION_RESULT_SUFFIX }}>
+  : std::true_type
+{
+};
+
+template<>
+struct is_action_feedback<{{ action_typename }}{{ ACTION_FEEDBACK_SUFFIX }}>
+  : std::true_type
+{
+};
+
+}  // namespace rosidl_generator_traits
+

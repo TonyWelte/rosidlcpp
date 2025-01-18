@@ -19,6 +19,9 @@ constexpr std::string_view SERVICE_RESPONSE_MESSAGE_SUFFIX = "_Response";
 constexpr std::string_view ACTION_GOAL_SUFFIX = "_Goal";
 constexpr std::string_view ACTION_RESULT_SUFFIX = "_Result";
 constexpr std::string_view ACTION_FEEDBACK_SUFFIX = "_Feedback";
+constexpr std::string_view ACTION_GOAL_SERVICE_SUFFIX = "_SendGoal";
+constexpr std::string_view ACTION_RESULT_SERVICE_SUFFIX = "_GetResult";
+constexpr std::string_view ACTION_FEEDBACK_MESSAGE_SUFFIX = "_FeedbackMessage";
 
 GeneratorBase::GeneratorBase() : m_env{} {
   m_env.set_trim_blocks(true);
@@ -119,6 +122,39 @@ GeneratorBase::GeneratorBase() : m_env{} {
     return str;
   });
 
+  // Constants
+  m_env.add_callback(
+      "EMPTY_STRUCTURE_REQUIRED_MEMBER_NAME", 0, [](inja::Arguments&) {
+        return EMPTY_STRUCTURE_REQUIRED_MEMBER_NAME;
+      });
+  m_env.add_callback("SERVICE_EVENT_MESSAGE_SUFFIX", 0, [](inja::Arguments&) {
+    return SERVICE_EVENT_MESSAGE_SUFFIX;
+  });
+  m_env.add_callback("SERVICE_REQUEST_MESSAGE_SUFFIX", 0, [](inja::Arguments&) {
+    return SERVICE_REQUEST_MESSAGE_SUFFIX;
+  });
+  m_env.add_callback("SERVICE_RESPONSE_MESSAGE_SUFFIX", 0, [](inja::Arguments&) {
+    return SERVICE_RESPONSE_MESSAGE_SUFFIX;
+  });
+  m_env.add_callback("ACTION_GOAL_SUFFIX", 0, [](inja::Arguments&) {
+    return ACTION_GOAL_SUFFIX;
+  });
+  m_env.add_callback("ACTION_RESULT_SUFFIX", 0, [](inja::Arguments&) {
+    return ACTION_RESULT_SUFFIX;
+  });
+  m_env.add_callback("ACTION_FEEDBACK_SUFFIX", 0, [](inja::Arguments&) {
+    return ACTION_FEEDBACK_SUFFIX;
+  });
+  m_env.add_callback("ACTION_GOAL_SERVICE_SUFFIX", 0, [](inja::Arguments&) {
+    return ACTION_GOAL_SERVICE_SUFFIX;
+  });
+  m_env.add_callback("ACTION_RESULT_SERVICE_SUFFIX", 0, [](inja::Arguments&) {
+    return ACTION_RESULT_SERVICE_SUFFIX;
+  });
+  m_env.add_callback("ACTION_FEEDBACK_MESSAGE_SUFFIX", 0, [](inja::Arguments&) {
+    return ACTION_FEEDBACK_MESSAGE_SUFFIX;
+  });
+
   // Utility
   m_env.add_callback("span", 3, [](inja::Arguments& args) {
     auto list = *args.at(0);
@@ -150,10 +186,6 @@ GeneratorBase::GeneratorBase() : m_env{} {
     const auto substr = args.at(1)->get<std::string>();
     return str.find(substr) != std::string::npos;
   });
-  m_env.add_callback(
-      "EMPTY_STRUCTURE_REQUIRED_MEMBER_NAME", 0, [](inja::Arguments&) {
-        return EMPTY_STRUCTURE_REQUIRED_MEMBER_NAME;
-      });
   m_env.add_callback("set_global_variable", 2, [&](inja::Arguments& args) {
     auto name = args.at(0)->get<std::string>();
     auto value = *args.at(1);
@@ -174,6 +206,18 @@ GeneratorBase::GeneratorBase() : m_env{} {
     const auto value = args.at(0)->get<std::string>();
     const auto sep = args.at(1)->get<std::string>();
     return rosidlcpp_parser::split_string(value, sep);
+  });
+  m_env.add_callback("custom_range", 3, [](inja::Arguments& args) {
+    const int start = args.at(0)->get<int>();
+    const int end = args.at(1)->get<int>();
+    const int step = args.at(2)->get<int>();
+    std::vector<int> result;
+    int v = start;
+    while (step > 0 ? v < end : v > end) {
+      result.push_back(v);
+      v += step;
+    }
+    return result;
   });
 
   // Types
@@ -197,6 +241,10 @@ GeneratorBase::GeneratorBase() : m_env{} {
                      [](inja::Arguments& args) -> nlohmann::json {
                        return is_nestedtype(*args.at(0));
                      });
+  m_env.add_callback("is_integer", 1,
+                     [](inja::Arguments& args) -> nlohmann::json {
+                       return is_signed_integer(*args.at(0)) || is_unsigned_integer(*args.at(0));
+                     });
   m_env.add_callback("is_signed_integer", 1,
                      [](inja::Arguments& args) -> nlohmann::json {
                        return is_signed_integer(*args.at(0));
@@ -204,6 +252,10 @@ GeneratorBase::GeneratorBase() : m_env{} {
   m_env.add_callback("is_unsigned_integer", 1,
                      [](inja::Arguments& args) -> nlohmann::json {
                        return is_unsigned_integer(*args.at(0));
+                     });
+  m_env.add_callback("is_namespaced", 1,
+                     [](inja::Arguments& args) -> nlohmann::json {
+                       return is_namespaced(*args.at(0));
                      });
   m_env.add_callback(
       "is_action_type", 1, [](inja::Arguments& args) -> nlohmann::json {
