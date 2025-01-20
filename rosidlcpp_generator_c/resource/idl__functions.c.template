@@ -1,0 +1,69 @@
+// generated from rosidl_generator_c/resource/idl__functions.c.em
+// with input from {{ package_name }}:{{ interface_path.filepath }}
+// generated code does not contain a copyright notice
+{% set include_base = package_name + "/" + interface_path.filedir + "/detail/" + convert_camel_case_to_lower_case_underscore(interface_path.filename) %}
+{% set include_directives = set_global_variable("include_directives", push_back(push_back([], include_base + "__functions.h"), "rcutils/allocator.h")) %}
+#include "{{ include_base }}__functions.h"
+
+#include <assert.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "rcutils/allocator.h"
+{########################################################################}
+{# Handle message #}
+{########################################################################}
+{% for msg_object in messages %}
+
+{% set message=msg_object.message %}
+{% include "msg__functions.c.template" %}
+{% endfor %}
+{########################################################################}
+{# Handle service #}
+{########################################################################}
+{% for service in services %}
+{% set message=service.request_message %}
+{% include "msg__functions.c.template" %}
+
+{% set message=service.response_message %}
+{% include "msg__functions.c.template" %}
+
+{% set message=service.event_message %}
+{% include "msg__functions.c.template" %}
+{% endfor %}
+{########################################################################}
+{# Handle action #}
+{########################################################################}
+{% for action in actions %}
+
+{% set message=action.goal %}
+{% include "msg__functions.c.template" %}
+
+{% set message=action.result %}
+{% include "msg__functions.c.template" %}
+
+{% set message=action.feedback %}
+{% include "msg__functions.c.template" %}
+
+{% set message=action.send_goal_service.request_message %}
+{% include "msg__functions.c.template" %}
+
+{% set message=action.send_goal_service.response_message %}
+{% include "msg__functions.c.template" %}
+
+{% set message=action.send_goal_service.event_message %}
+{% include "msg__functions.c.template" %}
+
+{% set message=action.get_result_service.request_message %}
+{% include "msg__functions.c.template" %}
+
+{% set message=action.get_result_service.response_message %}
+{% include "msg__functions.c.template" %}
+
+{% set message=action.get_result_service.event_message %}
+{% include "msg__functions.c.template" %}
+
+{% set message=action.feedback_message %}
+{% include "msg__functions.c.template" %}
+{% endfor %}

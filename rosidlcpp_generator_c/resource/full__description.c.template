@@ -1,0 +1,9 @@
+
+#include <assert.h>
+#include <string.h>
+
+// Include directives for referenced types
+{% set includes = [] %}
+{% for header_file in includes %}
+#include "{{ header_file }}"
+{% endfor %}

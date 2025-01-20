@@ -101,25 +101,13 @@ nlohmann::json default_value_from_type(const nlohmann::json &type) {
   return 0;  // Default for other types (integers)
 }
 
-std::string escape_string(const std::string &str) {
-  std::string escaped_str;
-  for (const auto &c : str) {
-    if (c == '"') {
-      escaped_str += "\\\"";
-    } else {
-      escaped_str += c;
-    }
-  }
-  return escaped_str;
-}
-
 std::string primitive_value_to_cpp(const nlohmann::json &type,
                                    const nlohmann::json &value) {
   auto type_name = type["name"].get<std::string>();
   if (type_name == "string") {
-    return "\"" + escape_string(value.get<std::string>()) + "\"";
+    return "\"" + rosidlcpp_core::escape_string(value.get<std::string>()) + "\"";
   } else if (type_name == "wstring") {
-    return "u\"" + escape_string(value.get<std::string>()) + "\"";
+    return "u\"" + rosidlcpp_core::escape_string(value.get<std::string>()) + "\"";
   } else if (type_name == "boolean") {
     return value.get<bool>() ? "true" : "false";
   } else if (type_name == "short" || type_name == "unsigned short" || type_name == "char" ||
@@ -324,7 +312,7 @@ std::string msg_type_only_to_cpp(const nlohmann::json &type) {
   }
 
   // Check the basic type
-  if (rosidlcpp_core::is_primitive(main_type)) {
+  if (rosidlcpp_core::is_primitive(main_type) || rosidlcpp_core::is_string(main_type)) {
     cpp_type = MSG_TYPE_TO_CPP.at(main_type["name"].get<std::string>());
   } else if (rosidlcpp_core::is_namespaced(main_type)) {
     cpp_type = fmt::format("{}::{}_<ContainerAllocator>", fmt::join(main_type["namespaces"], "::"), main_type["name"].get<std::string>());

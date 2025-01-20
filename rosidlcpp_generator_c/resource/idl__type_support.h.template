@@ -1,0 +1,48 @@
+// generated from rosidl_generator_c/resource/idl__type_support.h.em
+// with input from {{ package_name }}:{{ interface_path.filepath }}
+// generated code does not contain a copyright notice
+
+// IWYU pragma: private, include "{{ package_name }}/{{ interface_path.filedir }}/{{ convert_camel_case_to_lower_case_underscore(interface_path.filename) }}.h"
+
+{% set header_guard_variable = upper(package_name) + "__" + upper(join(split_string(interface_path.filedir, "/"), "__")) + "__DETAIL__" + upper(convert_camel_case_to_lower_case_underscore(interface_path.filename)) + "__TYPE_SUPPORT_H_" %}
+{% set include_directives = set_global_variable("include_directives", []) %}
+
+#ifndef {{ header_guard_variable }}
+#define {{ header_guard_variable }}
+
+#include "rosidl_typesupport_interface/macros.h"
+
+#include "{{ package_name }}/msg/rosidl_generator_c__visibility_control.h"
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+{########################################################################}
+{# Handle message #}
+{########################################################################}
+{% for msg_object in messages %}
+{% set message=msg_object.message %}
+{% include "msg__type_support.h.template" %}
+
+{% endfor %}
+{########################################################################}
+{# Handle service #}
+{########################################################################}
+{% for service in services %}
+{% include "srv__type_support.h.template" %}
+
+{% endfor %}
+{########################################################################}
+{# Handle action #}
+{########################################################################}
+{% for action in actions %}
+{% include "action__type_support.h.template" %}
+
+{% endfor %}
+#ifdef __cplusplus
+}
+#endif
+
+#endif  // {{ header_guard_variable }}

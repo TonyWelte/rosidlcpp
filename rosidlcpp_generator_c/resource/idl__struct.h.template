@@ -1,0 +1,85 @@
+// generated from rosidl_generator_c/resource/idl__struct.h.em
+// with input from {{ package_name }}:{{ interface_path.filepath }}
+// generated code does not contain a copyright notice
+
+// IWYU pragma: private, include "{{ package_name }}/{{ interface_path.filedir }}/{{ convert_camel_case_to_lower_case_underscore(interface_path.filename) }}.h"
+
+{% set header_guard_variable = upper(package_name) + "__" + upper(join(split_string(interface_path.filedir, "/"), "__")) + "__DETAIL__" + upper(convert_camel_case_to_lower_case_underscore(interface_path.filename)) + "__STRUCT_H_" %}
+{% set include_directives = set_global_variable("include_directives", []) %}
+
+#ifndef {{ header_guard_variable }}
+#define {{ header_guard_variable }}
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
+{########################################################################}
+{# Handle message #}
+{########################################################################}
+{% for msg_object in messages %}
+{% set message=msg_object.message %}
+{% include "msg__struct.h.template" %}
+
+{% endfor %}
+{########################################################################}
+{# Handle service #}
+{########################################################################}
+{% for service in services %}
+
+{% set message=service.request_message %}
+{% include "msg__struct.h.template" %}
+
+{% set message=service.response_message %}
+{% include "msg__struct.h.template" %}
+
+{% set message=service.event_message %}
+{% include "msg__struct.h.template" %}
+
+{% endfor %}
+{########################################################################}
+{# Handle action #}
+{########################################################################}
+{% for action in actions %}
+
+{% set message=action.goal %}
+{% include "msg__struct.h.template" %}
+
+{% set message=action.result %}
+{% include "msg__struct.h.template" %}
+
+{% set message=action.feedback %}
+{% include "msg__struct.h.template" %}
+
+{% set message=action.send_goal_service.request_message %}
+{% include "msg__struct.h.template" %}
+
+{% set message=action.send_goal_service.response_message %}
+{% include "msg__struct.h.template" %}
+
+{% set message=action.send_goal_service.event_message %}
+{% include "msg__struct.h.template" %}
+
+{% set message=action.get_result_service.request_message %}
+{% include "msg__struct.h.template" %}
+
+{% set message=action.get_result_service.response_message %}
+{% include "msg__struct.h.template" %}
+
+{% set message=action.get_result_service.event_message %}
+{% include "msg__struct.h.template" %}
+
+{% set message=action.feedback_message %}
+{% include "msg__struct.h.template" %}
+
+{% endfor %}
+#ifdef __cplusplus
+}
+#endif
+
+#endif  // {{ header_guard_variable }}

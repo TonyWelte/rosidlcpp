@@ -1,0 +1,38 @@
+{% set header_file = "rosidl_runtime_c/action_type_support_struct.h" %}
+{% set include_directives = get_global_variable("include_directives") %}
+{% if header_file in include_directives %}
+// already included above
+// {{ "" -}}
+{% else %}
+{% set include_directives = set_global_variable("include_directives", push_back(include_directives, header_file)) %}
+{% endif %}
+#include "{{ header_file }}"
+
+// Forward declare the get type support functions for this type.
+ROSIDL_GENERATOR_C_PUBLIC_{{ package_name }}
+const rosidl_action_type_support_t *
+ROSIDL_TYPESUPPORT_INTERFACE__ACTION_SYMBOL_NAME(
+  rosidl_typesupport_c,
+{% for ns in action.type.namespaces %}
+  {{ ns }},
+{% endfor %}
+  {{ action.type.name }}
+)(void);
+
+{% set message = action.goal %}
+{% include "msg__type_support.h.template" %}
+
+{% set message = action.result %}
+{% include "msg__type_support.h.template" %}
+
+{% set message = action.feedback %}
+{% include "msg__type_support.h.template" %}
+
+{% set service = action.send_goal_service %}
+{% include "srv__type_support.h.template" %}
+
+{% set service = action.get_result_service %}
+{% include "srv__type_support.h.template" %}
+
+{% set message = action.feedback_message %}
+{% include "msg__type_support.h.template" %}

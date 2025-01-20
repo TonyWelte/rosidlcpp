@@ -12,6 +12,16 @@ namespace rosidlcpp_core {
 
 using CallbackArgs = std::vector<const nlohmann::json*>;
 
+constexpr std::string_view SERVICE_EVENT_MESSAGE_SUFFIX = "_Event";
+constexpr std::string_view SERVICE_REQUEST_MESSAGE_SUFFIX = "_Request";
+constexpr std::string_view SERVICE_RESPONSE_MESSAGE_SUFFIX = "_Response";
+constexpr std::string_view ACTION_GOAL_SUFFIX = "_Goal";
+constexpr std::string_view ACTION_RESULT_SUFFIX = "_Result";
+constexpr std::string_view ACTION_FEEDBACK_SUFFIX = "_Feedback";
+constexpr std::string_view ACTION_GOAL_SERVICE_SUFFIX = "_SendGoal";
+constexpr std::string_view ACTION_RESULT_SERVICE_SUFFIX = "_GetResult";
+constexpr std::string_view ACTION_FEEDBACK_MESSAGE_SUFFIX = "_FeedbackMessage";
+
 constexpr std::string_view EMPTY_STRUCTURE_REQUIRED_MEMBER_NAME =
     "structure_needs_at_least_one_member";
 
@@ -25,6 +35,8 @@ struct GeneratorArguments {
   std::vector<std::pair<std::string, std::string>> type_description_tuples;
   std::vector<std::pair<std::string, std::string>> include_paths;
 };
+
+std::string escape_string(const std::string& str);
 
 GeneratorArguments parse_arguments(const std::string& filepath);
 

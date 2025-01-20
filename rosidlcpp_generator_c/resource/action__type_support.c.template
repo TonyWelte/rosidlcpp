@@ -1,0 +1,6 @@
+{% set service = action.send_goal_service %}
+{% include "srv__type_support.c.template" %}
+
+
+{% set service = action.get_result_service %}
+{% include "srv__type_support.c.template" %}
