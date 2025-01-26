@@ -13,8 +13,8 @@
 {########################################################################}
 {# Define get_type_hash functions #}
 {########################################################################}
-{% set all_type_descriptions = insert(implicit_type_descriptions, 0, toplevel_type_description) %}
-{% for type_description in all_type_descriptions %}
+{% set full_type_descriptions = insert(implicit_type_descriptions, 0, toplevel_type_description) %}
+{% for type_description in full_type_descriptions %}
 {% set typename = type_description.msg.type_description.type_name %}
 {% set c_typename = replace(typename, "/", "__") %}
 ROSIDL_GENERATOR_C_PUBLIC_{{ package_name }}

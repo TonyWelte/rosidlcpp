@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <fstream>
 #include <limits>
-#include <numeric>
 #include <regex>
 #include <rosidlcpp_generator_c/rosidlcpp_generator_c.hpp>
 
@@ -118,6 +117,38 @@ nlohmann::json get_includes(rosidlcpp_core::CallbackArgs& args) {
   }
 
   return includes_json;
+}
+
+nlohmann::json get_full_description_includes(rosidlcpp_core::CallbackArgs& args) {
+  nlohmann::json implicit_type_description = *args.at(0);
+  nlohmann::json toplevel_type_description = *args.at(1);
+
+  std::set<std::string> implicit_type_names;
+  for (const auto& td : implicit_type_description) {
+    implicit_type_names.insert(td["msg"]["type_description"]["type_name"].get<std::string>());
+  }
+
+  // TODO: Use a custom map sorted by insertion order
+  std::vector<std::string> header_to_members;
+
+  const auto& toplevel_msg = toplevel_type_description["msg"];
+
+  for (const auto& referenced_td : toplevel_msg["referenced_type_descriptions"]) {
+    if (implicit_type_names.find(referenced_td["type_name"].get<std::string>()) != implicit_type_names.end()) {
+      continue;
+    }
+
+    auto type_parts = rosidlcpp_parser::split_string(referenced_td["type_name"].get<std::string>(), "/");
+    nlohmann::json type = nlohmann::json::object();
+    type["name"] = type_parts.back();
+    type_parts.pop_back();
+    type["namespaces"] = type_parts;
+
+    auto include_prefix = idl_structure_type_to_c_include_prefix(type, "detail");
+    header_to_members.push_back(include_prefix + "__functions.h");
+  }
+
+  return header_to_members;
 }
 
 nlohmann::json get_upper_bounds(rosidlcpp_core::CallbackArgs& args) {
@@ -443,6 +474,131 @@ std::string type_hash_to_c_definition(const std::string& hash_string, int indent
   return result;
 }
 
+const std::unordered_map<std::string, int> FIELD_TYPE_NAME_TO_ID = {
+    {"FIELD_TYPE_NOT_SET", 0},
+
+    // Nested type defined in other .msg/.idl files.
+    {"FIELD_TYPE_NESTED_TYPE", 1},
+
+    // Basic Types
+    // Integer Types
+    {"FIELD_TYPE_INT8", 2},
+    {"FIELD_TYPE_UINT8", 3},
+    {"FIELD_TYPE_INT16", 4},
+    {"FIELD_TYPE_UINT16", 5},
+    {"FIELD_TYPE_INT32", 6},
+    {"FIELD_TYPE_UINT32", 7},
+    {"FIELD_TYPE_INT64", 8},
+    {"FIELD_TYPE_UINT64", 9},
+
+    // Floating-Point Types
+    {"FIELD_TYPE_FLOAT", 10},
+    {"FIELD_TYPE_DOUBLE", 11},
+    {"FIELD_TYPE_LONG_DOUBLE", 12},
+
+    // Char and WChar Types
+    {"FIELD_TYPE_CHAR", 13},
+    {"FIELD_TYPE_WCHAR", 14},
+
+    // Boolean Type
+    {"FIELD_TYPE_BOOLEAN", 15},
+
+    // Byte/Octet Type
+    {"FIELD_TYPE_BYTE", 16},
+
+    // String Types
+    {"FIELD_TYPE_STRING", 17},
+    {"FIELD_TYPE_WSTRING", 18},
+
+    // Fixed String Types
+    {"FIELD_TYPE_FIXED_STRING", 19},
+    {"FIELD_TYPE_FIXED_WSTRING", 20},
+
+    // Bounded String Types
+    {"FIELD_TYPE_BOUNDED_STRING", 21},
+    {"FIELD_TYPE_BOUNDED_WSTRING", 22},
+
+    // Fixed Sized Array Types
+    {"FIELD_TYPE_NESTED_TYPE_ARRAY", 49},
+    {"FIELD_TYPE_INT8_ARRAY", 50},
+    {"FIELD_TYPE_UINT8_ARRAY", 51},
+    {"FIELD_TYPE_INT16_ARRAY", 52},
+    {"FIELD_TYPE_UINT16_ARRAY", 53},
+    {"FIELD_TYPE_INT32_ARRAY", 54},
+    {"FIELD_TYPE_UINT32_ARRAY", 55},
+    {"FIELD_TYPE_INT64_ARRAY", 56},
+    {"FIELD_TYPE_UINT64_ARRAY", 57},
+    {"FIELD_TYPE_FLOAT_ARRAY", 58},
+    {"FIELD_TYPE_DOUBLE_ARRAY", 59},
+    {"FIELD_TYPE_LONG_DOUBLE_ARRAY", 60},
+    {"FIELD_TYPE_CHAR_ARRAY", 61},
+    {"FIELD_TYPE_WCHAR_ARRAY", 62},
+    {"FIELD_TYPE_BOOLEAN_ARRAY", 63},
+    {"FIELD_TYPE_BYTE_ARRAY", 64},
+    {"FIELD_TYPE_STRING_ARRAY", 65},
+    {"FIELD_TYPE_WSTRING_ARRAY", 66},
+    {"FIELD_TYPE_FIXED_STRING_ARRAY", 67},
+    {"FIELD_TYPE_FIXED_WSTRING_ARRAY", 68},
+    {"FIELD_TYPE_BOUNDED_STRING_ARRAY", 69},
+    {"FIELD_TYPE_BOUNDED_WSTRING_ARRAY", 70},
+
+    // Bounded Sequence Types
+    {"FIELD_TYPE_NESTED_TYPE_BOUNDED_SEQUENCE", 97},
+    {"FIELD_TYPE_INT8_BOUNDED_SEQUENCE", 98},
+    {"FIELD_TYPE_UINT8_BOUNDED_SEQUENCE", 99},
+    {"FIELD_TYPE_INT16_BOUNDED_SEQUENCE", 100},
+    {"FIELD_TYPE_UINT16_BOUNDED_SEQUENCE", 101},
+    {"FIELD_TYPE_INT32_BOUNDED_SEQUENCE", 102},
+    {"FIELD_TYPE_UINT32_BOUNDED_SEQUENCE", 103},
+    {"FIELD_TYPE_INT64_BOUNDED_SEQUENCE", 104},
+    {"FIELD_TYPE_UINT64_BOUNDED_SEQUENCE", 105},
+    {"FIELD_TYPE_FLOAT_BOUNDED_SEQUENCE", 106},
+    {"FIELD_TYPE_DOUBLE_BOUNDED_SEQUENCE", 107},
+    {"FIELD_TYPE_LONG_DOUBLE_BOUNDED_SEQUENCE", 108},
+    {"FIELD_TYPE_CHAR_BOUNDED_SEQUENCE", 109},
+    {"FIELD_TYPE_WCHAR_BOUNDED_SEQUENCE", 110},
+    {"FIELD_TYPE_BOOLEAN_BOUNDED_SEQUENCE", 111},
+    {"FIELD_TYPE_BYTE_BOUNDED_SEQUENCE", 112},
+    {"FIELD_TYPE_STRING_BOUNDED_SEQUENCE", 113},
+    {"FIELD_TYPE_WSTRING_BOUNDED_SEQUENCE", 114},
+    {"FIELD_TYPE_FIXED_STRING_BOUNDED_SEQUENCE", 115},
+    {"FIELD_TYPE_FIXED_WSTRING_BOUNDED_SEQUENCE", 116},
+    {"FIELD_TYPE_BOUNDED_STRING_BOUNDED_SEQUENCE", 117},
+    {"FIELD_TYPE_BOUNDED_WSTRING_BOUNDED_SEQUENCE", 118},
+
+    // Unbounded Sequence Types
+    {"FIELD_TYPE_NESTED_TYPE_UNBOUNDED_SEQUENCE", 145},
+    {"FIELD_TYPE_INT8_UNBOUNDED_SEQUENCE", 146},
+    {"FIELD_TYPE_UINT8_UNBOUNDED_SEQUENCE", 147},
+    {"FIELD_TYPE_INT16_UNBOUNDED_SEQUENCE", 148},
+    {"FIELD_TYPE_UINT16_UNBOUNDED_SEQUENCE", 149},
+    {"FIELD_TYPE_INT32_UNBOUNDED_SEQUENCE", 150},
+    {"FIELD_TYPE_UINT32_UNBOUNDED_SEQUENCE", 151},
+    {"FIELD_TYPE_INT64_UNBOUNDED_SEQUENCE", 152},
+    {"FIELD_TYPE_UINT64_UNBOUNDED_SEQUENCE", 153},
+    {"FIELD_TYPE_FLOAT_UNBOUNDED_SEQUENCE", 154},
+    {"FIELD_TYPE_DOUBLE_UNBOUNDED_SEQUENCE", 155},
+    {"FIELD_TYPE_LONG_DOUBLE_UNBOUNDED_SEQUENCE", 156},
+    {"FIELD_TYPE_CHAR_UNBOUNDED_SEQUENCE", 157},
+    {"FIELD_TYPE_WCHAR_UNBOUNDED_SEQUENCE", 158},
+    {"FIELD_TYPE_BOOLEAN_UNBOUNDED_SEQUENCE", 159},
+    {"FIELD_TYPE_BYTE_UNBOUNDED_SEQUENCE", 160},
+    {"FIELD_TYPE_STRING_UNBOUNDED_SEQUENCE", 161},
+    {"FIELD_TYPE_WSTRING_UNBOUNDED_SEQUENCE", 162},
+    {"FIELD_TYPE_FIXED_STRING_UNBOUNDED_SEQUENCE", 163},
+    {"FIELD_TYPE_FIXED_WSTRING_UNBOUNDED_SEQUENCE", 164},
+    {"FIELD_TYPE_BOUNDED_STRING_UNBOUNDED_SEQUENCE", 165},
+    {"FIELD_TYPE_BOUNDED_WSTRING_UNBOUNDED_SEQUENCE", 166},
+};
+
+const std::unordered_map<int, std::string> FIELD_TYPE_ID_TO_NAME = [] {
+  std::unordered_map<int, std::string> map;
+  for (const auto& [key, value] : FIELD_TYPE_NAME_TO_ID) {
+    map[value] = key;
+  }
+  return map;
+}();
+
 GeneratorC::GeneratorC(int argc, char** argv) : GeneratorBase() {
   // Arguments
   argparse::ArgumentParser argument_parser("rosidl_generator_cpp");
@@ -515,6 +671,46 @@ GeneratorC::GeneratorC(int argc, char** argv) : GeneratorBase() {
   m_env.add_callback("type_hash_to_c_definition", 2, [](rosidlcpp_core::CallbackArgs& args) {
     return type_hash_to_c_definition(args.at(0)->get<std::string>(), args.at(1)->get<int>());
   });
+  m_env.add_callback("get_full_description_includes", 2, get_full_description_includes);
+
+  m_env.add_callback("static_seq_n", 2, [](rosidlcpp_core::CallbackArgs& args) {
+    const auto& varname = args.at(0)->get<std::string>();
+    const auto& n = args.at(1)->get<int>();
+    if (n > 0) {
+      return fmt::format("{{{}, {}, {}}}", varname, n, n);
+    }
+    return std::string("{NULL, 0, 0}");
+  });
+
+  m_env.add_callback("static_seq", 2, [](rosidlcpp_core::CallbackArgs& args) {
+    const auto& varname = args.at(0)->get<std::string>();
+    if (args.at(1)->is_string()) {
+      std::string n_str = args.at(1)->get<std::string>();
+      if (!n_str.empty()) {
+        return fmt::format("{{{}, {}, {}}}", varname, n_str.size(), n_str.size());
+      }
+    } else if (args.at(1)->is_array() && args.at(1)->size() > 0) {
+      return fmt::format("{{{}, {}, {}}}", varname, args.at(1)->size(), args.at(1)->size());
+    }
+    return std::string("{NULL, 0, 0}");
+  });
+
+  m_env.add_callback("utf8_encode", 1, [](rosidlcpp_core::CallbackArgs& args) {
+    const auto& value_string = args.at(0)->get<std::string>();
+    std::string utf8_encoded;
+    for (const auto& c : value_string) {
+      if (static_cast<unsigned char>(c) < 0x80) {
+        utf8_encoded += c;
+      } else {
+        utf8_encoded += fmt::format("\\x{:02x}", static_cast<unsigned char>(c));
+      }
+    }
+    return rosidlcpp_core::escape_string(utf8_encoded);
+  });
+  m_env.add_callback("FIELD_TYPE_ID_TO_NAME", 1, [](rosidlcpp_core::CallbackArgs& args) -> std::string {
+    const auto& field_type_id = args.at(0)->get<int>();
+    return FIELD_TYPE_ID_TO_NAME.at(field_type_id);
+  });
 }
 
 void GeneratorC::run() {
@@ -544,7 +740,7 @@ void GeneratorC::run() {
     auto ros_json = rosidlcpp_parser::convert_idljson_to_rosjson(idl_json, file_path);
     // TODO: Save the result to an output file for debugging
 
-    // Read type_descriptions
+    // Type descriptions
     auto type_description_it = std::find_if(m_arguments.type_description_tuples.begin(), m_arguments.type_description_tuples.end(), [&file_path](const auto& v) { return v.first == file_path; });
     if (type_description_it == m_arguments.type_description_tuples.end()) {
       throw std::runtime_error("Type descriptions not found");
@@ -554,9 +750,26 @@ void GeneratorC::run() {
     auto type_description = nlohmann::json::parse(type_description_file);
     ros_json["type_description_info"] = type_description;
 
-    ros_json["package_name"] = m_arguments.package_name;
-
     ros_json["disable_description_codegen"] = m_disable_description_codegen;
+
+    // Raw source content
+    auto it = std::find_if(m_arguments.ros_interface_files.begin(), m_arguments.ros_interface_files.end(), [&](const auto& v) { return v.ends_with("/" + ros_json["type"]["name"].get<std::string>() + "." + ros_json["type"]["namespaces"].back().get<std::string>()); });
+    if (it != m_arguments.ros_interface_files.end()) {
+      std::ifstream raw_source_file(*it);
+      std::stringstream raw_source_stream;
+      raw_source_stream << raw_source_file.rdbuf();
+
+      // Get the raw source content as a list of lines
+      ros_json["raw_source_content"] = nlohmann::json::array();
+      std::string line;
+      while (std::getline(raw_source_stream, line)) {
+        ros_json["raw_source_content"].push_back(line);
+      }
+    } else {
+      ros_json["raw_source_content"] = "";
+    }
+
+    ros_json["package_name"] = m_arguments.package_name;
 
     const auto msg_directory = ros_json["interface_path"]["filedir"].get<std::string>();
     const auto msg_type = ros_json["interface_path"]["filename"].get<std::string>();
@@ -567,7 +780,7 @@ void GeneratorC::run() {
     m_env.write(template_idl_struct_h, ros_json, std::format("{}/detail/{}__struct.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
     m_env.write(template_idl_type_support_c, ros_json, std::format("{}/detail/{}__type_support.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
     m_env.write(template_idl_type_support_h, ros_json, std::format("{}/detail/{}__type_support.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
-    m_env.write(template_idl_h, ros_json, std::format("{}/detail/{}_.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    m_env.write(template_idl_h, ros_json, std::format("{}/{}.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
   }
 }
 

@@ -29,7 +29,9 @@ std::string escape_string(const std::string& str) {
   std::string escaped_str;
   for (const auto& c : str) {
     if (c == '"') {
-      escaped_str += "\\\"";
+      escaped_str += R"(\")";
+    } else if (c == '\\') {
+      escaped_str += "\\\\";
     } else {
       escaped_str += c;
     }
@@ -317,6 +319,9 @@ GeneratorArguments parse_arguments(const std::string& filepath) {
 
   if (data.contains("idl_tuples")) {
     result.idl_tuples = parse_pairs(data["idl_tuples"]);
+  }
+  if (data.contains("ros_interface_files")) {
+    result.ros_interface_files = data["ros_interface_files"];
   }
   if (data.contains("ros_interface_dependencies")) {
     result.ros_interface_dependencies = data["ros_interface_dependencies"];

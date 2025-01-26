@@ -1,9 +1,184 @@
-
+{% set full_type_names = [] %}
+{% for td in full_type_descriptions %}
+{%   set full_type_names = push_back(full_type_names, td.msg.type_description.type_name) %}
+{% endfor %}
+{% set all_type_descriptions = insert(toplevel_type_description.msg.referenced_type_descriptions, 0, toplevel_type_description.msg.type_description) %}
 #include <assert.h>
 #include <string.h>
 
 // Include directives for referenced types
-{% set includes = [] %}
+{% set includes = get_full_description_includes(implicit_type_descriptions, toplevel_type_description) %}
 {% for header_file in includes %}
 #include "{{ header_file }}"
 {% endfor %}
+
+{#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< #}
+{# Cache expected hashes for externally referenced types, for error checking #}
+// Hashes for external referenced types
+#ifndef NDEBUG
+{% for referenced_type_description in toplevel_type_description.msg.referenced_type_descriptions %}
+{% set type_name = referenced_type_description.type_name %}
+{% set c_typename = replace(type_name, "/", "__") %}
+{%  if type_name in full_type_names %}{% else %}
+static const rosidl_type_hash_t {{ c_typename }}__EXPECTED_HASH = {{ type_hash_to_c_definition(at(hash_lookup, type_name), 2) }};
+{%  endif %}
+{% endfor %}
+#endif
+{#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>#}
+
+{#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<#}
+{# Names for all types #}
+{% for itype_description in all_type_descriptions %}
+static char {{ replace(itype_description.type_name, "/", "__") }}__TYPE_NAME[] = "{{ itype_description.type_name }}";
+{% endfor %}
+{#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>#}
+
+{#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<#}
+{# Define all values going into each local type #}
+{% for full_type_description in full_type_descriptions %}
+{% set itype_description = full_type_description.msg.type_description %}
+{% set td_typename = itype_description.type_name %}
+{% set td_c_typename = replace(td_typename, "/", "__") %}
+{% set ref_tds = full_type_description.msg.referenced_type_descriptions. %}
+// Define type names, field names, and default values
+{%  for field in itype_description.fields %}
+static char {{ td_c_typename }}__FIELD_NAME__{{ field.name }}[] = "{{ field.name }}";
+{%    if field.default_value != "" %}
+static char {{ td_c_typename }}__DEFAULT_VALUE__{{ field.name }}[] = "{{ utf8_encode(field.default_value) }}";
+{%    endif %}
+{%  endfor %}
+
+{%  if itype_description.fields %}
+static rosidl_runtime_c__type_description__Field {{ td_c_typename }}__FIELDS[] = {
+{%    for field in itype_description.fields %}
+  {
+    {{ static_seq(format("{}__FIELD_NAME__{}", td_c_typename, field.name), field.name) }},
+    {
+      rosidl_runtime_c__type_description__FieldType__{{ FIELD_TYPE_ID_TO_NAME(field.type.type_id) }},
+      {{ field.type.capacity }},
+      {{ field.type.string_capacity }},
+      {{ static_seq(format("{}__TYPE_NAME", replace(field.type.nested_type_name, "/", "__")), field.type.nested_type_name) }},
+    },
+    {{ static_seq(format("{}__DEFAULT_VALUE__{}", td_c_typename, field.name), field.default_value) }},
+  },
+{%    endfor %}
+};
+{%  endif %}
+{%  if ref_tds %}
+
+static rosidl_runtime_c__type_description__IndividualTypeDescription {{ td_c_typename }}__REFERENCED_TYPE_DESCRIPTIONS[] = {
+{%    for ref_td in ref_tds %}
+  {
+    {{ static_seq(format("{}__TYPE_NAME", replace(ref_td.type_name, "/", "__")), ref_td.type_name) }},
+    {NULL, 0, 0},
+  },
+{%    endfor %}
+};
+{%  endif %}
+
+const rosidl_runtime_c__type_description__TypeDescription *
+{{ td_c_typename }}__{{ GET_DESCRIPTION_FUNC }}(
+  const rosidl_{{ full_type_description.type }}_type_support_t * type_support)
+{
+  (void)type_support;
+  static bool constructed = false;
+  static const rosidl_runtime_c__type_description__TypeDescription description = {
+    {
+      {{ static_seq(format("{}__TYPE_NAME", td_c_typename), td_typename) }},
+      {{ static_seq(format("{}__FIELDS", td_c_typename), full_type_description.msg.type_description.fields) }},
+    },
+    {{ static_seq(format("{}__REFERENCED_TYPE_DESCRIPTIONS", td_c_typename), ref_tds) }},
+  };
+  if (!constructed) {
+{%  for ref_td in ref_tds %}
+{% set c_typename = replace(ref_td.type_name, "/", "__") %}
+{%    if ref_td.type_name in full_type_names %}{% else %}
+    assert(0 == memcmp(&{{ c_typename }}__EXPECTED_HASH, {{ c_typename }}__{{ GET_HASH_FUNC }}(NULL), sizeof(rosidl_type_hash_t)));
+{%    endif %}
+    description.referenced_type_descriptions.data[{{ loop.index }}].fields = {{ c_typename }}__{{ GET_DESCRIPTION_FUNC }}(NULL)->type_description.fields;
+{%  endfor %}
+    constructed = true;
+  }
+  return &description;
+}
+{% endfor %}
+{#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>#}
+
+{#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<#}
+{# Define individual raw sources #}
+{% if raw_source_content %}
+static char toplevel_type_raw_source[] =
+{%   for line in span(raw_source_content, 0, length(raw_source_content) - 1) %}
+  "{{ utf8_encode(line) }}\n"
+{%   endfor %}
+  "{{ utf8_encode(last(raw_source_content)) }}";
+{% endif %}
+
+static char {{ last(type.namespaces) }}_encoding[] = "{{ last(type.namespaces) }}";
+{% if implicit_type_descriptions %}
+static char implicit_encoding[] = "implicit";
+{% endif %}
+
+// Define all individual source functions
+{% set implicit_type_names = [] %}
+{% for td in implicit_type_descriptions %}
+{%   set implicit_type_names = push_back(implicit_type_names, td.msg.type_description.type_name) %}
+{% endfor %}
+{% for full_type_description in full_type_descriptions %}
+{% set itype_description = full_type_description.msg.type_description %}
+{% set td_typename = itype_description.type_name %}
+{% set td_c_typename = replace(td_typename, "/", "__") %}
+{% if td_typename in implicit_type_names %}
+{%   set encoding = "implicit" %}
+{%   set contents_var = "" %}
+{%   set contents = [] %}
+{% else %}
+{%   set encoding = last(type.namespaces) %}
+{%   set contents_var = "toplevel_type_raw_source" %}
+{%   if raw_source_content %}
+{%     set contents = join(raw_source_content, "\n") + "\n" %}{# No idea why I need one more char here #}
+{%   else %}
+{%     set contents = "" %}
+{%   endif %}
+{% endif %}
+
+const rosidl_runtime_c__type_description__TypeSource *
+{{ td_c_typename }}__{{ GET_INDIVIDUAL_SOURCE_FUNC }}(
+  const rosidl_{{ full_type_description.type }}_type_support_t * type_support)
+{
+  (void)type_support;
+  static const rosidl_runtime_c__type_description__TypeSource source = {
+    {{ static_seq(format("{}__TYPE_NAME", td_c_typename), td_typename) }},
+    {{ static_seq(format("{}_encoding", encoding), encoding) }},
+    {{ static_seq(contents_var, contents) }},
+  };
+  return &source;
+}
+{% endfor %}
+{#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>#}
+{#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<#}
+{# Define full raw source sequences #}
+{% for full_type_description in full_type_descriptions %}
+{%   set ref_tds = full_type_description.msg.referenced_type_descriptions %}
+{%   set num_sources = length(ref_tds) + 1 %}
+{%   set td_c_typename = replace(full_type_description.msg.type_description.type_name, "/", "__") %}
+
+const rosidl_runtime_c__type_description__TypeSource__Sequence *
+{{ td_c_typename }}__{{ GET_SOURCES_FUNC }}(
+  const rosidl_{{ full_type_description.type }}_type_support_t * type_support)
+{
+  (void)type_support;
+  static rosidl_runtime_c__type_description__TypeSource sources[{{ num_sources }}];
+  static const rosidl_runtime_c__type_description__TypeSource__Sequence source_sequence = {{ static_seq_n("sources", num_sources) }};
+  static bool constructed = false;
+  if (!constructed) {
+    sources[0] = *{{ td_c_typename }}__{{ GET_INDIVIDUAL_SOURCE_FUNC }}(NULL),
+{%  for ref_td in ref_tds %}
+    sources[{{ loop.index + 1 }}] = *{{ replace(ref_td.type_name, "/", "__") }}__{{ GET_INDIVIDUAL_SOURCE_FUNC }}(NULL);
+{%  endfor %}
+    constructed = true;
+  }
+  return &source_sequence;
+}
+{% endfor %}
+{#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>#}

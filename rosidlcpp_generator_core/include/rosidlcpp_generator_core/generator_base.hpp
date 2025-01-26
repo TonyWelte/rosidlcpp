@@ -30,6 +30,7 @@ struct GeneratorArguments {
   std::string output_dir;
   std::string template_dir;
   std::vector<std::pair<std::string, std::string>> idl_tuples;
+  std::vector<std::string> ros_interface_files;
   std::vector<std::string> ros_interface_dependencies;
   std::vector<std::pair<std::string, std::string>> target_dependencies;
   std::vector<std::pair<std::string, std::string>> type_description_tuples;

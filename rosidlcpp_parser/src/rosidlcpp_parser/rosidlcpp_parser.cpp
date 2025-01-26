@@ -778,6 +778,37 @@ auto make_action_feedback_message(const nlohmann::json& action_type) -> nlohmann
   return feedback;
 }
 
+auto has_non_ascii(const std::string& str) -> bool {
+  return std::any_of(str.begin(), str.end(), [](unsigned char c) { return c > 127; });
+}
+
+template <typename Function>
+auto recursive_check(const nlohmann::json& data, Function check_function) -> bool {
+  for (const auto& [key, value] : data.items()) {
+    if (value.is_object()) {
+      if (recursive_check(value, check_function)) {
+        return true;
+      }
+    } else if (value.is_array()) {
+      for (const auto& element : value) {
+        if (recursive_check(element, check_function)) {
+          return true;
+        }
+      }
+    } else {
+      if (value.is_string() && check_function(value.get<std::string>())) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+auto check_non_ascii(const nlohmann::json& data) -> bool {
+  return recursive_check(data, has_non_ascii);
+}
+
 auto convert_idljson_to_rosjson(const nlohmann::json& idl_json, std::string_view file_path) -> nlohmann::json {
   nlohmann::json result;
 
@@ -786,6 +817,7 @@ auto convert_idljson_to_rosjson(const nlohmann::json& idl_json, std::string_view
   result["interface_path"]["filename"] = std::filesystem::path(file_path).stem().string();
   result["interface_path"]["filedir"] = std::filesystem::path(file_path).parent_path().string();
 
+  result["type"]["name"] = result["interface_path"]["filename"];
   result["type"]["namespaces"] = {
       idl_json["modules"][0]["name"],
       idl_json["modules"][0]["modules"][0]["name"]};
@@ -865,6 +897,9 @@ auto convert_idljson_to_rosjson(const nlohmann::json& idl_json, std::string_view
     result["actions"][0]["get_result_service"] = make_action_get_result_service(result["actions"][0]["type"]);
     result["actions"][0]["feedback_message"] = make_action_feedback_message(result["actions"][0]["type"]);
   }
+
+  // Check for non-ASCII characters
+  result["has_non_ascii"] = check_non_ascii(result);
 
   return result;
 }
