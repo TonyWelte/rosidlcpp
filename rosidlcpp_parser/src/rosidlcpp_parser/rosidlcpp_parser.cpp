@@ -1,3 +1,4 @@
+#include <nlohmann/json_fwd.hpp>
 #include <rosidlcpp_parser/rosidlcpp_parser.hpp>
 
 #include <cassert>
@@ -363,6 +364,8 @@ auto parse_constant(std::string_view& content_view, TypedefMap typedefs) -> json
 auto parse_member(std::string_view& content_view, TypedefMap typedefs) -> json {
   json result;
 
+  result["comments"] = json::array();
+
   result["type"] = interpret_type(parse_type(content_view), typedefs);
 
   consume_white_space_and_comment(content_view);
@@ -471,8 +474,9 @@ auto parse_structure(std::string_view& content_view, TypedefMap typedefs) -> jso
 
   json module_json = json::object();
   module_json["name"] = name;
+  module_json["comments"] = json::array();
 
-  nlohmann::json annotations;
+  nlohmann::json annotations = json::object();
 
   size_t old_size = content_view.size();
   while (content_view.front() != '}') {
@@ -491,6 +495,13 @@ auto parse_structure(std::string_view& content_view, TypedefMap typedefs) -> jso
           module_json["members"].back()["default"] = parse_default_list(annotations["default"][0]["value"].get<std::string>());
         } else {
           module_json["members"].back()["default"] = annotations["default"][0]["value"];
+        }
+      }
+      for (const auto& verbatim : annotations.value("verbatim", json::array())) {
+        if (verbatim["language"] == "comment") {
+          for (const auto& line : rosidlcpp_parser::split_string(verbatim["text"].get<std::string>(), "\\n")) {
+            module_json["members"].back()["comments"].push_back(line);
+          }
         }
       }
       // TODO: Do something with other annotations
@@ -529,6 +540,8 @@ auto parse_module(std::string_view& content_view, TypedefMap typedefs) -> json {
   json module_json = json::object();
   module_json["name"] = name;
 
+  nlohmann::json annotations = json::object();
+
   size_t old_size = content_view.size();
   while (content_view.front() != '}') {
     // Parse module content
@@ -536,8 +549,18 @@ auto parse_module(std::string_view& content_view, TypedefMap typedefs) -> json {
       module_json["modules"].push_back(parse_module(content_view, typedefs));
     } else if (content_view.substr(0, STRING_STRUCT.size()) == STRING_STRUCT) {
       module_json["structures"].push_back(parse_structure(content_view, typedefs));
+      for (const auto& verbatim : annotations.value("verbatim", json::array())) {
+        if (verbatim["language"] == "comment") {
+          for (const auto& line : rosidlcpp_parser::split_string(verbatim["text"].get<std::string>(), "\\n")) {
+            module_json["structures"].back()["comments"].push_back(line);
+          }
+        }
+      }
+      // TODO: Do something with other annotations
+      annotations.clear();
     } else if (content_view[0] == '@') {
-      module_json["attributes"].push_back(parse_attribute(content_view));
+      auto annotation = parse_attribute(content_view);
+      annotations[annotation["name"]].push_back(annotation["content"]);
     } else if (content_view.substr(0, STRING_CONST.size()) == STRING_CONST) {
       module_json["constants"].push_back(parse_constant(content_view, typedefs));
     } else if (content_view.substr(0, STRING_TYPEDEF.size()) == STRING_TYPEDEF) {
@@ -561,7 +584,7 @@ auto parse_module(std::string_view& content_view, TypedefMap typedefs) -> json {
   return module_json;
 }
 
-auto parse_include(std::string_view& content_view) -> std::string_view {
+auto parse_include(std::string_view& content_view) -> std::string {
   assert(content_view.substr(0, STRING_INCLUDE.size()) == STRING_INCLUDE && "Not an include!?");
 
   content_view.remove_prefix(STRING_INCLUDE.size());
@@ -642,20 +665,23 @@ auto join(const Container& container, std::string_view sep) -> std::string {
 auto make_service_event(const nlohmann::json& service_type) -> nlohmann::json {
   nlohmann::json event = nlohmann::json::object();
   event["constants"] = json::array();
+  event["comments"] = json::array();
   event["members"] = json::array();
-  event["members"].push_back(
-      {{"name", "info"},
-       {"type", {{"namespaces", {"service_msgs", "msg"}}, {"name", "ServiceEventInfo"}}}});
-  event["members"].push_back(
-      {
-          {"name", "request"},
-          {"type", {{"name", "sequence"}, {"value_type", {{"name", service_type["name"].get<std::string>() + "_Request"}, {"namespaces", service_type["namespaces"]}}}, {"maximum_size", 1}}},
-      });
-  event["members"].push_back(
-      {
-          {"name", "response"},
-          {"type", {{"name", "sequence"}, {"value_type", {{"name", service_type["name"].get<std::string>() + "_Response"}, {"namespaces", service_type["namespaces"]}}}, {"maximum_size", 1}}},
-      });
+  event["members"].push_back({
+      {"name", "info"},
+      {"type", {{"namespaces", {"service_msgs", "msg"}}, {"name", "ServiceEventInfo"}}},
+      {"comments", json::array()},
+  });
+  event["members"].push_back({
+      {"name", "request"},
+      {"type", {{"name", "sequence"}, {"value_type", {{"name", service_type["name"].get<std::string>() + "_Request"}, {"namespaces", service_type["namespaces"]}}}, {"maximum_size", 1}}},
+      {"comments", json::array()},
+  });
+  event["members"].push_back({
+      {"name", "response"},
+      {"type", {{"name", "sequence"}, {"value_type", {{"name", service_type["name"].get<std::string>() + "_Response"}, {"namespaces", service_type["namespaces"]}}}, {"maximum_size", 1}}},
+      {"comments", json::array()},
+  });
   event["type"]["name"] = service_type["name"].get<std::string>() + "_Event";
   event["type"]["namespaces"] = service_type["namespaces"];
 
@@ -667,23 +693,29 @@ auto make_action_send_goal(const nlohmann::json& action_type) -> nlohmann::json 
   send_goal["request_message"] = {
       {"members", json::array()},
       {"constants", json::array()},
+      {"comments", json::array()},
       {"type", {{"namespaces", action_type["namespaces"]}, {"name", action_type["name"].get<std::string>() + "_SendGoal_Request"}}}};
   send_goal["request_message"]["members"].push_back(
       {{"name", "goal_id"},
-       {"type", {{"namespaces", {"unique_identifier_msgs", "msg"}}, {"name", "UUID"}}}});
+       {"type", {{"namespaces", {"unique_identifier_msgs", "msg"}}, {"name", "UUID"}}},
+       {"comments", nlohmann::json::array()}});
   send_goal["request_message"]["members"].push_back(
       {{"name", "goal"},
-       {"type", {{"namespaces", action_type["namespaces"]}, {"name", action_type["name"].get<std::string>() + "_Goal"}}}});
+       {"type", {{"namespaces", action_type["namespaces"]}, {"name", action_type["name"].get<std::string>() + "_Goal"}}},
+       {"comments", nlohmann::json::array()}});
   send_goal["response_message"] = {
       {"members", json::array()},
       {"constants", json::array()},
+      {"comments", json::array()},
       {"type", {{"namespaces", action_type["namespaces"]}, {"name", action_type["name"].get<std::string>() + "_SendGoal_Response"}}}};
   send_goal["response_message"]["members"].push_back(
       {{"name", "accepted"},
-       {"type", {{"name", "boolean"}}}});
+       {"type", {{"name", "boolean"}}},
+       {"comments", nlohmann::json::array()}});
   send_goal["response_message"]["members"].push_back(
       {{"name", "stamp"},
-       {"type", {{"namespaces", {"builtin_interfaces", "msg"}}, {"name", "Time"}}}});
+       {"type", {{"namespaces", {"builtin_interfaces", "msg"}}, {"name", "Time"}}},
+       {"comments", nlohmann::json::array()}});
   send_goal["type"] = {
       {"namespaces", action_type["namespaces"]},
       {"name", action_type["name"].get<std::string>() + "_SendGoal"}};
@@ -698,20 +730,25 @@ auto make_action_get_result_service(const nlohmann::json& action_type) -> nlohma
   get_result["request_message"] = {
       {"members", json::array()},
       {"constants", json::array()},
-      {"type", {{"namespaces", action_type["namespaces"]}, {"name", action_type["name"].get<std::string>() + "_GetResult_Request"}}}};
+      {"type", {{"namespaces", action_type["namespaces"]}, {"name", action_type["name"].get<std::string>() + "_GetResult_Request"}}},
+      {"comments", nlohmann::json::array()}};
   get_result["request_message"]["members"].push_back(
       {{"name", "goal_id"},
-       {"type", {{"namespaces", {"unique_identifier_msgs", "msg"}}, {"name", "UUID"}}}});
+       {"type", {{"namespaces", {"unique_identifier_msgs", "msg"}}, {"name", "UUID"}}},
+       {"comments", nlohmann::json::array()}});
   get_result["response_message"] = {
       {"members", json::array()},
       {"constants", json::array()},
-      {"type", {{"namespaces", action_type["namespaces"]}, {"name", action_type["name"].get<std::string>() + "_GetResult_Response"}}}};
+      {"type", {{"namespaces", action_type["namespaces"]}, {"name", action_type["name"].get<std::string>() + "_GetResult_Response"}}},
+      {"comments", nlohmann::json::array()}};
   get_result["response_message"]["members"].push_back(
       {{"name", "status"},
-       {"type", {{"name", "int8"}}}});
+       {"type", {{"name", "int8"}}},
+       {"comments", nlohmann::json::array()}});
   get_result["response_message"]["members"].push_back(
       {{"name", "result"},
-       {"type", {{"namespaces", action_type["namespaces"]}, {"name", action_type["name"].get<std::string>() + "_Result"}}}});
+       {"type", {{"namespaces", action_type["namespaces"]}, {"name", action_type["name"].get<std::string>() + "_Result"}}},
+       {"comments", nlohmann::json::array()}});
   get_result["type"] = {
       {"namespaces", action_type["namespaces"]},
       {"name", action_type["name"].get<std::string>() + "_GetResult"}};
@@ -725,17 +762,51 @@ auto make_action_feedback_message(const nlohmann::json& action_type) -> nlohmann
   nlohmann::json feedback = nlohmann::json::object();
   feedback["members"] = json::array();
   feedback["constants"] = json::array();
+  feedback["comments"] = json::array();
   feedback["members"].push_back(
       {{"name", "goal_id"},
-       {"type", {{"namespaces", {"unique_identifier_msgs", "msg"}}, {"name", "UUID"}}}});
+       {"type", {{"namespaces", {"unique_identifier_msgs", "msg"}}, {"name", "UUID"}}},
+       {"comments", nlohmann::json::array()}});
   feedback["members"].push_back(
       {{"name", "feedback"},
-       {"type", {{"name", action_type["name"].get<std::string>() + "_Feedback"}, {"namespaces", action_type["namespaces"]}}}});
+       {"type", {{"name", action_type["name"].get<std::string>() + "_Feedback"}, {"namespaces", action_type["namespaces"]}}},
+       {"comments", nlohmann::json::array()}});
   feedback["type"] = {
       {"namespaces", action_type["namespaces"]},
       {"name", action_type["name"].get<std::string>() + "_FeedbackMessage"}};
 
   return feedback;
+}
+
+auto has_non_ascii(const std::string& str) -> bool {
+  return std::any_of(str.begin(), str.end(), [](unsigned char c) { return c > 127; });
+}
+
+template <typename Function>
+auto recursive_check(const nlohmann::json& data, Function check_function) -> bool {
+  for (const auto& [key, value] : data.items()) {
+    if (value.is_object()) {
+      if (recursive_check(value, check_function)) {
+        return true;
+      }
+    } else if (value.is_array()) {
+      for (const auto& element : value) {
+        if (recursive_check(element, check_function)) {
+          return true;
+        }
+      }
+    } else {
+      if (value.is_string() && check_function(value.get<std::string>())) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+auto check_non_ascii(const nlohmann::json& data) -> bool {
+  return recursive_check(data, has_non_ascii);
 }
 
 auto convert_idljson_to_rosjson(const nlohmann::json& idl_json, std::string_view file_path) -> nlohmann::json {
@@ -746,6 +817,7 @@ auto convert_idljson_to_rosjson(const nlohmann::json& idl_json, std::string_view
   result["interface_path"]["filename"] = std::filesystem::path(file_path).stem().string();
   result["interface_path"]["filedir"] = std::filesystem::path(file_path).parent_path().string();
 
+  result["type"]["name"] = result["interface_path"]["filename"];
   result["type"]["namespaces"] = {
       idl_json["modules"][0]["name"],
       idl_json["modules"][0]["modules"][0]["name"]};
@@ -825,6 +897,9 @@ auto convert_idljson_to_rosjson(const nlohmann::json& idl_json, std::string_view
     result["actions"][0]["get_result_service"] = make_action_get_result_service(result["actions"][0]["type"]);
     result["actions"][0]["feedback_message"] = make_action_feedback_message(result["actions"][0]["type"]);
   }
+
+  // Check for non-ASCII characters
+  result["has_non_ascii"] = check_non_ascii(result);
 
   return result;
 }

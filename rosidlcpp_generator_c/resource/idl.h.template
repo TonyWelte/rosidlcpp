@@ -1,0 +1,14 @@
+// generated from rosidl_generator_c/resource/idl.h.em
+// with input from {{ package_name }}:{{ interface_path.filepath }}
+// generated code does not contain a copyright notice
+
+{% set header_guard_variable = upper(package_name) + "__" + upper(join(split_string(interface_path.filedir, "/"), "__")) + "__" + upper(convert_camel_case_to_lower_case_underscore(interface_path.filename)) + "_H_" %}
+{% set include_base = package_name + "/" + interface_path.filedir + "/detail/" + convert_camel_case_to_lower_case_underscore(interface_path.filename) %}
+#ifndef {{ header_guard_variable }}
+#define {{ header_guard_variable }}
+
+#include "{{ include_base }}__struct.h"
+#include "{{ include_base }}__functions.h"
+#include "{{ include_base }}__type_support.h"
+
+#endif  // {{ header_guard_variable }}

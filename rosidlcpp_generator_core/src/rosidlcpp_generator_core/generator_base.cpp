@@ -1,27 +1,43 @@
 #include <rosidlcpp_generator_core/generator_base.hpp>
 
+#include <algorithm>
+#include <cctype>
 #include <cmath>
+#include <cstddef>
 #include <fstream>
+#include <iostream>
+#include <ostream>
 #include <set>
+#include <sstream>
 #include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 #include <fmt/core.h>
+
+#include <inja/inja.hpp>
 
 #include <rosidlcpp_parser/rosidlcpp_parser.hpp>
 
 namespace rosidlcpp_core {
 
-constexpr std::string_view SERVICE_EVENT_MESSAGE_SUFFIX = "_Event";
-constexpr std::string_view SERVICE_REQUEST_MESSAGE_SUFFIX = "_Request";
-constexpr std::string_view SERVICE_RESPONSE_MESSAGE_SUFFIX = "_Response";
-constexpr std::string_view ACTION_GOAL_SUFFIX = "_Goal";
-constexpr std::string_view ACTION_RESULT_SUFFIX = "_Result";
-constexpr std::string_view ACTION_FEEDBACK_SUFFIX = "_Feedback";
-constexpr std::string_view ACTION_GOAL_SERVICE_SUFFIX = "_SendGoal";
-constexpr std::string_view ACTION_RESULT_SERVICE_SUFFIX = "_GetResult";
-constexpr std::string_view ACTION_FEEDBACK_MESSAGE_SUFFIX = "_FeedbackMessage";
+std::string escape_string(const std::string& str) {
+  std::string escaped_str;
+  for (const auto& c : str) {
+    if (c == '"') {
+      escaped_str += R"(\")";
+    } else if (c == '\\') {
+      escaped_str += "\\\\";
+    } else {
+      escaped_str += c;
+    }
+  }
+  return escaped_str;
+}
 
 GeneratorBase::GeneratorBase() : m_env{} {
   m_env.set_trim_blocks(true);
@@ -63,8 +79,6 @@ GeneratorBase::GeneratorBase() : m_env{} {
 
     auto value1 = arg1.dump();
     auto value2 = arg2.dump();
-
-    return fmt::format(fmt::runtime(format), value1, value2);
 
     if (arg1.is_string()) {
       if (arg2.is_string()) {
@@ -178,7 +192,7 @@ GeneratorBase::GeneratorBase() : m_env{} {
   m_env.add_callback("insert", 3, [](inja::Arguments& args) {
     auto list = *args.at(0);
     const auto index = args.at(1)->get<int>();
-    list.insert(list.begin() + index, args.at(2)->get<std::string>());
+    list.insert(list.begin() + index, *args.at(2));
     return list;
   });
   m_env.add_callback("string_contains", 2, [](inja::Arguments& args) {
@@ -205,6 +219,7 @@ GeneratorBase::GeneratorBase() : m_env{} {
   m_env.add_callback("split_string", 2, [](inja::Arguments& args) {
     const auto value = args.at(0)->get<std::string>();
     const auto sep = args.at(1)->get<std::string>();
+
     return rosidlcpp_parser::split_string(value, sep);
   });
   m_env.add_callback("custom_range", 3, [](inja::Arguments& args) {
@@ -305,6 +320,9 @@ GeneratorArguments parse_arguments(const std::string& filepath) {
   if (data.contains("idl_tuples")) {
     result.idl_tuples = parse_pairs(data["idl_tuples"]);
   }
+  if (data.contains("ros_interface_files")) {
+    result.ros_interface_files = data["ros_interface_files"];
+  }
   if (data.contains("ros_interface_dependencies")) {
     result.ros_interface_dependencies = data["ros_interface_dependencies"];
   }
@@ -372,7 +390,7 @@ bool is_primitive(const nlohmann::json& type) {
   const std::set<std::string_view> PRIMITIVE_TYPES = {
       "boolean", "octet", "char", "wchar", "float", "double",
       "long double", "uint8", "int8", "uint16", "int16", "uint32",
-      "int32", "uint64", "int64", "string", "wstring"};
+      "int32", "uint64", "int64" /*, "string", "wstring"*/};
 
   return PRIMITIVE_TYPES.find(type["name"].get<std::string>()) !=
          PRIMITIVE_TYPES.end();

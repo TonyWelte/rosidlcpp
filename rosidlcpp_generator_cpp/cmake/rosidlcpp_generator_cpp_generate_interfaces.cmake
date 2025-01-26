@@ -56,10 +56,10 @@ endforeach()
 
 set(target_dependencies
   "${rosidlcpp_generator_cpp_BIN}"
-  
-#   "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/action__struct.hpp.template"
-#   "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/action__traits.hpp.template"
-#   "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/action__type_support.hpp.template"
+  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/action__builder.hpp.template"
+  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/action__struct.hpp.template"
+  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/action__traits.hpp.template"
+  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/action__type_support.hpp.template"
   "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/idl.hpp.template"
   "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/idl__builder.hpp.template"
   "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/idl__struct.hpp.template"

@@ -1,0 +1,205 @@
+// generated from rosidl_generator_c/resource/idl__functions.h.em
+// with input from {{ package_name }}:{{ interface_path.filepath }}
+// generated code does not contain a copyright notice
+
+// IWYU pragma: private, include "{{ package_name }}/{{ interface_path.filedir }}/{{convert_camel_case_to_lower_case_underscore(interface_path.filename) }}.h"
+
+{% set header_guard_variable = upper(package_name) + "__" + upper(join(split_string(interface_path.filedir, "/"), "__")) + "__DETAIL__" + upper(convert_camel_case_to_lower_case_underscore(interface_path.filename)) + "__FUNCTIONS_H_" %}
+{% set include_base = package_name + "/" + interface_path.filedir + "/detail/" + convert_camel_case_to_lower_case_underscore(interface_path.filename) %}
+{% set include_directives = set_global_variable("include_directives", []) %}
+
+#ifndef {{ header_guard_variable }}
+#define {{ header_guard_variable }}
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+#include <stdbool.h>
+#include <stdlib.h>
+
+#include "rosidl_runtime_c/action_type_support_struct.h"
+#include "rosidl_runtime_c/message_type_support_struct.h"
+#include "rosidl_runtime_c/service_type_support_struct.h"
+#include "rosidl_runtime_c/type_description/type_description__struct.h"
+#include "rosidl_runtime_c/type_description/type_source__struct.h"
+#include "rosidl_runtime_c/type_hash.h"
+#include "rosidl_runtime_c/visibility_control.h"
+#include "{{ package_name }}/msg/rosidl_generator_c__visibility_control.h"
+
+#include "{{ include_base }}__struct.h"
+
+{########################################################################}
+{# Handle message #}
+{########################################################################}
+{% for msg_object in messages %}
+{% set message=msg_object.message %}
+{% include "msg__functions.h.template" %}
+
+{% endfor %}
+{########################################################################}
+{# Handle service #}
+{########################################################################}
+{% for service in services %}
+{% set service_typename = idl_structure_type_to_c_typename(service.type) %}
+/// Retrieve pointer to the hash of the description of this type.
+ROSIDL_GENERATOR_C_PUBLIC_{{ package_name }}
+const rosidl_type_hash_t *
+{{ service_typename }}__{{ GET_HASH_FUNC }}(
+  const rosidl_service_type_support_t * type_support);
+
+/// Retrieve pointer to the description of this type.
+ROSIDL_GENERATOR_C_PUBLIC_{{ package_name }}
+const rosidl_runtime_c__type_description__TypeDescription *
+{{ service_typename }}__{{ GET_DESCRIPTION_FUNC }}(
+  const rosidl_service_type_support_t * type_support);
+
+/// Retrieve pointer to the single raw source text that defined this type.
+ROSIDL_GENERATOR_C_PUBLIC_{{ package_name }}
+const rosidl_runtime_c__type_description__TypeSource *
+{{ service_typename }}__{{ GET_INDIVIDUAL_SOURCE_FUNC }}(
+  const rosidl_service_type_support_t * type_support);
+
+/// Retrieve pointer to the recursive raw sources that defined the description of this type.
+ROSIDL_GENERATOR_C_PUBLIC_{{ package_name }}
+const rosidl_runtime_c__type_description__TypeSource__Sequence *
+{{ service_typename }}__{{ GET_SOURCES_FUNC }}(
+  const rosidl_service_type_support_t * type_support);
+
+{% set message=service.request_message %}
+{% include "msg__functions.h.template" %}
+
+
+{% set message=service.response_message %}
+{% include "msg__functions.h.template" %}
+
+
+{% set message=service.event_message %}
+{% include "msg__functions.h.template" %}
+{% endfor %}
+{########################################################################}
+{# Handle action #}
+{########################################################################}
+{% for action in actions %}
+{% set action_typename = idl_structure_type_to_c_typename(action.type) %}
+/// Retrieve pointer to the hash of the description of this type.
+ROSIDL_GENERATOR_C_PUBLIC_{{ package_name }}
+const rosidl_type_hash_t *
+{{ action_typename }}__{{ GET_HASH_FUNC }}(
+  const rosidl_action_type_support_t * type_support);
+
+/// Retrieve pointer to the description of this type.
+ROSIDL_GENERATOR_C_PUBLIC_{{ package_name }}
+const rosidl_runtime_c__type_description__TypeDescription *
+{{ action_typename }}__{{ GET_DESCRIPTION_FUNC }}(
+  const rosidl_action_type_support_t * type_support);
+
+/// Retrieve pointer to the single raw source text that defined this type.
+ROSIDL_GENERATOR_C_PUBLIC_{{ package_name }}
+const rosidl_runtime_c__type_description__TypeSource *
+{{ action_typename }}__{{ GET_INDIVIDUAL_SOURCE_FUNC }}(
+  const rosidl_action_type_support_t * type_support);
+
+/// Retrieve pointer to the recursive raw sources that defined the description of this type.
+ROSIDL_GENERATOR_C_PUBLIC_{{ package_name }}
+const rosidl_runtime_c__type_description__TypeSource__Sequence *
+{{ action_typename }}__{{ GET_SOURCES_FUNC }}(
+  const rosidl_action_type_support_t * type_support);
+
+{% set message=action.goal %}
+{% include "msg__functions.h.template" %}
+
+
+{% set message=action.result %}
+{% include "msg__functions.h.template" %}
+
+
+{% set message=action.feedback %}
+{% include "msg__functions.h.template" %}
+
+
+{% set send_goal_srv_typename = idl_structure_type_to_c_typename(action.send_goal_service.type) %}
+/// Retrieve pointer to the hash of the description of this type.
+ROSIDL_GENERATOR_C_PUBLIC_{{ package_name }}
+const rosidl_type_hash_t *
+{{ send_goal_srv_typename }}__{{ GET_HASH_FUNC }}(
+  const rosidl_service_type_support_t * type_support);
+
+/// Retrieve pointer to the description of this type.
+ROSIDL_GENERATOR_C_PUBLIC_{{ package_name }}
+const rosidl_runtime_c__type_description__TypeDescription *
+{{ send_goal_srv_typename }}__{{ GET_DESCRIPTION_FUNC }}(
+  const rosidl_service_type_support_t * type_support);
+
+/// Retrieve pointer to the single raw source text that defined this type.
+ROSIDL_GENERATOR_C_PUBLIC_{{ package_name }}
+const rosidl_runtime_c__type_description__TypeSource *
+{{ send_goal_srv_typename }}__{{ GET_INDIVIDUAL_SOURCE_FUNC }}(
+  const rosidl_service_type_support_t * type_support);
+
+/// Retrieve pointer to the recursive raw sources that defined the description of this type.
+ROSIDL_GENERATOR_C_PUBLIC_{{ package_name }}
+const rosidl_runtime_c__type_description__TypeSource__Sequence *
+{{ send_goal_srv_typename }}__{{ GET_SOURCES_FUNC }}(
+  const rosidl_service_type_support_t * type_support);
+
+{% set message=action.send_goal_service.request_message %}
+{% include "msg__functions.h.template" %}
+
+
+{% set message=action.send_goal_service.response_message %}
+{% include "msg__functions.h.template" %}
+
+
+{% set message=action.send_goal_service.event_message %}
+{% include "msg__functions.h.template" %}
+
+
+{% set get_result_srv_typename = idl_structure_type_to_c_typename(action.get_result_service.type) %}
+/// Retrieve pointer to the hash of the description of this type.
+ROSIDL_GENERATOR_C_PUBLIC_{{ package_name }}
+const rosidl_type_hash_t *
+{{ get_result_srv_typename }}__{{ GET_HASH_FUNC }}(
+  const rosidl_service_type_support_t * type_support);
+
+/// Retrieve pointer to the description of this type.
+ROSIDL_GENERATOR_C_PUBLIC_{{ package_name }}
+const rosidl_runtime_c__type_description__TypeDescription *
+{{ get_result_srv_typename }}__{{ GET_DESCRIPTION_FUNC }}(
+  const rosidl_service_type_support_t * type_support);
+
+/// Retrieve pointer to the single raw source text that defined this type.
+ROSIDL_GENERATOR_C_PUBLIC_{{ package_name }}
+const rosidl_runtime_c__type_description__TypeSource *
+{{ get_result_srv_typename }}__{{ GET_INDIVIDUAL_SOURCE_FUNC }}(
+  const rosidl_service_type_support_t * type_support);
+
+/// Retrieve pointer to the recursive raw sources that defined the description of this type.
+ROSIDL_GENERATOR_C_PUBLIC_{{ package_name }}
+const rosidl_runtime_c__type_description__TypeSource__Sequence *
+{{ get_result_srv_typename }}__{{ GET_SOURCES_FUNC }}(
+  const rosidl_service_type_support_t * type_support);
+
+{% set message=action.get_result_service.request_message %}
+{% include "msg__functions.h.template" %}
+
+
+{% set message=action.get_result_service.response_message %}
+{% include "msg__functions.h.template" %}
+
+
+{% set message=action.get_result_service.event_message %}
+{% include "msg__functions.h.template" %}
+
+
+{% set message=action.feedback_message %}
+{% include "msg__functions.h.template" %}
+
+{% endfor %}
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif  // {{ header_guard_variable }}

@@ -1,0 +1,40 @@
+// generated from rosidl_generator_c/resource/idl__type_support.c.em
+// with input from {{ package_name }}:{{ interface_path.filepath }}
+// generated code does not contain a copyright notice
+
+{% set include_base = package_name + "/" + interface_path.filedir + "/detail/" + convert_camel_case_to_lower_case_underscore(interface_path.filename) %}
+{% set top_level_includes = ["rosidl_typesupport_interface/macros.h"] %}
+{% set top_level_includes = push_back(top_level_includes, include_base + "__type_support.h") %}
+{% set top_level_includes = push_back(top_level_includes, include_base + "__struct.h") %}
+{% set top_level_includes = push_back(top_level_includes, include_base + "__functions.h") %}
+{% set include_directives = set_global_variable("include_directives", top_level_includes) %}
+#include <string.h>
+
+{% for header_file in top_level_includes %}
+#include "{{ header_file }}"
+{% endfor %}
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+{########################################################################}
+{# Handle service #}
+{########################################################################}
+{% for service in services %}
+
+{% include "srv__type_support.c.template" %}
+
+{% endfor %}
+{########################################################################}
+{# Handle action #}
+{########################################################################}
+{% for action in actions %}
+
+{% include "action__type_support.c.template" %}
+
+{% endfor %}
+#ifdef __cplusplus
+}
+#endif

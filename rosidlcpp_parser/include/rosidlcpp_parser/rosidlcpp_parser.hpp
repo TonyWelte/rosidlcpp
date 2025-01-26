@@ -16,7 +16,7 @@ auto consume_white_space(std::string_view& content_view) -> void;
 auto consume_comment(std::string_view& content_view) -> void;
 auto consume_white_space_and_comment(std::string_view& content_view) -> void;
 
-auto parse_include(std::string_view& content_view) -> std::string_view;
+auto parse_include(std::string_view& content_view) -> std::string;
 auto parse_string(std::string_view& content_view) -> std::string;
 auto parse_string_part(std::string_view& content_view) -> std::string;
 auto parse_string_python(std::string_view& content_view) -> std::string;

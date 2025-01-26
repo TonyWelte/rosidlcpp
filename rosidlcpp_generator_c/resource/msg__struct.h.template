@@ -1,0 +1,98 @@
+{% set include_directives = get_global_variable("include_directives") %}
+{% set includes = get_includes(message, "__struct.h") %}
+// Constants defined in the message
+{% for constant in message.constants %}
+
+/// Constant '{{ constant.name }}'.
+{% if existsIn(constant, "comments") %}
+/**
+{%   for line in constant.comments %}
+{%     if line %}
+  * {{ line }}
+{%     else %}
+  *
+{%     endif %}
+{%   endfor %}
+ */
+{% endif %}
+{%     if is_primitive(constant.type) %}
+{%         if is_integer(constant.type) or is_character(constant.type) or constant.type.name == "octet" %}
+enum
+{
+  {{ idl_structure_type_to_c_typename(message.type) }}__{{ constant.name }} = {{ value_to_c(constant.type, constant.value) }}
+};
+{%         else if is_float(constant.type) or constant.type.name == "boolean" %}
+static const {{ basetype_to_c(constant.type) }} {{ idl_structure_type_to_c_typename(message.type) }}__{{ constant.name }} = {{ value_to_c(constant.type, constant.value) }};
+{%         else %}
+{%         endif %}
+{%     else if is_string(constant.type) %}
+static const char * const {{ idl_structure_type_to_c_typename(message.type) }}__{{ constant.name }} = {{ value_to_c(constant.type, constant.value) }};
+{%     endif %}
+{% endfor %}
+{% if includes %}
+
+// Include directives for member types
+{% for include in includes %}
+{% for name in include.member_names %}
+// Member '{{ name }}'
+{% endfor %}
+{% if include.header_file in include_directives %}
+// already included above
+// {{ "" -}}
+{% else %}
+{% set include_directives = set_global_variable("include_directives", push_back(include_directives, include.header_file)) %}
+{% endif %}
+#include "{{ include.header_file }}"
+{% endfor %}
+{% endif %}
+{# Constants for array and string fields with an upper bound #}
+{% set upper_bounds = get_upper_bounds(message) %}
+{% if upper_bounds %}
+
+// constants for array fields with an upper bound
+{% for upper_bound in upper_bounds %}
+// {{ upper_bound.field_name }}
+enum
+{
+  {{ upper_bound.enum_name }} = {{ upper_bound.enum_value }}
+};
+{% endfor %}
+{% endif %}
+
+/// Struct defined in {{ interface_path.filedir }}/{{ interface_path.filename }} in the package {{ package_name }}.
+{% if message.comments and not is_action_type(message.type) %}
+/**
+{%   for line in message.comments %}
+{%     if line %}
+  * {{ line }}
+{%     else %}
+  *
+{%     endif %}
+{%   endfor %}
+ */
+{% endif %}
+typedef struct {{ idl_structure_type_to_c_typename(message.type) }}
+{
+{% for member in message.members %}
+{%   for line in member.comments %}
+{%     if line %}
+  /// {{ line }}
+{%     else %}
+  ///
+{%     endif %}
+{%   endfor %}
+  {{ idl_declaration_to_c(member.type, member.name) }};
+{% endfor %}
+} {{ idl_structure_type_to_c_typename(message.type) }};
+{#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>#}
+
+{#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<#}
+// Struct for a sequence of {{ idl_structure_type_to_c_typename(message.type) }}.
+typedef struct {{ idl_structure_type_sequence_to_c_typename(message.type) }}
+{
+  {{ idl_structure_type_to_c_typename(message.type) }} * data;
+  /// The number of valid items in data
+  size_t size;
+  /// The number of allocated items in data
+  size_t capacity;
+} {{ idl_structure_type_sequence_to_c_typename(message.type) }};
