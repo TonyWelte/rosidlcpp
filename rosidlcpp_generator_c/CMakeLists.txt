@@ -16,8 +16,6 @@ find_package(nlohmann_json REQUIRED)
 find_package(rosidlcpp_parser REQUIRED)
 find_package(rosidlcpp_generator_core REQUIRED)
 
-ament_index_register_resource("rosidl_generator_packages")
-
 add_executable(rosidlcpp_generator_c src/rosidlcpp_generator_c/rosidlcpp_generator_c.cpp)
 
 target_include_directories(rosidlcpp_generator_c PUBLIC include)
@@ -30,8 +28,11 @@ target_link_libraries(
   rosidlcpp_generator_core::rosidlcpp_generator_core
 )
 
-ament_package(
-  CONFIG_EXTRAS "rosidlcpp_generator_c-extras.cmake.in"
+ament_export_dependencies(
+  fmt
+  nlohmann_json
+  rosidlcpp_parser
+  rosidlcpp_generator_core
 )
 
 install(
@@ -39,6 +40,8 @@ install(
   DESTINATION lib/rosidlcpp_generator_c
 )
 install(
-  DIRECTORY cmake resource
+  DIRECTORY resource
   DESTINATION share/${PROJECT_NAME}
 )
+
+ament_package()

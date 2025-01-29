@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>rosidl_generator_cpp</name>
+  <version>0.0.0</version>
+  <description>Generate the ROS interfaces in C++.</description>
+
+  <maintainer email="tony.welte@gmail.com">Anthony Welte</maintainer>
+
+  <license>Apache License 2.0</license>
+
+  <buildtool_export_depend>ament_cmake_core</buildtool_export_depend>
+
+  <exec_depend>rosidlcpp_generator_cpp</exec_depend>
+
+  <member_of_group>rosidl_generator_packages</member_of_group>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

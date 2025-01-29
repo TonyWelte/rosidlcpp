@@ -19,7 +19,7 @@ find_package(rosidl_typesupport_interface REQUIRED)
 
 set(rosidl_generate_interfaces_c_IDL_TUPLES
   ${rosidl_generate_interfaces_IDL_TUPLES})
-set(_output_path "${CMAKE_CURRENT_BINARY_DIR}/rosidlcpp_generator_c/${PROJECT_NAME}")
+set(_output_path "${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_c/${PROJECT_NAME}")
 set(_generated_headers "")
 set(_generated_sources "")
 foreach(_abs_idl_file ${rosidl_generate_interfaces_ABS_IDL_FILES})
@@ -51,24 +51,24 @@ foreach(_pkg_name ${rosidl_generate_interfaces_DEPENDENCY_PACKAGE_NAMES})
 endforeach()
 
 set(target_dependencies
-  "${rosidlcpp_generator_c_BIN}"
-  "${rosidlcpp_generator_c_TEMPLATE_DIR}/action__type_support.h.em"
-  "${rosidlcpp_generator_c_TEMPLATE_DIR}/action__type_support.c.em"
-  "${rosidlcpp_generator_c_TEMPLATE_DIR}/empty__description.c.em"
-  "${rosidlcpp_generator_c_TEMPLATE_DIR}/full__description.c.em"
-  "${rosidlcpp_generator_c_TEMPLATE_DIR}/idl.h.em"
-  "${rosidlcpp_generator_c_TEMPLATE_DIR}/idl__description.c.em"
-  "${rosidlcpp_generator_c_TEMPLATE_DIR}/idl__functions.c.em"
-  "${rosidlcpp_generator_c_TEMPLATE_DIR}/idl__functions.h.em"
-  "${rosidlcpp_generator_c_TEMPLATE_DIR}/idl__struct.h.em"
-  "${rosidlcpp_generator_c_TEMPLATE_DIR}/idl__type_support.c.em"
-  "${rosidlcpp_generator_c_TEMPLATE_DIR}/idl__type_support.h.em"
-  "${rosidlcpp_generator_c_TEMPLATE_DIR}/msg__functions.c.em"
-  "${rosidlcpp_generator_c_TEMPLATE_DIR}/msg__functions.h.em"
-  "${rosidlcpp_generator_c_TEMPLATE_DIR}/msg__struct.h.em"
-  "${rosidlcpp_generator_c_TEMPLATE_DIR}/msg__type_support.h.em"
-  "${rosidlcpp_generator_c_TEMPLATE_DIR}/srv__type_support.c.em"
-  "${rosidlcpp_generator_c_TEMPLATE_DIR}/srv__type_support.h.em"
+  "${rosidl_generator_c_BIN}"
+  "${rosidl_generator_c_TEMPLATE_DIR}/action__type_support.h.template"
+  "${rosidl_generator_c_TEMPLATE_DIR}/action__type_support.c.template"
+  "${rosidl_generator_c_TEMPLATE_DIR}/empty__description.c.template"
+  "${rosidl_generator_c_TEMPLATE_DIR}/full__description.c.template"
+  "${rosidl_generator_c_TEMPLATE_DIR}/idl.h.template"
+  "${rosidl_generator_c_TEMPLATE_DIR}/idl__description.c.template"
+  "${rosidl_generator_c_TEMPLATE_DIR}/idl__functions.c.template"
+  "${rosidl_generator_c_TEMPLATE_DIR}/idl__functions.h.template"
+  "${rosidl_generator_c_TEMPLATE_DIR}/idl__struct.h.template"
+  "${rosidl_generator_c_TEMPLATE_DIR}/idl__type_support.c.template"
+  "${rosidl_generator_c_TEMPLATE_DIR}/idl__type_support.h.template"
+  "${rosidl_generator_c_TEMPLATE_DIR}/msg__functions.c.template"
+  "${rosidl_generator_c_TEMPLATE_DIR}/msg__functions.h.template"
+  "${rosidl_generator_c_TEMPLATE_DIR}/msg__struct.h.template"
+  "${rosidl_generator_c_TEMPLATE_DIR}/msg__type_support.h.template"
+  "${rosidl_generator_c_TEMPLATE_DIR}/srv__type_support.c.template"
+  "${rosidl_generator_c_TEMPLATE_DIR}/srv__type_support.h.template"
   ${rosidl_generate_interfaces_ABS_IDL_FILES}
   ${_dependency_files})
 foreach(dep ${target_dependencies})
@@ -78,36 +78,18 @@ foreach(dep ${target_dependencies})
 endforeach()
 
 get_target_property(_target_sources ${rosidl_generate_interfaces_TARGET} SOURCES)
-set(generator_arguments_file "${CMAKE_CURRENT_BINARY_DIR}/rosidlcpp_generator_c__arguments.json")
+set(generator_arguments_file "${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_c__arguments.json")
 rosidl_write_generator_arguments(
   "${generator_arguments_file}"
   PACKAGE_NAME "${PROJECT_NAME}"
   IDL_TUPLES "${rosidl_generate_interfaces_c_IDL_TUPLES}"
   ROS_INTERFACE_DEPENDENCIES "${_dependencies}"
   OUTPUT_DIR "${_output_path}"
-  TEMPLATE_DIR "${rosidlcpp_generator_c_TEMPLATE_DIR}"
+  TEMPLATE_DIR "${rosidl_generator_c_TEMPLATE_DIR}"
   TARGET_DEPENDENCIES ${target_dependencies}
   TYPE_DESCRIPTION_TUPLES "${${rosidl_generate_interfaces_TARGET}__DESCRIPTION_TUPLES}"
   ROS_INTERFACE_FILES "${_target_sources}"
 )
-
-# By default, without the settings below, find_package(Python3) will attempt
-# to find the newest python version it can, and additionally will find the
-# most specific version.  For instance, on a system that has
-# /usr/bin/python3.10, /usr/bin/python3.11, and /usr/bin/python3, it will find
-# /usr/bin/python3.11, even if /usr/bin/python3 points to /usr/bin/python3.10.
-# The behavior we want is to prefer the "system" installed version unless the
-# user specifically tells us othewise through the Python3_EXECUTABLE hint.
-# Setting CMP0094 to NEW means that the search will stop after the first
-# python version is found.  Setting Python3_FIND_UNVERSIONED_NAMES means that
-# the search will prefer /usr/bin/python3 over /usr/bin/python3.11.  And that
-# latter functionality is only available in CMake 3.20 or later, so we need
-# at least that version.
-cmake_minimum_required(VERSION 3.20)
-cmake_policy(SET CMP0094 NEW)
-set(Python3_FIND_UNVERSIONED_NAMES FIRST)
-
-find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 set(disable_description_codegen_arg)
 if(ROSIDL_GENERATOR_C_DISABLE_TYPE_DESCRIPTION_CODEGEN)
@@ -116,7 +98,7 @@ endif()
 
 add_custom_command(
   OUTPUT ${_generated_headers} ${_generated_sources}
-  COMMAND ${rosidlcpp_generator_c_BIN}
+  COMMAND ${rosidl_generator_c_BIN}
   --generator-arguments-file "${generator_arguments_file}"
   ${disable_description_codegen_arg}
   DEPENDS ${target_dependencies}
@@ -136,9 +118,9 @@ configure_file(
 
 list(APPEND _generated_msg_headers "${_visibility_control_file}")
 
-set(_target_suffix "__rosidlcpp_generator_c")
+set(_target_suffix "__rosidl_generator_c")
 
-add_library(${rosidl_generate_interfaces_TARGET}${_target_suffix} SHARED # TODO: Re-add option
+add_library(${rosidl_generate_interfaces_TARGET}${_target_suffix} ${rosidl_generator_c_LIBRARY_TYPE}
   ${_generated_headers} ${_generated_sources})
 add_library(${PROJECT_NAME}::${rosidl_generate_interfaces_TARGET}${_target_suffix} ALIAS
   ${rosidl_generate_interfaces_TARGET}${_target_suffix})
@@ -155,7 +137,7 @@ set_property(TARGET ${rosidl_generate_interfaces_TARGET}${_target_suffix}
   PROPERTY DEFINE_SYMBOL "ROSIDL_GENERATOR_C_BUILDING_DLL_${PROJECT_NAME}")
 target_include_directories(${rosidl_generate_interfaces_TARGET}${_target_suffix}
   PUBLIC
-  "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/rosidlcpp_generator_c>"
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_c>"
   "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>"
 )
 foreach(_pkg_name ${rosidl_generate_interfaces_DEPENDENCY_PACKAGE_NAMES})

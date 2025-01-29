@@ -1,4 +1,4 @@
-# Copyright 2015 Open Source Robotics Foundation, Inc.
+# Copyright 2016 Open Source Robotics Foundation, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,17 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-macro(rosidlcpp_generator_c_extras BIN TEMPLATE_DIR)
-  find_package(ament_cmake_core QUIET REQUIRED)
-  find_package(rosidl_generator_type_description QUIET REQUIRED)
-  ament_register_extension(
-    "rosidl_generate_idl_interfaces"
-    "rosidlcpp_generator_c"
-    "rosidlcpp_generator_c_generate_interfaces.cmake")
-
-  normalize_path(BIN "${BIN}")
-  set(rosidlcpp_generator_c_BIN "${BIN}")
-
-  normalize_path(TEMPLATE_DIR "${TEMPLATE_DIR}")
-  set(rosidlcpp_generator_c_TEMPLATE_DIR "${TEMPLATE_DIR}")
+macro(rosidl_generator_py_get_typesupports TYPESUPPORT_IMPLS)
+  set(${TYPESUPPORT_IMPLS} "")
+  ament_index_get_resources(${TYPESUPPORT_IMPLS} "rosidl_typesupport_c")
+  list(APPEND ${TYPESUPPORT_IMPLS} "rosidl_typesupport_c")
+  foreach(_typesupport ${${TYPESUPPORT_IMPLS}})
+    find_package(${_typesupport} QUIET)
+    if(NOT ${_typesupport}_FOUND)
+      list(REMOVE_ITEM ${TYPESUPPORT_IMPLS} "${_typesupport}")
+    endif()
+  endforeach()
 endmacro()

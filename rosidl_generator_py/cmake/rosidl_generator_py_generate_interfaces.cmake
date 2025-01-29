@@ -12,17 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-find_package(python_cmake_module REQUIRED)
-find_package(PythonExtra REQUIRED)
 find_package(rmw REQUIRED)
 find_package(rosidl_runtime_c REQUIRED)
 find_package(rosidl_typesupport_c REQUIRED)
 find_package(rosidl_typesupport_interface REQUIRED)
 
+# By default, without the settings below, find_package(Python3) will attempt
+# to find the newest python version it can, and additionally will find the
+# most specific version.  For instance, on a system that has
+# /usr/bin/python3.10, /usr/bin/python3.11, and /usr/bin/python3, it will find
+# /usr/bin/python3.11, even if /usr/bin/python3 points to /usr/bin/python3.10.
+# The behavior we want is to prefer the "system" installed version unless the
+# user specifically tells us othewise through the Python3_EXECUTABLE hint.
+# Setting CMP0094 to NEW means that the search will stop after the first
+# python version is found.  Setting Python3_FIND_UNVERSIONED_NAMES means that
+# the search will prefer /usr/bin/python3 over /usr/bin/python3.11.  And that
+# latter functionality is only available in CMake 3.20 or later, so we need
+# at least that version.
+cmake_minimum_required(VERSION 3.20)
+cmake_policy(SET CMP0094 NEW)
+set(Python3_FIND_UNVERSIONED_NAMES FIRST)
+
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development NumPy)
 
 # Get a list of typesupport implementations from valid rmw implementations.
-rosidlcpp_generator_py_get_typesupports(_typesupport_impls)
+rosidl_generator_py_get_typesupports(_typesupport_impls)
 
 if(_typesupport_impls STREQUAL "")
   message(WARNING "No valid typesupport for Python generator. Python messages will not be generated.")
@@ -30,7 +44,7 @@ if(_typesupport_impls STREQUAL "")
 endif()
 
 set(_output_path
-  "${CMAKE_CURRENT_BINARY_DIR}/rosidlcpp_generator_py/${PROJECT_NAME}")
+  "${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_py/${PROJECT_NAME}")
 set(_generated_extension_files "")
 set(_generated_py_files "")
 set(_generated_c_files "")
@@ -88,17 +102,17 @@ foreach(_pkg_name ${rosidl_generate_interfaces_DEPENDENCY_PACKAGE_NAMES})
 endforeach()
 
 set(target_dependencies
-  "${rosidlcpp_generator_py_BIN}"
-  "${rosidlcpp_generator_py_TEMPLATE_DIR}/_action_pkg_typesupport_entry_point.c.template"
-  "${rosidlcpp_generator_py_TEMPLATE_DIR}/_action.py.template"
-  "${rosidlcpp_generator_py_TEMPLATE_DIR}/_idl_pkg_typesupport_entry_point.c.template"
-  "${rosidlcpp_generator_py_TEMPLATE_DIR}/_idl_support.c.template"
-  "${rosidlcpp_generator_py_TEMPLATE_DIR}/_idl.py.template"
-  "${rosidlcpp_generator_py_TEMPLATE_DIR}/_msg_pkg_typesupport_entry_point.c.template"
-  "${rosidlcpp_generator_py_TEMPLATE_DIR}/_msg_support.c.template"
-  "${rosidlcpp_generator_py_TEMPLATE_DIR}/_msg.py.template"
-  "${rosidlcpp_generator_py_TEMPLATE_DIR}/_srv_pkg_typesupport_entry_point.c.template"
-  "${rosidlcpp_generator_py_TEMPLATE_DIR}/_srv.py.template"
+  "${rosidl_generator_py_BIN}"
+  "${rosidl_generator_py_TEMPLATE_DIR}/_action_pkg_typesupport_entry_point.c.template"
+  "${rosidl_generator_py_TEMPLATE_DIR}/_action.py.template"
+  "${rosidl_generator_py_TEMPLATE_DIR}/_idl_pkg_typesupport_entry_point.c.template"
+  "${rosidl_generator_py_TEMPLATE_DIR}/_idl_support.c.template"
+  "${rosidl_generator_py_TEMPLATE_DIR}/_idl.py.template"
+  "${rosidl_generator_py_TEMPLATE_DIR}/_msg_pkg_typesupport_entry_point.c.template"
+  "${rosidl_generator_py_TEMPLATE_DIR}/_msg_support.c.template"
+  "${rosidl_generator_py_TEMPLATE_DIR}/_msg.py.template"
+  "${rosidl_generator_py_TEMPLATE_DIR}/_srv_pkg_typesupport_entry_point.c.template"
+  "${rosidl_generator_py_TEMPLATE_DIR}/_srv.py.template"
   ${rosidl_generate_interfaces_ABS_IDL_FILES}
   ${_dependency_files})
 foreach(dep ${target_dependencies})
@@ -107,27 +121,27 @@ foreach(dep ${target_dependencies})
   endif()
 endforeach()
 
-set(generator_arguments_file "${CMAKE_CURRENT_BINARY_DIR}/rosidlcpp_generator_py__arguments.json")
+set(generator_arguments_file "${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_py__arguments.json")
 rosidl_write_generator_arguments(
   "${generator_arguments_file}"
   PACKAGE_NAME "${PROJECT_NAME}"
   IDL_TUPLES "${rosidl_generate_interfaces_IDL_TUPLES}"
   ROS_INTERFACE_DEPENDENCIES "${_dependencies}"
   OUTPUT_DIR "${_output_path}"
-  TEMPLATE_DIR "${rosidlcpp_generator_py_TEMPLATE_DIR}"
+  TEMPLATE_DIR "${rosidl_generator_py_TEMPLATE_DIR}"
   TARGET_DEPENDENCIES ${target_dependencies}
 )
 
-# if(NOT rosidl_generate_interfaces_SKIP_INSTALL)
-#   ament_python_install_package(${PROJECT_NAME} PACKAGE_DIR "${_output_path}")
-# endif()
+if(NOT rosidl_generate_interfaces_SKIP_INSTALL)
+  ament_python_install_package(${PROJECT_NAME} PACKAGE_DIR "${_output_path}")
+endif()
 
-set(_target_suffix "__py2")
+set(_target_suffix "__py")
 
 # move custom command into a subdirectory to avoid multiple invocations on Windows
 set(_subdir "${CMAKE_CURRENT_BINARY_DIR}/${rosidl_generate_interfaces_TARGET}${_target_suffix}")
 file(MAKE_DIRECTORY "${_subdir}")
-file(READ "${rosidlcpp_generator_py_DIR}/custom_command.cmake" _custom_command)
+file(READ "${rosidl_generator_py_DIR}/custom_command.cmake" _custom_command)
 file(WRITE "${_subdir}/CMakeLists.txt" "${_custom_command}")
 add_subdirectory("${_subdir}" ${rosidl_generate_interfaces_TARGET}${_target_suffix})
 set_property(
@@ -135,7 +149,7 @@ set_property(
   ${_generated_extension_files} ${_generated_py_files} ${_generated_c_files}
   PROPERTY GENERATED 1)
 
-set(_target_name_lib "${rosidl_generate_interfaces_TARGET}__rosidlcpp_generator_py2")
+set(_target_name_lib "${rosidl_generate_interfaces_TARGET}__rosidl_generator_py")
 add_library(${_target_name_lib} SHARED ${_generated_c_files})
 target_link_libraries(${_target_name_lib} PRIVATE
   ${rosidl_generate_interfaces_TARGET}__rosidl_generator_c)
@@ -153,7 +167,7 @@ target_link_libraries(
 target_include_directories(${_target_name_lib}
   PRIVATE
   ${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_c
-  ${CMAKE_CURRENT_BINARY_DIR}/rosidlcpp_generator_py
+  ${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_py
 )
 
 set(_extension_compile_flags "")
@@ -172,7 +186,7 @@ foreach(_typesupport_impl ${_typesupport_impls})
     continue()
   endif()
 
-  set(_target_name "${PROJECT_NAME}_s__${_typesupport_impl}_2")  # 2 because rosidl_generator_py is 1
+  set(_target_name "${PROJECT_NAME}_s__${_typesupport_impl}")
 
   python3_add_library(${_target_name} MODULE
     ${_generated_extension_${_typesupport_impl}_files}
@@ -183,7 +197,9 @@ foreach(_typesupport_impl ${_typesupport_impls})
     ${rosidl_generate_interfaces_TARGET}__rosidl_typesupport_c
   )
 
-  set_target_properties(${_target_name} PROPERTIES DEBUG_POSTFIX "${PythonExtra_POSTFIX}")
+  if(WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set_target_properties(${_target_name} PROPERTIES DEBUG_POSTFIX "_d")
+  endif()
   # target_compile_options(${_target_name} PRIVATE ${_extension_compile_flags})
   # TODO(sloretz) use target_compile_options when python extension passes -Wpedantic
   set_target_properties(${_target_name} PROPERTIES COMPILE_OPTIONS "${_extension_compile_flags}")
@@ -205,7 +221,7 @@ foreach(_typesupport_impl ${_typesupport_impls})
   target_include_directories(${_target_name}
     PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_c
-    ${CMAKE_CURRENT_BINARY_DIR}/rosidlcpp_generator_py
+    ${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_py
   )
 
   foreach(_pkg_name ${rosidl_generate_interfaces_DEPENDENCY_PACKAGE_NAMES})
@@ -217,7 +233,7 @@ foreach(_typesupport_impl ${_typesupport_impls})
   )
 
   ament_target_dependencies(${_target_name} PUBLIC
-    "rosidlcpp_generator_py"
+    "rosidl_generator_py"
   )
 
   if(NOT rosidl_generate_interfaces_SKIP_INSTALL)
@@ -228,9 +244,9 @@ foreach(_typesupport_impl ${_typesupport_impls})
 endforeach()
 
 
-# Depend on rosidlcpp_generator_py generated targets from our dependencies
+# Depend on rosidl_generator_py generated targets from our dependencies
 foreach(_pkg_name ${rosidl_generate_interfaces_DEPENDENCY_PACKAGE_NAMES})
-  target_link_libraries(${_target_name_lib} PRIVATE ${${_pkg_name}_TARGETS${rosidlcpp_generator_py_suffix}})
+  target_link_libraries(${_target_name_lib} PRIVATE ${${_pkg_name}_TARGETS${rosidl_generator_py_suffix}})
 endforeach()
 
 set_target_properties(${_target_name_lib} PROPERTIES COMPILE_OPTIONS "${_extension_compile_flags}")
@@ -243,7 +259,7 @@ if(NOT rosidl_generate_interfaces_SKIP_INSTALL)
     RUNTIME DESTINATION bin)
 
   # Export this target so downstream interface packages can depend on it
-  rosidl_export_typesupport_targets("${rosidlcpp_generator_py_suffix}" "${_target_name_lib}")
+  rosidl_export_typesupport_targets("${rosidl_generator_py_suffix}" "${_target_name_lib}")
   ament_export_targets(export_${_target_name_lib})
 endif()
 
@@ -255,13 +271,13 @@ if(BUILD_TESTING AND rosidl_generate_interfaces_ADD_LINTER_TESTS)
   )
     find_package(ament_cmake_cppcheck REQUIRED)
     ament_cppcheck(
-      TESTNAME "cppcheck_rosidlcpp_generated_py"
+      TESTNAME "cppcheck_rosidl_generated_py"
       "${_output_path}")
 
     find_package(ament_cmake_cpplint REQUIRED)
     get_filename_component(_cpplint_root "${_output_path}" DIRECTORY)
     ament_cpplint(
-      TESTNAME "cpplint_rosidlcpp_generated_py"
+      TESTNAME "cpplint_rosidl_generated_py"
       # the generated code might contain functions with more lines
       FILTERS "-readability/fn_size"
       # the generated code might contain longer lines for templated types
@@ -271,19 +287,19 @@ if(BUILD_TESTING AND rosidl_generate_interfaces_ADD_LINTER_TESTS)
 
     find_package(ament_cmake_flake8 REQUIRED)
     ament_flake8(
-      TESTNAME "flake8_rosidlcpp_generated_py"
+      TESTNAME "flake8_rosidl_generated_py"
       # the generated code might contain longer lines for templated types
       MAX_LINE_LENGTH 999
       "${_output_path}")
 
     find_package(ament_cmake_pep257 REQUIRED)
     ament_pep257(
-      TESTNAME "pep257_rosidlcpp_generated_py"
+      TESTNAME "pep257_rosidl_generated_py"
       "${_output_path}")
 
     find_package(ament_cmake_uncrustify REQUIRED)
     ament_uncrustify(
-      TESTNAME "uncrustify_rosidlcpp_generated_py"
+      TESTNAME "uncrustify_rosidl_generated_py"
       # the generated code might contain longer lines for templated types
       # a value of zero tells uncrustify to ignore line length
       MAX_LINE_LENGTH 0

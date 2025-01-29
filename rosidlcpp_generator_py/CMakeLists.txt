@@ -19,31 +19,18 @@ find_package(rosidlcpp_generator_core REQUIRED)
 ament_export_dependencies(ament_cmake)
 ament_export_dependencies(rmw)
 
-ament_index_register_resource("rosidl_generator_packages")
-
 add_executable(rosidlcpp_generator_py src/rosidlcpp_generator_py/rosidlcpp_generator_py.cpp)
 
 target_include_directories(rosidlcpp_generator_py PUBLIC include)
 target_link_libraries(rosidlcpp_generator_py PUBLIC fmt::fmt nlohmann_json::nlohmann_json rosidlcpp_parser::rosidlcpp_parser rosidlcpp_generator_core::rosidlcpp_generator_core)
-
-ament_package(
-  CONFIG_EXTRAS "cmake/rosidlcpp_generator_py_get_typesupports.cmake"
-    "cmake/register_py.cmake"
-    "rosidlcpp_generator_py-extras.cmake.in"
-)
 
 install(
   TARGETS rosidlcpp_generator_py
   DESTINATION lib/rosidlcpp_generator_py
 )
 install(
-  DIRECTORY cmake resource
+  DIRECTORY resource
   DESTINATION share/${PROJECT_NAME}
 )
 
-if(BUILD_TESTING)
-  find_package(ament_cmake_gtest REQUIRED)
-
-  # TODO
-
-endif()
+ament_package()

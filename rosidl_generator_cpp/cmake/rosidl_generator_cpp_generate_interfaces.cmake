@@ -16,7 +16,7 @@ find_package(rosidl_cmake REQUIRED)
 find_package(rosidl_runtime_cpp REQUIRED)
 
 set(_output_path
-  "${CMAKE_CURRENT_BINARY_DIR}/rosidlcpp_generator_cpp/${PROJECT_NAME}")
+  "${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_cpp/${PROJECT_NAME}")
 set(_generated_headers "")
 foreach(_abs_idl_file ${rosidl_generate_interfaces_ABS_IDL_FILES})
   get_filename_component(_parent_folder "${_abs_idl_file}" DIRECTORY)
@@ -38,7 +38,7 @@ set(_visibility_control_file
   "${_output_path}/msg/rosidl_generator_cpp__visibility_control.hpp")
 string(TOUPPER "${PROJECT_NAME}" PROJECT_NAME_UPPER)
 configure_file(
-  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/rosidl_generator_cpp__visibility_control.hpp.in"
+  "${rosidl_generator_cpp_TEMPLATE_DIR}/rosidl_generator_cpp__visibility_control.hpp.in"
   "${_visibility_control_file}"
   @ONLY
 )
@@ -55,24 +55,24 @@ foreach(_pkg_name ${rosidl_generate_interfaces_DEPENDENCY_PACKAGE_NAMES})
 endforeach()
 
 set(target_dependencies
-  "${rosidlcpp_generator_cpp_BIN}"
-  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/action__builder.hpp.template"
-  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/action__struct.hpp.template"
-  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/action__traits.hpp.template"
-  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/action__type_support.hpp.template"
-  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/idl.hpp.template"
-  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/idl__builder.hpp.template"
-  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/idl__struct.hpp.template"
-  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/idl__traits.hpp.template"
-  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/idl__type_support.hpp.template"
-  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/msg__builder.hpp.template"
-  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/msg__struct.hpp.template"
-  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/msg__traits.hpp.template"
-  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/msg__type_support.hpp.template"
-  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/srv__builder.hpp.template"
-  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/srv__struct.hpp.template"
-  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/srv__traits.hpp.template"
-  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/srv__type_support.hpp.template"
+  "${rosidl_generator_cpp_BIN}"
+  "${rosidl_generator_cpp_TEMPLATE_DIR}/action__builder.hpp.template"
+  "${rosidl_generator_cpp_TEMPLATE_DIR}/action__struct.hpp.template"
+  "${rosidl_generator_cpp_TEMPLATE_DIR}/action__traits.hpp.template"
+  "${rosidl_generator_cpp_TEMPLATE_DIR}/action__type_support.hpp.template"
+  "${rosidl_generator_cpp_TEMPLATE_DIR}/idl.hpp.template"
+  "${rosidl_generator_cpp_TEMPLATE_DIR}/idl__builder.hpp.template"
+  "${rosidl_generator_cpp_TEMPLATE_DIR}/idl__struct.hpp.template"
+  "${rosidl_generator_cpp_TEMPLATE_DIR}/idl__traits.hpp.template"
+  "${rosidl_generator_cpp_TEMPLATE_DIR}/idl__type_support.hpp.template"
+  "${rosidl_generator_cpp_TEMPLATE_DIR}/msg__builder.hpp.template"
+  "${rosidl_generator_cpp_TEMPLATE_DIR}/msg__struct.hpp.template"
+  "${rosidl_generator_cpp_TEMPLATE_DIR}/msg__traits.hpp.template"
+  "${rosidl_generator_cpp_TEMPLATE_DIR}/msg__type_support.hpp.template"
+  "${rosidl_generator_cpp_TEMPLATE_DIR}/srv__builder.hpp.template"
+  "${rosidl_generator_cpp_TEMPLATE_DIR}/srv__struct.hpp.template"
+  "${rosidl_generator_cpp_TEMPLATE_DIR}/srv__traits.hpp.template"
+  "${rosidl_generator_cpp_TEMPLATE_DIR}/srv__type_support.hpp.template"
   ${rosidl_generate_interfaces_ABS_IDL_FILES}
   ${_dependency_files})
 foreach(dep ${target_dependencies})
@@ -81,21 +81,21 @@ foreach(dep ${target_dependencies})
   endif()
 endforeach()
 
-set(generator_arguments_file "${CMAKE_CURRENT_BINARY_DIR}/rosidlcpp_generator_cpp__arguments.json")
+set(generator_arguments_file "${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_cpp__arguments.json")
 rosidl_write_generator_arguments(
   "${generator_arguments_file}"
   PACKAGE_NAME "${PROJECT_NAME}"
   IDL_TUPLES "${rosidl_generate_interfaces_IDL_TUPLES}"
   ROS_INTERFACE_DEPENDENCIES "${_dependencies}"
   OUTPUT_DIR "${_output_path}"
-  TEMPLATE_DIR "${rosidlcpp_generator_cpp_TEMPLATE_DIR}"
+  TEMPLATE_DIR "${rosidl_generator_cpp_TEMPLATE_DIR}"
   TARGET_DEPENDENCIES ${target_dependencies}
   TYPE_DESCRIPTION_TUPLES "${${rosidl_generate_interfaces_TARGET}__DESCRIPTION_TUPLES}"
 )
 
 add_custom_command(
   OUTPUT ${_generated_headers}
-  COMMAND ${rosidlcpp_generator_cpp_BIN}
+  COMMAND ${rosidl_generator_cpp_BIN}
   --generator-arguments-file "${generator_arguments_file}"
   DEPENDS ${target_dependencies}
   COMMENT "Generating C++ code for ROS interfaces"
@@ -108,22 +108,22 @@ add_custom_command(
 # generators no longer depend on it, or see if it can be replaced with
 # target_sources()
 add_custom_target(
-  ${rosidl_generate_interfaces_TARGET}__cpp2
+  ${rosidl_generate_interfaces_TARGET}__cpp
   DEPENDS
   ${_generated_headers}
 )
 add_dependencies(
-  ${rosidl_generate_interfaces_TARGET}__cpp2
+  ${rosidl_generate_interfaces_TARGET}__cpp
   ${rosidl_generate_interfaces_TARGET}__rosidl_generator_type_description)
 
-set(_target_suffix "__rosidlcpp_generator_cpp")
+set(_target_suffix "__rosidl_generator_cpp")
 add_library(${rosidl_generate_interfaces_TARGET}${_target_suffix} INTERFACE)
 target_compile_features(${rosidl_generate_interfaces_TARGET}${_target_suffix} INTERFACE cxx_std_17)
 add_library(${PROJECT_NAME}::${rosidl_generate_interfaces_TARGET}${_target_suffix} ALIAS
   ${rosidl_generate_interfaces_TARGET}${_target_suffix})
 target_include_directories(${rosidl_generate_interfaces_TARGET}${_target_suffix}
   INTERFACE
-  "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/rosidlcpp_generator_cpp>"
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_cpp>"
   "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>"
 )
 foreach(_pkg_name ${rosidl_generate_interfaces_DEPENDENCY_PACKAGE_NAMES})
@@ -143,7 +143,7 @@ target_link_libraries(
 # headers to be generated.
 add_dependencies(
   ${rosidl_generate_interfaces_TARGET}${_target_suffix}
-  ${rosidl_generate_interfaces_TARGET}__cpp2)
+  ${rosidl_generate_interfaces_TARGET}__cpp)
 
 # Make top level generation target depend on this generated library
 add_dependencies(
@@ -176,13 +176,13 @@ endif()
 if(BUILD_TESTING AND rosidl_generate_interfaces_ADD_LINTER_TESTS)
   find_package(ament_cmake_cppcheck REQUIRED)
   ament_cppcheck(
-    TESTNAME "cppcheck_rosidlcpp_generated_cpp"
+    TESTNAME "cppcheck_rosidl_generated_cpp"
     "${_output_path}")
 
   find_package(ament_cmake_cpplint REQUIRED)
   get_filename_component(_cpplint_root "${_output_path}" DIRECTORY)
   ament_cpplint(
-    TESTNAME "cpplint_rosidlcpp_generated_cpp"
+    TESTNAME "cpplint_rosidl_generated_cpp"
     # the generated code might contain longer lines for templated types
     MAX_LINE_LENGTH 999
     ROOT "${_cpplint_root}"
@@ -190,7 +190,7 @@ if(BUILD_TESTING AND rosidl_generate_interfaces_ADD_LINTER_TESTS)
 
   find_package(ament_cmake_uncrustify REQUIRED)
   ament_uncrustify(
-    TESTNAME "uncrustify_rosidlcpp_generated_cpp"
+    TESTNAME "uncrustify_rosidl_generated_cpp"
     # the generated code might contain longer lines for templated types
     # a value of zero tells uncrustify to ignore line length
     MAX_LINE_LENGTH 0
