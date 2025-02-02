@@ -23,7 +23,6 @@ target_include_directories(rosidlcpp_generator_type_description PUBLIC include)
 target_link_libraries(rosidlcpp_generator_type_description PUBLIC fmt::fmt nlohmann_json::nlohmann_json rosidlcpp_parser::rosidlcpp_parser rosidlcpp_generator_core::rosidlcpp_generator_core rcutils::rcutils rosidl_runtime_c::rosidl_runtime_c)
 
 ament_package(
-  CONFIG_EXTRAS "${PROJECT_NAME}-extras.cmake.in"
 )
 
 install(
