@@ -1,9 +1,7 @@
 # generated from rosidl_generator_py/rosidl_generator_py-extras.cmake
 
-find_package(rosidlcpp_generator_py REQUIRED SILENT)
-
 include("${CMAKE_CURRENT_LIST_DIR}/register_py.cmake")
 rosidl_generator_py_extras(
-  "${rosidlcpp_generator_py_DIR}/../../../lib/rosidlcpp_generator_py/rosidlcpp_generator_py"
-  "${rosidlcpp_generator_py_DIR}/../resource"
+  "${rosidl_generator_py_DIR}/../../../lib/rosidl_generator_py/rosidl_generator_py"
+  "${rosidl_generator_py_DIR}/../resource"
 )

@@ -15,7 +15,6 @@
 macro(rosidl_generator_c_extras BIN TEMPLATE_DIR)
   find_package(ament_cmake_core QUIET REQUIRED)
   find_package(rosidl_generator_type_description QUIET REQUIRED)
-  find_package(rosidlcpp_generator_c QUIET REQUIRED)
   ament_register_extension(
     "rosidl_generate_idl_interfaces"
     "rosidl_generator_c"

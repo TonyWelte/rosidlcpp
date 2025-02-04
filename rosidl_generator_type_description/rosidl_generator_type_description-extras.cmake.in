@@ -1,13 +1,11 @@
 find_package(ament_cmake_core QUIET REQUIRED)
 
-find_package(rosidlcpp_generator_type_description REQUIRED QUIET)
-
 ament_register_extension(
   "rosidl_generate_idl_interfaces"
   "rosidl_generator_type_description"
   "rosidl_generator_type_description_generate_interfaces.cmake")
 
 set(rosidl_generator_type_description_BIN
-  "${rosidlcpp_generator_type_description_DIR}/../../../lib/rosidlcpp_generator_type_description/rosidlcpp_generator_type_description")
+  "${rosidl_generator_type_description_DIR}/../../../lib/rosidl_generator_type_description/rosidl_generator_type_description")
 normalize_path(rosidl_generator_type_description_BIN
   "${rosidl_generator_type_description_BIN}")
