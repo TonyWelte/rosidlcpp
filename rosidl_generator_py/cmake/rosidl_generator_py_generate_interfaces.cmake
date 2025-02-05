@@ -159,6 +159,31 @@ add_dependencies(
   ${rosidl_generate_interfaces_TARGET}__rosidl_typesupport_c
 )
 
+if(USE_PRECOMPILED)
+  target_precompile_headers(${_target_name_lib}
+    PRIVATE
+      # _msg_support.c.template
+      <Python.h>
+      <stdbool.h>
+      [["numpy/ndarrayobject.h"]]
+      [["rosidl_runtime_c/visibility_control.h"]]
+      # rosidl_generator_c/resource/idl_struct.h.template
+      <stdbool.h>
+      <stddef.h>
+      <stdint.h>
+      # rosidl_generator_c/resource/idl__functions.h.template
+      # <stdbool.h>  # already included
+      <stdlib.h>
+      [["rosidl_runtime_c/action_type_support_struct.h"]]
+      [["rosidl_runtime_c/message_type_support_struct.h"]]
+      [["rosidl_runtime_c/service_type_support_struct.h"]]
+      [["rosidl_runtime_c/type_description/type_description__struct.h"]]
+      [["rosidl_runtime_c/type_description/type_source__struct.h"]]
+      [["rosidl_runtime_c/type_hash.h"]]
+      [["rosidl_runtime_c/visibility_control.h"]]
+  )
+endif()
+
 target_link_libraries(
   ${_target_name_lib} PRIVATE
   Python3::NumPy
