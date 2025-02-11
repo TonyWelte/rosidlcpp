@@ -563,6 +563,15 @@ auto parse_module(std::string_view& content_view, TypedefMap typedefs) -> json {
       annotations[annotation["name"]].push_back(annotation["content"]);
     } else if (content_view.substr(0, STRING_CONST.size()) == STRING_CONST) {
       module_json["constants"].push_back(parse_constant(content_view, typedefs));
+      for (const auto& verbatim : annotations.value("verbatim", json::array())) {
+        if (verbatim["language"] == "comment") {
+          for (const auto& line : rosidlcpp_parser::split_string(verbatim["text"].get<std::string>(), "\\n")) {
+            module_json["constants"].back()["comments"].push_back(line);
+          }
+        }
+      }
+      // TODO: Do something with other annotations
+      annotations.clear();
     } else if (content_view.substr(0, STRING_TYPEDEF.size()) == STRING_TYPEDEF) {
       const auto [name, type] = parse_typedef(content_view);
       typedefs.insert_or_assign(name, type);  // insert_or_assign doesn't support std::pair

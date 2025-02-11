@@ -12,4 +12,6 @@ class GeneratorC : public rosidlcpp_core::GeneratorBase {
  private:
   rosidlcpp_core::GeneratorArguments m_arguments;
   bool m_disable_description_codegen;
+
+  std::string _output_path;
 };

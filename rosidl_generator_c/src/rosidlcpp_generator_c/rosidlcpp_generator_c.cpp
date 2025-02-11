@@ -621,7 +621,7 @@ GeneratorC::GeneratorC(int argc, char** argv) : GeneratorBase() {
   m_arguments = rosidlcpp_core::parse_arguments(generator_arguments_file);
 
   m_env.set_input_path(m_arguments.template_dir + "/");
-  m_env.set_output_path(m_arguments.output_dir + "/");
+  _output_path = m_arguments.output_dir + "/";
 
   m_env.add_callback("get_includes", 2, get_includes);
   m_env.add_callback("idl_structure_type_to_c_typename", 1, [](rosidlcpp_core::CallbackArgs& args) {
@@ -707,6 +707,17 @@ GeneratorC::GeneratorC(int argc, char** argv) : GeneratorBase() {
     }
     return rosidlcpp_core::escape_string(utf8_encoded);
   });
+  m_env.add_callback("escape_tab", 1, [](rosidlcpp_core::CallbackArgs& args) {
+    std::string escaped_string;
+    for(const auto& c : args.at(0)->get<std::string>()) {
+      if(c == '\t') {
+        escaped_string += "\\t";
+      } else {
+        escaped_string += c;
+      }
+    }
+    return escaped_string;
+  });
   m_env.add_callback("FIELD_TYPE_ID_TO_NAME", 1, [](rosidlcpp_core::CallbackArgs& args) -> std::string {
     const auto& field_type_id = args.at(0)->get<int>();
     return FIELD_TYPE_ID_TO_NAME.at(field_type_id);
@@ -774,13 +785,25 @@ void GeneratorC::run() {
     const auto msg_directory = ros_json["interface_path"]["filedir"].get<std::string>();
     const auto msg_type = ros_json["interface_path"]["filename"].get<std::string>();
 
-    m_env.write(template_idl_description_c, ros_json, std::format("{}/detail/{}__description.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
-    m_env.write(template_idl_functions_c, ros_json, std::format("{}/detail/{}__functions.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
-    m_env.write(template_idl_functions_h, ros_json, std::format("{}/detail/{}__functions.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
-    m_env.write(template_idl_struct_h, ros_json, std::format("{}/detail/{}__struct.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
-    m_env.write(template_idl_type_support_c, ros_json, std::format("{}/detail/{}__type_support.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
-    m_env.write(template_idl_type_support_h, ros_json, std::format("{}/detail/{}__type_support.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
-    m_env.write(template_idl_h, ros_json, std::format("{}/{}.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    auto write_template = [&](const inja::Template& template_object, const nlohmann::json& data, std::string_view output_file) {
+      std::string result = m_env.render(template_object, data);
+
+      if(rosidlcpp_parser::has_non_ascii(result)) {
+        result = "\ufeff// NOLINT: This file starts with a BOM since it contain non-ASCII characters\n" + result;
+      }
+
+      std::ofstream file(_output_path + std::string{output_file});
+      file << result;
+      file.close();
+    };
+
+    write_template(template_idl_description_c, ros_json, std::format("{}/detail/{}__description.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_functions_c, ros_json, std::format("{}/detail/{}__functions.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_functions_h, ros_json, std::format("{}/detail/{}__functions.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_struct_h, ros_json, std::format("{}/detail/{}__struct.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_type_support_c, ros_json, std::format("{}/detail/{}__type_support.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_type_support_h, ros_json, std::format("{}/detail/{}__type_support.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_h, ros_json, std::format("{}/{}.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
   }
 }
 

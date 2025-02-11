@@ -11,4 +11,6 @@ class GeneratorCpp : public rosidlcpp_core::GeneratorBase {
 
  private:
   rosidlcpp_core::GeneratorArguments m_arguments;
+
+  std::string _output_path;
 };

@@ -1,6 +1,3 @@
-{% if has_non_ascii %}
-{{ "\ufeff" }}// NOLINT: This file starts with a BOM since it contain non-ASCII characters
-{% endif %}
 // generated from rosidl_generator_c/resource/idl__functions.c.em
 // with input from {{ package_name }}:{{ interface_path.filepath }}
 // generated code does not contain a copyright notice
