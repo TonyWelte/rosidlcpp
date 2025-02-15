@@ -1,0 +1,143 @@
+{% set include_directives = get_global_variable("include_directives") -%}
+{% set include_base = package_name + "/" + interface_path.filedir + "/detail/" + convert_camel_case_to_lower_case_underscore(interface_path.filename) %}
+{% set header_struct = include_base + "__struct.hpp" %}
+{% set header_functions = include_base + "__functions.h" %}
+{% set header_files = ["cstddef", "rosidl_runtime_c/message_type_support_struct.h"] %}
+{% set header_files = push_back(push_back(header_files, header_functions), header_struct) %}
+{# #}
+{% if length(type_supports) != 1 %}
+{%   set header_files = push_back(header_files, "rosidl_typesupport_cpp/identifier.hpp") %}
+{% endif %}
+{% set header_files = push_back(header_files, "rosidl_typesupport_cpp/message_type_support.hpp") %}
+{% if length(type_supports) != 1 %}
+{%   set header_files = push_back(header_files, "rosidl_typesupport_c/type_support_map.h") %}
+{%   set header_files = push_back(header_files, "rosidl_typesupport_cpp/message_type_support_dispatch.hpp") %}
+{% endif %}
+{% set header_files = push_back(header_files, "rosidl_typesupport_cpp/visibility_control.h") %}
+{% if length(type_supports) != 1 %}
+{%   set header_files = push_back(header_files, "rosidl_typesupport_interface/macros.h") %}
+{% endif %}
+
+{% for header_file in header_files %}
+{%     if header_file in include_directives %}
+// already included above
+// {%  else -%}
+{% set include_directives = set_global_variable("include_directives", push_back(include_directives, header_file)) %}
+{%     endif %}
+#include "{{ header_file }}"
+{% endfor %}
+
+{% if length(type_supports) != 1 %}
+{% for ns in message.type.namespaces %}
+namespace {{ ns }}
+{
+
+{% endfor %}
+namespace rosidl_typesupport_cpp
+{
+
+typedef struct _{{ message.type.name }}_type_support_ids_t
+{
+  const char * typesupport_identifier[{{ length(type_supports) }}];
+} _{{ message.type.name }}_type_support_ids_t;
+
+static const _{{ message.type.name }}_type_support_ids_t _{{ message.type.name }}_message_typesupport_ids = {
+  {
+{% for type_support in sort(type_supports) %}
+    "{{ type_support }}",  // ::{{ type_support }}::typesupport_identifier,
+{% endfor %}
+  }
+};
+
+typedef struct _{{ message.type.name }}_type_support_symbol_names_t
+{
+  const char * symbol_name[{{ length(type_supports) }}];
+} _{{ message.type.name }}_type_support_symbol_names_t;
+
+#define STRINGIFY_(s) #s
+#define STRINGIFY(s) STRINGIFY_(s)
+
+static const _{{ message.type.name }}_type_support_symbol_names_t _{{ message.type.name }}_message_typesupport_symbol_names = {
+  {
+{% for type_support in sort(type_supports) %}
+    STRINGIFY(ROSIDL_TYPESUPPORT_INTERFACE__MESSAGE_SYMBOL_NAME({{ type_support }}, {{ package_name }}, {{ join(split_string(interface_path.filedir, "/"), ", ") }}, {{ message.type.name }})),
+{% endfor %}
+  }
+};
+
+typedef struct _{{ message.type.name }}_type_support_data_t
+{
+  void * data[{{ length(type_supports) }}];
+} _{{ message.type.name }}_type_support_data_t;
+
+static _{{ message.type.name }}_type_support_data_t _{{ message.type.name }}_message_typesupport_data = {
+  {
+{% for type_support in sort(type_supports) %}
+    0,  // will store the shared library later
+{% endfor %}
+  }
+};
+
+static const type_support_map_t _{{ message.type.name }}_message_typesupport_map = {
+  {{ length(type_supports) }},
+  "{{ package_name }}",
+  &_{{ message.type.name }}_message_typesupport_ids.typesupport_identifier[0],
+  &_{{ message.type.name }}_message_typesupport_symbol_names.symbol_name[0],
+  &_{{ message.type.name }}_message_typesupport_data.data[0],
+};
+
+static const rosidl_message_type_support_t {{ message.type.name }}_message_type_support_handle = {
+  ::rosidl_typesupport_cpp::typesupport_identifier,
+  reinterpret_cast<const type_support_map_t *>(&_{{ message.type.name }}_message_typesupport_map),
+  ::rosidl_typesupport_cpp::get_message_typesupport_handle_function,
+  &{{ idl_structure_type_to_c_typename(message.type) }}__{{ GET_HASH_FUNC }},
+  &{{ idl_structure_type_to_c_typename(message.type) }}__{{ GET_DESCRIPTION_FUNC }},
+  &{{ idl_structure_type_to_c_typename(message.type) }}__{{ GET_SOURCES_FUNC }},
+};
+
+}  // namespace rosidl_typesupport_cpp
+{% for i in range(length(message.type.namespaces)) %}
+
+}  // namespace {{ at(message.type.namespaces, length(message.type.namespaces) - 1 - i) }}
+{% endfor %}
+{% else %}
+{% set header_file = include_base + "__" + at(type_supports, 0) + ".hpp" %}
+{% if header_file in include_directives %}
+// already included above
+{% else %}
+{% set include_directives = set_global_variable("include_directives", push_back(include_directives, header_file)) %}
+#include "{{ header_file }}"
+{% endif %}
+
+{% endif %}
+
+namespace rosidl_typesupport_cpp
+{
+
+template<>
+ROSIDL_TYPESUPPORT_CPP_PUBLIC
+const rosidl_message_type_support_t *
+get_message_type_support_handle<{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") }}::{{ message.type.name }}>()
+{
+{% if length(type_supports) != 1 %}
+  return &::{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") }}::rosidl_typesupport_cpp::{{ message.type.name }}_message_type_support_handle;
+{% else %}
+  return ROSIDL_TYPESUPPORT_INTERFACE__MESSAGE_SYMBOL_NAME({{ at(type_supports, 0) }}, {{ package_name + ", " + join(split_string(interface_path.filedir, "/"), ", ") }}, {{ message.type.name }})();
+{% endif %}
+}
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+ROSIDL_TYPESUPPORT_CPP_PUBLIC
+const rosidl_message_type_support_t *
+ROSIDL_TYPESUPPORT_INTERFACE__MESSAGE_SYMBOL_NAME(rosidl_typesupport_cpp, {{ package_name + ", " + join(split_string(interface_path.filedir, "/"), ", ") }}, {{ message.type.name }})() {
+  return get_message_type_support_handle<{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") }}::{{ message.type.name }}>();
+}
+
+#ifdef __cplusplus
+}
+#endif
+}  // namespace rosidl_typesupport_cpp
