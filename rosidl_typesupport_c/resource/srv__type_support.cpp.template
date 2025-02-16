@@ -1,0 +1,149 @@
+{% set message=service.request_message %}
+{% include "msg__type_support.cpp.template" %}
+
+{% set message=service.response_message %}
+{% include "msg__type_support.cpp.template" %}
+
+{% set message=service.event_message %}
+{% set include_directives = get_global_variable("include_directives") %}
+{% include "msg__type_support.cpp.template" %}
+{% set include_base = package_name + "/" + interface_path.filedir + "/detail/" + convert_camel_case_to_lower_case_underscore(interface_path.filename) %}
+{% set header_type_support = include_base + "__type_support.h" %}
+{% set header_files = ["cstddef", "rosidl_runtime_c/service_type_support_struct.h"] %}
+{% set header_files = push_back(header_files, header_type_support) %}
+
+{% if length(type_supports) != 1 %}
+{%   set header_files = push_back(header_files, "rosidl_typesupport_c/identifier.h") %}
+{%   set header_files = push_back(header_files, "rosidl_typesupport_c/service_type_support_dispatch.h") %}
+{%   set header_files = push_back(header_files, "rosidl_typesupport_c/type_support_map.h") %}
+{% endif %}
+{% set header_files = push_back(header_files, "rosidl_typesupport_interface/macros.h") %}
+{% set header_files = push_back(header_files, "service_msgs/msg/service_event_info.h") %}
+{% set header_files = push_back(header_files, "builtin_interfaces/msg/time.h") %}
+
+{% for header_file in header_files %}
+{%     if header_file in include_directives %}
+// already included above
+// {%  else %}
+{% set include_directives = set_global_variable("include_directives", push_back(include_directives, header_file)) %}
+{%     endif %}
+#include "{{ header_file }}"
+{% endfor %}
+
+{% if length(type_supports) != 1 %}
+{% for ns in service.type.namespaces %}
+namespace {{ ns }}
+{
+
+{% endfor %}
+namespace rosidl_typesupport_c
+{
+typedef struct _{{ service.type.name }}_type_support_ids_t
+{
+  const char * typesupport_identifier[{{ length(type_supports) }}];
+} _{{ service.type.name }}_type_support_ids_t;
+
+static const _{{ service.type.name }}_type_support_ids_t _{{ service.type.name }}_service_typesupport_ids = {
+  {
+{% for type_support in sort(type_supports) %}
+    "{{ type_support }}",  // ::{{ type_support }}::typesupport_identifier,
+{% endfor %}
+  }
+};
+
+typedef struct _{{ service.type.name }}_type_support_symbol_names_t
+{
+  const char * symbol_name[{{ length(type_supports) }}];
+} _{{ service.type.name }}_type_support_symbol_names_t;
+
+#define STRINGIFY_(s) #s
+#define STRINGIFY(s) STRINGIFY_(s)
+
+static const _{{ service.type.name }}_type_support_symbol_names_t _{{ service.type.name }}_service_typesupport_symbol_names = {
+  {
+{% for type_support in sort(type_supports) %}
+    STRINGIFY(ROSIDL_TYPESUPPORT_INTERFACE__SERVICE_SYMBOL_NAME({{ type_support }}, {{ package_name }}, {{ join(split_string(interface_path.filedir, "/"), ", ") }}, {{ service.type.name }})),
+{% endfor %}
+  }
+};
+
+typedef struct _{{ service.type.name }}_type_support_data_t
+{
+  void * data[{{ length(type_supports) }}];
+} _{{ service.type.name }}_type_support_data_t;
+
+static _{{ service.type.name }}_type_support_data_t _{{ service.type.name }}_service_typesupport_data = {
+  {
+{% for type_support in sort(type_supports) %}
+    0,  // will store the shared library later
+{% endfor %}
+  }
+};
+
+static const type_support_map_t _{{ service.type.name }}_service_typesupport_map = {
+  {{ length(type_supports) }},
+  "{{ package_name }}",
+  &_{{ service.type.name }}_service_typesupport_ids.typesupport_identifier[0],
+  &_{{ service.type.name }}_service_typesupport_symbol_names.symbol_name[0],
+  &_{{ service.type.name }}_service_typesupport_data.data[0],
+};
+
+static const rosidl_service_type_support_t {{ service.type.name }}_service_type_support_handle = {
+  rosidl_typesupport_c__typesupport_identifier,
+  reinterpret_cast<const type_support_map_t *>(&_{{ service.type.name }}_service_typesupport_map),
+  rosidl_typesupport_c__get_service_typesupport_handle_function,
+  &{{ service.type.name }}{{ SERVICE_REQUEST_MESSAGE_SUFFIX }}_message_type_support_handle,
+  &{{ service.type.name }}{{ SERVICE_RESPONSE_MESSAGE_SUFFIX }}_message_type_support_handle,
+  &{{ service.type.name }}{{ SERVICE_EVENT_MESSAGE_SUFFIX }}_message_type_support_handle,
+  ROSIDL_TYPESUPPORT_INTERFACE__SERVICE_CREATE_EVENT_MESSAGE_SYMBOL_NAME(
+    rosidl_typesupport_c,
+{% for ns in service.type.namespaces %}
+    {{ ns }},
+{% endfor %}
+    {{ service.type.name }}
+  ),
+  ROSIDL_TYPESUPPORT_INTERFACE__SERVICE_DESTROY_EVENT_MESSAGE_SYMBOL_NAME(
+    rosidl_typesupport_c,
+{% for ns in service.type.namespaces %}
+    {{ ns }},
+{% endfor %}
+    {{ service.type.name }}
+  ),
+  &{{ idl_structure_type_to_c_typename(service.type) }}__{{ GET_HASH_FUNC }},
+  &{{ idl_structure_type_to_c_typename(service.type) }}__{{ GET_DESCRIPTION_FUNC }},
+  &{{ idl_structure_type_to_c_typename(service.type) }}__{{ GET_SOURCES_FUNC }},
+};
+
+}  // namespace rosidl_typesupport_c
+{% for i in range(length(service.type.namespaces)) %}
+
+}  // namespace {{ at(service.type.namespaces, length(service.type.namespaces) - 1 - i) }}
+{% endfor %}
+{% else %}
+{% set header_file = include_base + "__" + at(type_supports, 0) + ".hpp" %}
+{% if header_file in include_directives %}
+// already included above
+{% else %}
+{% set include_directives = set_global_variable("include_directives", push_back(include_directives, header_file)) %}
+#include "{{ header_file }}"
+{% endif %}
+
+{% endif %}
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+const rosidl_service_type_support_t *
+ROSIDL_TYPESUPPORT_INTERFACE__SERVICE_SYMBOL_NAME(rosidl_typesupport_c, {{ package_name + ", " + join(split_string(interface_path.filedir, "/"), ", ") }}, {{ service.type.name }})() {
+{% if length(type_supports) != 1 %}
+  return &::{{ package_name }}::{{ join(split_string(interface_path.filedir, "/"), "::") }}::rosidl_typesupport_c::{{ service.type.name }}_service_type_support_handle;
+{% else %}
+  return ROSIDL_TYPESUPPORT_INTERFACE__SERVICE_SYMBOL_NAME(@(list(type_supports)[0]), @(', '.join([package_name] + list(interface_path.parents[0].parts))), @(service.structure.namespaced_type.name))();
+{% endif %}
+}
+
+#ifdef __cplusplus
+}
+#endif
