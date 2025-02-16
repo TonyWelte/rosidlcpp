@@ -1,0 +1,15 @@
+{% set include_directives = get_global_variable("include_directives") -%}
+{% set header_files = ["rosidl_runtime_c/message_type_support_struct.h", "rosidl_typesupport_interface/macros.h"] %}
+{% set header_files = push_back(header_files, package_name + "/msg/rosidl_typesupport_introspection_c__visibility_control.h") %}
+{% for header_file in header_files %}
+{%     if header_file in include_directives %}
+// already included above
+// {%  else -%}
+{% set include_directives = set_global_variable("include_directives", push_back(include_directives, header_file)) %}
+{%     endif %}
+#include "{{ header_file }}"
+{% endfor %}
+
+ROSIDL_TYPESUPPORT_INTROSPECTION_C_PUBLIC_{{ package_name }}
+const rosidl_message_type_support_t *
+ROSIDL_TYPESUPPORT_INTERFACE__MESSAGE_SYMBOL_NAME(rosidl_typesupport_introspection_c, {{ package_name + ", " + join(split_string(interface_path.filedir, "/"), ", ") }}, {{ message.type.name }})();
