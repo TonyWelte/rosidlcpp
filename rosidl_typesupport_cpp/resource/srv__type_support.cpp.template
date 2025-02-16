@@ -5,8 +5,8 @@
 {% include "msg__type_support.cpp.template" %}
 
 {% set message=service.event_message %}
-{% set include_directives = get_global_variable("include_directives") %}
 {% include "msg__type_support.cpp.template" %}
+{% set include_directives = get_global_variable("include_directives") %}
 {% set include_base = package_name + "/" + interface_path.filedir + "/detail/" + convert_camel_case_to_lower_case_underscore(interface_path.filename) %}
 {% set header_struct = include_base + "__struct.hpp" %}
 {% set header_files = ["cstddef", "rosidl_runtime_c/service_type_support_struct.h", "rosidl_typesupport_cpp/service_type_support.hpp"] %}
