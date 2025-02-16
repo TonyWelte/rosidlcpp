@@ -1,0 +1,56 @@
+{% set include_directives = get_global_variable("include_directives") %}
+{% set include_base = package_name + "/" + interface_path.filedir + "/detail/" + convert_camel_case_to_lower_case_underscore(interface_path.filename) %}
+{% set include_base_no_detail = package_name + "/" + interface_path.filedir + "/" + convert_camel_case_to_lower_case_underscore(interface_path.filename) %}
+{# #}
+{% set header_files = ["action_msgs/msg/goal_status_array.h", "action_msgs/srv/cancel_goal.h"] %}
+{% set header_files = push_back(header_files, include_base_no_detail + ".h") %}
+{% set header_files = push_back(header_files, include_base + "__type_support.h") %}
+
+{% for header_file in header_files %}
+{% if header_file in include_directives %}
+// already included above
+// {% else -%}
+{% set include_directives = set_global_variable("include_directives", push_back(include_directives, header_file)) %}
+{% endif %}
+#include "{{ header_file }}"
+{% endfor %}
+
+static rosidl_action_type_support_t _{{ package_name }}__{{ join(split_string(interface_path.filedir, "/"), "__") }}__{{ interface_path.filename }}__typesupport_c = {
+  NULL, NULL, NULL, NULL, NULL,
+  &{{ idl_structure_type_to_c_typename(action.type) }}__{{ GET_HASH_FUNC }},
+  &{{ idl_structure_type_to_c_typename(action.type) }}__{{ GET_DESCRIPTION_FUNC }},
+  &{{ idl_structure_type_to_c_typename(action.type) }}__{{ GET_SOURCES_FUNC }},
+};
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+const rosidl_action_type_support_t *
+ROSIDL_TYPESUPPORT_INTERFACE__ACTION_SYMBOL_NAME(
+  rosidl_typesupport_c, {{ package_name + ", " + join(split_string(interface_path.filedir, "/"), ", ") }}, {{ interface_path.filename }})()
+{
+  // Thread-safe by always writing the same values to the static struct
+  _{{ package_name }}__{{ join(split_string(interface_path.filedir, "/"), "__") }}__{{ interface_path.filename }}__typesupport_c.goal_service_type_support =
+    ROSIDL_TYPESUPPORT_INTERFACE__SERVICE_SYMBOL_NAME(
+    rosidl_typesupport_c, {{ package_name + ", " + join(split_string(interface_path.filedir, "/"), ", ") }}, {{ interface_path.filename }}{{ ACTION_GOAL_SERVICE_SUFFIX }})();
+  _{{ package_name }}__{{ join(split_string(interface_path.filedir, "/"), "__") }}__{{ interface_path.filename }}__typesupport_c.result_service_type_support =
+    ROSIDL_TYPESUPPORT_INTERFACE__SERVICE_SYMBOL_NAME(
+    rosidl_typesupport_c, {{ package_name + ", " + join(split_string(interface_path.filedir, "/"), ", ") }}, {{ interface_path.filename }}{{ ACTION_RESULT_SERVICE_SUFFIX }})();
+  _{{ package_name }}__{{ join(split_string(interface_path.filedir, "/"), "__") }}__{{ interface_path.filename }}__typesupport_c.cancel_service_type_support =
+    ROSIDL_TYPESUPPORT_INTERFACE__SERVICE_SYMBOL_NAME(
+    rosidl_typesupport_c, action_msgs, srv, CancelGoal)();
+  _{{ package_name }}__{{ join(split_string(interface_path.filedir, "/"), "__") }}__{{ interface_path.filename }}__typesupport_c.feedback_message_type_support =
+    ROSIDL_TYPESUPPORT_INTERFACE__MESSAGE_SYMBOL_NAME(
+    rosidl_typesupport_c, {{ package_name + ", " + join(split_string(interface_path.filedir, "/"), ", ") }}, {{ interface_path.filename }}{{ ACTION_FEEDBACK_MESSAGE_SUFFIX }})();
+  _{{ package_name }}__{{ join(split_string(interface_path.filedir, "/"), "__") }}__{{ interface_path.filename }}__typesupport_c.status_message_type_support =
+    ROSIDL_TYPESUPPORT_INTERFACE__MESSAGE_SYMBOL_NAME(
+    rosidl_typesupport_c, action_msgs, msg, GoalStatusArray)();
+
+  return &_{{ package_name }}__{{ join(split_string(interface_path.filedir, "/"), "__") }}__{{ interface_path.filename }}__typesupport_c;
+}
+
+#ifdef __cplusplus
+}
+#endif
