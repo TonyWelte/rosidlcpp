@@ -1,0 +1,33 @@
+{% set message=service.request_message %}
+{% include "msg__rosidl_typesupport_introspection_cpp.hpp.template" %}
+
+{% set message=service.response_message %}
+{% include "msg__rosidl_typesupport_introspection_cpp.hpp.template" %}
+
+{% set message=service.event_message %}
+{% include "msg__rosidl_typesupport_introspection_cpp.hpp.template" %}
+
+
+{% set include_directives = get_global_variable("include_directives") %}
+{% set header_files = ["rosidl_runtime_c/service_type_support_struct.h", "rosidl_typesupport_interface/macros.h", "rosidl_typesupport_introspection_cpp/visibility_control.h"] %}
+{% for header_file in header_files %}
+{%     if header_file in include_directives %}
+// already included above
+// {%  else -%}
+{% set include_directives = set_global_variable("include_directives", push_back(include_directives, header_file)) %}
+{%     endif %}
+#include "{{ header_file }}"
+{% endfor %}
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+ROSIDL_TYPESUPPORT_INTROSPECTION_CPP_PUBLIC
+const rosidl_service_type_support_t *
+  ROSIDL_TYPESUPPORT_INTERFACE__SERVICE_SYMBOL_NAME(rosidl_typesupport_introspection_cpp, {{ package_name + ", " + join(split_string(interface_path.filedir, "/"), ", ") }}, {{ service.type.name }})();
+
+#ifdef __cplusplus
+}
+#endif

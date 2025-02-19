@@ -1,0 +1,264 @@
+{% set include_directives = get_global_variable("include_directives") -%}
+{% set include_base = package_name + "/" + interface_path.filedir + "/detail/" + convert_camel_case_to_lower_case_underscore(interface_path.filename) %}
+{% set header_files = ["array", "cstddef", "string", "vector", "rosidl_runtime_c/message_type_support_struct.h", "rosidl_typesupport_cpp/message_type_support.hpp", "rosidl_typesupport_interface/macros.h"] %}
+{% set header_files = push_back(header_files, include_base + "__functions.h") %}
+{% set header_files = push_back(header_files, include_base + "__struct.hpp") %}
+{% set header_files = push_back(header_files, "rosidl_typesupport_introspection_cpp/field_types.hpp") %}
+{% set header_files = push_back(header_files, "rosidl_typesupport_introspection_cpp/identifier.hpp") %}
+{% set header_files = push_back(header_files, "rosidl_typesupport_introspection_cpp/message_introspection.hpp") %}
+{% set header_files = push_back(header_files, "rosidl_typesupport_introspection_cpp/message_type_support_decl.hpp") %}
+{% set header_files = push_back(header_files, "rosidl_typesupport_introspection_cpp/visibility_control.h") %}
+{# #}
+{% set function_prefix = package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name + "__rosidl_typesupport_introspection_c" %}
+
+{% for header_file in header_files %}
+{%   if header_file in include_directives %}
+// already included above
+// {%   else %}
+{%     set include_directives = set_global_variable("include_directives", push_back(include_directives, header_file)) %}
+{%   endif %}
+#include "{{ header_file }}"
+{% endfor %}
+{% for ns in message.type.namespaces %}
+
+namespace {{ ns }}
+{
+{% endfor %}
+
+namespace rosidl_typesupport_introspection_cpp
+{
+
+void {{ message.type.name }}_init_function(
+  void * message_memory, rosidl_runtime_cpp::MessageInitialization _init)
+{
+  new (message_memory) {{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") + "::" + message.type.name }}(_init);
+}
+
+void {{ message.type.name }}_fini_function(void * message_memory)
+{
+  auto typed_message = static_cast<{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") + "::" + message.type.name }} *>(message_memory);
+  typed_message->~{{ message.type.name }}();
+}
+
+{% for member in message.members %}
+{%   if is_nestedtype(member.type) %}
+{%     if is_primitive(member.type.value_type) %}
+{%       set type_ = MSG_TYPE_TO_CPP(member.type.value_type.name) %}
+{%     else if member.type.value_type.name == "string" %}
+{%       set type_ = "std::string" %}
+{%     else if member.type.value_type.name == "wstring" %}
+{%       set type_ = "std::u16string" %}
+{%     else if is_namespaced(member.type.value_type) %}
+{%       set type_ = join(member.type.value_type.namespaces, "::") + "::" + member.type.value_type.name %}
+{%     endif %}
+size_t size_function__{{ message.type.name }}__{{ member.name }}(const void * untyped_member)
+{
+{%     if member.type.name == "array" %}
+  (void)untyped_member;
+  return {{ member.type.size }};
+{%     else %}
+  const auto * member = reinterpret_cast<const std::vector<{{ type_ }}> *>(untyped_member);
+  return member->size();
+{%     endif %}
+}
+
+{%     if not is_vector_bool(member.type) %}
+const void * get_const_function__{{ message.type.name }}__{{ member.name }}(const void * untyped_member, size_t index)
+{
+{%       if member.type.name == "array" %}
+  const auto & member =
+    *reinterpret_cast<const std::array<{{ type_ }}, {{ member.type.size }}> *>(untyped_member);
+{%       else %}
+  const auto & member =
+    *reinterpret_cast<const std::vector<{{ type_ }}> *>(untyped_member);
+{%       endif %}
+  return &member[index];
+}
+
+void * get_function__{{ message.type.name }}__{{ member.name }}(void * untyped_member, size_t index)
+{
+{%       if member.type.name == "array" %}
+  auto & member =
+    *reinterpret_cast<std::array<{{ type_ }}, {{ member.type.size }}> *>(untyped_member);
+{%       else %}
+  auto & member =
+    *reinterpret_cast<std::vector<{{ type_ }}> *>(untyped_member);
+{%       endif %}
+  return &member[index];
+}
+
+void fetch_function__{{ message.type.name }}__{{ member.name }}(
+  const void * untyped_member, size_t index, void * untyped_value)
+{
+  const auto & item = *reinterpret_cast<const {{ type_ }} *>(
+    get_const_function__{{ message.type.name }}__{{ member.name }}(untyped_member, index));
+  auto & value = *reinterpret_cast<{{ type_ }} *>(untyped_value);
+  value = item;
+}
+
+void assign_function__{{ message.type.name }}__{{ member.name }}(
+  void * untyped_member, size_t index, const void * untyped_value)
+{
+  auto & item = *reinterpret_cast<{{ type_ }} *>(
+    get_function__{{ message.type.name }}__{{ member.name }}(untyped_member, index));
+  const auto & value = *reinterpret_cast<const {{ type_ }} *>(untyped_value);
+  item = value;
+}
+{%     else %}
+void fetch_function__{{ message.type.name }}__{{ member.name }}(
+  const void * untyped_member, size_t index, void * untyped_value)
+{
+  const auto & member = *reinterpret_cast<const std::vector<{{ type_ }}> *>(untyped_member);
+  auto & value = *reinterpret_cast<{{ type_ }} *>(untyped_value);
+  value = member[index];
+}
+
+void assign_function__{{ message.type.name }}__{{ member.name }}(
+  void * untyped_member, size_t index, const void * untyped_value)
+{
+  auto & member = *reinterpret_cast<std::vector<{{ type_ }}> *>(untyped_member);
+  const auto & value = *reinterpret_cast<const {{ type_ }} *>(untyped_value);
+  member[index] = value;
+}
+{%     endif %}
+
+{%     if member.type.name == "sequence" %}
+void resize_function__{{ message.type.name }}__{{ member.name }}(void * untyped_member, size_t size)
+{
+  auto * member =
+    reinterpret_cast<std::vector<{{ type_ }}> *>(untyped_member);
+  member->resize(size);
+}
+
+{%     endif %}
+{%   endif %}
+{% endfor %}
+static const ::rosidl_typesupport_introspection_cpp::MessageMember {{ message.type.name }}_message_member_array[{{ length(message.members) }}] = {
+{% for member in message.members %}
+{%   set type_ = member.type %}
+{%   if is_nestedtype(type_) %}
+{%     set type_ = type_.value_type %}
+{%   endif %}
+  {
+    "{{ member.name }}",  // name
+{%   if is_primitive(type_) %}
+    ::rosidl_typesupport_introspection_cpp::ROS_TYPE_{{ upper(type_.name) }},  // type
+    0,  // upper bound of string
+    nullptr,  // members of sub message
+{%   else if is_string(type_) %}
+    ::rosidl_typesupport_introspection_cpp::ROS_TYPE_{{ upper(type_.name) }},  // type
+    {{ default(type_.maximum_size, 0) }},  // upper bound of string
+    nullptr,  // members of sub message
+{%   else %}
+    ::rosidl_typesupport_introspection_cpp::ROS_TYPE_MESSAGE,  // type
+    0,  // upper bound of string
+    ::rosidl_typesupport_introspection_cpp::get_message_type_support_handle<{{ join(type_.namespaces, "::") + "::" + type_.name }}>(),  // members of sub message
+{%   endif %}
+    false,  // is key
+{%   if is_nestedtype(member.type) %}
+    true,  // is array
+{%   else %}
+    false,  // is array
+{%   endif %}
+{%   if member.type.name == "array" %}
+    {{ member.type.size }},  // array size
+{%   else if member.type.name == "sequence" %}
+    {{ default(member.type.maximum_size, 0) }},  // array size
+{%   else %}
+    0,  // array size
+{%   endif %}
+{%   if member.type.name == "sequence" and existsIn(member.type, "maximum_size") %}
+    true,  // is upper bound
+{%   else %}
+    false,  // is upper bound
+{%   endif %}
+    offsetof({{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") }}::{{ message.type.name }}, {{ member.name }}),  // bytes offset in struct
+    nullptr,  // default value
+{%   if is_nestedtype(member.type) %}
+    size_function__{{ message.type.name }}__{{ member.name }},  // size() function pointer
+{%     if not is_vector_bool(member.type) %}
+    get_const_function__{{ message.type.name }}__{{ member.name }},  // get_const(index) function pointer
+{%     else %}
+    nullptr,  // get_const(index) function pointer
+{%     endif %}
+{%     if not is_vector_bool(member.type) %}
+    get_function__{{ message.type.name }}__{{ member.name }},  // get(index) function pointer
+{%     else %}
+    nullptr,  // get(index) function pointer
+{%     endif %}
+    fetch_function__{{ message.type.name }}__{{ member.name }},  // fetch(index, &value) function pointer
+    assign_function__{{ message.type.name }}__{{ member.name }},  // assign(index, value) function pointer
+{%     if member.type.name == "sequence" %}
+    resize_function__{{ message.type.name }}__{{ member.name }}  // resize(index) function pointer
+{%     else %}
+    nullptr  // resize(index) function pointer
+{%     endif %}
+{%   else %}
+    nullptr,  // size() function pointer
+    nullptr,  // get_const(index) function pointer
+    nullptr,  // get(index) function pointer
+    nullptr,  // fetch(index, &value) function pointer
+    nullptr,  // assign(index, value) function pointer
+    nullptr  // resize(index) function pointer
+{%   endif %}
+  }{% if not loop.is_last %},
+{% else %}
+
+{% endif %}
+{% endfor %}
+};
+
+static const ::rosidl_typesupport_introspection_cpp::MessageMembers {{ message.type.name }}_message_members = {
+  "{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") }}",  // message namespace
+  "{{ message.type.name }}",  // message name
+  {{ length(message.members) }},  // number of fields
+  sizeof({{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") }}::{{ message.type.name }}),
+  false,  // has_any_key_member_
+  {{ message.type.name }}_message_member_array,  // message members
+  {{ message.type.name }}_init_function,  // function to initialize message memory (memory has to be allocated)
+  {{ message.type.name }}_fini_function  // function to terminate message instance (will not free memory)
+};
+
+static const rosidl_message_type_support_t {{ message.type.name }}_message_type_support_handle = {
+  ::rosidl_typesupport_introspection_cpp::typesupport_identifier,
+  &{{ message.type.name }}_message_members,
+  get_message_typesupport_handle_function,
+  &{{ idl_structure_type_to_c_typename(message.type) }}__{{ GET_HASH_FUNC }},
+  &{{ idl_structure_type_to_c_typename(message.type) }}__{{ GET_DESCRIPTION_FUNC }},
+  &{{ idl_structure_type_to_c_typename(message.type) }}__{{ GET_SOURCES_FUNC }},
+};
+
+}  // namespace rosidl_typesupport_introspection_cpp
+{% for i in range(length(message.type.namespaces)) %}
+
+}  // namespace {{ at(message.type.namespaces, length(message.type.namespaces) - 1 - i) }}
+{% endfor %}
+
+
+namespace rosidl_typesupport_introspection_cpp
+{
+
+template<>
+ROSIDL_TYPESUPPORT_INTROSPECTION_CPP_PUBLIC
+const rosidl_message_type_support_t *
+get_message_type_support_handle<{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") + "::" + message.type.name }}>()
+{
+  return &::{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") }}::rosidl_typesupport_introspection_cpp::{{ message.type.name }}_message_type_support_handle;
+}
+
+}  // namespace rosidl_typesupport_introspection_cpp
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+ROSIDL_TYPESUPPORT_INTROSPECTION_CPP_PUBLIC
+const rosidl_message_type_support_t *
+ROSIDL_TYPESUPPORT_INTERFACE__MESSAGE_SYMBOL_NAME(rosidl_typesupport_introspection_cpp, {{ package_name + ", " + join(split_string(interface_path.filedir, "/"), ", ") + ", " + message.type.name }})() {
+  return &::{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") }}::rosidl_typesupport_introspection_cpp::{{ message.type.name }}_message_type_support_handle;
+}
+
+#ifdef __cplusplus
+}
+#endif
