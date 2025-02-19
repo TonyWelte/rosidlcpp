@@ -1,0 +1,44 @@
+// generated from rosidl_typesupport_introspection_cpp/resource/idl__type_support.cpp.em
+// with input from {{ package_name }}:{{ interface_path.filepath }}
+// generated code does not contain a copyright notice
+{# #}
+{% set include_directives = set_global_variable("include_directives", []) %}
+{########################################################################}
+{# Handle message #}
+{########################################################################}
+{% for msg_object in messages %}
+{% set message=msg_object.message %}
+{% include "msg__type_support.cpp.template" %}
+
+{% endfor %}
+{########################################################################}
+{# Handle service #}
+{########################################################################}
+{% for service in services %}
+{% set message=service.request_message %}
+{% include "srv__type_support.cpp.template" %}
+
+{% endfor %}
+{########################################################################}
+{# Handle action #}
+{########################################################################}
+{% for action in actions %}
+{% set message=action.goal %}
+{% include "msg__type_support.cpp.template" %}
+
+{% set message=action.result %}
+{% include "msg__type_support.cpp.template" %}
+
+{% set message=action.feedback %}
+{% include "msg__type_support.cpp.template" %}
+
+{% set service=action.send_goal_service %}
+{% include "srv__type_support.cpp.template" %}
+
+{% set service=action.get_result_service %}
+{% include "srv__type_support.cpp.template" %}
+
+{% set message=action.feedback_message %}
+{% include "msg__type_support.cpp.template" %}
+
+{% endfor %}

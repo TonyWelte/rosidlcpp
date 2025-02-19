@@ -1,0 +1,135 @@
+{% set message=service.request_message %}
+{% include "msg__type_support.cpp.template" %}
+
+{% set message=service.response_message %}
+{% include "msg__type_support.cpp.template" %}
+
+{% set message=service.event_message %}
+{% include "msg__type_support.cpp.template" %}
+
+{% set include_directives = get_global_variable("include_directives") %}
+{% set include_base = package_name + "/" + interface_path.filedir + "/detail/" + convert_camel_case_to_lower_case_underscore(interface_path.filename) %}
+{% set header_files = ["rosidl_typesupport_cpp/message_type_support.hpp", "rosidl_typesupport_cpp/service_type_support.hpp", "rosidl_typesupport_interface/macros.h", "rosidl_typesupport_introspection_cpp/visibility_control.h"] %}
+{% set header_files = push_back(header_files, include_base + "__functions.h") %}
+{% set header_files = push_back(header_files, include_base + "__struct.hpp") %}
+{% set header_files = push_back(header_files, "rosidl_typesupport_introspection_cpp/identifier.hpp") %}
+{% set header_files = push_back(header_files, "rosidl_typesupport_introspection_cpp/message_type_support_decl.hpp") %}
+{% set header_files = push_back(header_files, "rosidl_typesupport_introspection_cpp/service_introspection.hpp") %}
+{% set header_files = push_back(header_files, "rosidl_typesupport_introspection_cpp/service_type_support_decl.hpp") %}
+
+{% for header_file in header_files %}
+{%     if header_file in include_directives %}
+// already included above
+// {%  else -%}
+{% set include_directives = set_global_variable("include_directives", push_back(include_directives, header_file)) %}
+{%     endif %}
+#include "{{ header_file }}"
+{% endfor %}
+
+{% for ns in service.type.namespaces %}
+namespace {{ ns }}
+{
+
+{% endfor %}
+namespace rosidl_typesupport_introspection_cpp
+{
+
+// this is intentionally not const to allow initialization later to prevent an initialization race
+static ::rosidl_typesupport_introspection_cpp::ServiceMembers {{ service.type.name }}_service_members = {
+  "{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") }}",  // service namespace
+  "{{ service.type.name }}",  // service name
+  // the following fields are initialized below on first access
+  // see get_service_type_support_handle<{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") + "::" + service.type.name }}>()
+  nullptr,  // request message
+  nullptr,  // response message
+  nullptr,  // event message
+};
+
+static const rosidl_service_type_support_t {{ service.type.name }}_service_type_support_handle = {
+  ::rosidl_typesupport_introspection_cpp::typesupport_identifier,
+  &{{ service.type.name }}_service_members,
+  get_service_typesupport_handle_function,
+  ::rosidl_typesupport_introspection_cpp::get_message_type_support_handle<{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") + "::" + service.type.name }}{{ SERVICE_REQUEST_MESSAGE_SUFFIX }}>(),
+  ::rosidl_typesupport_introspection_cpp::get_message_type_support_handle<{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") + "::" + service.type.name }}{{ SERVICE_RESPONSE_MESSAGE_SUFFIX }}>(),
+  ::rosidl_typesupport_introspection_cpp::get_message_type_support_handle<{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") + "::" + service.type.name }}{{ SERVICE_EVENT_MESSAGE_SUFFIX }}>(),
+  &::rosidl_typesupport_cpp::service_create_event_message<{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") + "::" + service.type.name }}>,
+  &::rosidl_typesupport_cpp::service_destroy_event_message<{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") + "::" + service.type.name }}>,
+  &{{ idl_structure_type_to_c_typename(service.type) }}__{{ GET_HASH_FUNC }},
+  &{{ idl_structure_type_to_c_typename(service.type) }}__{{ GET_DESCRIPTION_FUNC }},
+  &{{ idl_structure_type_to_c_typename(service.type) }}__{{ GET_SOURCES_FUNC }},
+};
+
+}  // namespace rosidl_typesupport_introspection_cpp
+{% for i in range(length(message.type.namespaces)) %}
+
+}  // namespace {{ at(message.type.namespaces, length(message.type.namespaces) - 1 - i) }}
+{% endfor %}
+
+
+namespace rosidl_typesupport_introspection_cpp
+{
+
+template<>
+ROSIDL_TYPESUPPORT_INTROSPECTION_CPP_PUBLIC
+const rosidl_service_type_support_t *
+get_service_type_support_handle<{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") + "::" + service.type.name }}>()
+{
+  // get a handle to the value to be returned
+  auto service_type_support =
+    &::{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") }}::rosidl_typesupport_introspection_cpp::{{ service.type.name }}_service_type_support_handle;
+  // get a non-const and properly typed version of the data void *
+  auto service_members = const_cast<::rosidl_typesupport_introspection_cpp::ServiceMembers *>(
+    static_cast<const ::rosidl_typesupport_introspection_cpp::ServiceMembers *>(
+      service_type_support->data));
+  // make sure all of the service_members are initialized
+  // if they are not, initialize them
+  if (
+    service_members->request_members_ == nullptr ||
+    service_members->response_members_ == nullptr ||
+    service_members->event_members_ == nullptr)
+  {
+    // initialize the request_members_ with the static function from the external library
+    service_members->request_members_ = static_cast<
+      const ::rosidl_typesupport_introspection_cpp::MessageMembers *
+      >(
+      ::rosidl_typesupport_introspection_cpp::get_message_type_support_handle<
+        ::{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") }}::{{ service.request_message.type.name }}
+      >()->data
+      );
+    // initialize the response_members_ with the static function from the external library
+    service_members->response_members_ = static_cast<
+      const ::rosidl_typesupport_introspection_cpp::MessageMembers *
+      >(
+      ::rosidl_typesupport_introspection_cpp::get_message_type_support_handle<
+        ::{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") }}::{{ service.response_message.type.name }}
+      >()->data
+      );
+    // initialize the event_members_ with the static function from the external library
+    service_members->event_members_ = static_cast<
+      const ::rosidl_typesupport_introspection_cpp::MessageMembers *
+      >(
+      ::rosidl_typesupport_introspection_cpp::get_message_type_support_handle<
+        ::{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") }}::{{ service.event_message.type.name }}
+      >()->data
+      );
+  }
+  // finally return the properly initialized service_type_support handle
+  return service_type_support;
+}
+
+}  // namespace rosidl_typesupport_introspection_cpp
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+ROSIDL_TYPESUPPORT_INTROSPECTION_CPP_PUBLIC
+const rosidl_service_type_support_t *
+ROSIDL_TYPESUPPORT_INTERFACE__SERVICE_SYMBOL_NAME(rosidl_typesupport_introspection_cpp, {{ package_name + ", " + join(split_string(interface_path.filedir, "/"), ", ") + ", " + service.type.name }})() {
+  return ::rosidl_typesupport_introspection_cpp::get_service_type_support_handle<{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") + "::" + service.type.name }}>();
+}
+
+#ifdef __cplusplus
+}
+#endif
