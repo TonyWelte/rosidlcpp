@@ -1,0 +1,93 @@
+{% set message=service.request_message %}
+{% include "msg__type_support.cpp.template" %}
+
+
+{% set message=service.response_message %}
+{% include "msg__type_support.cpp.template" %}
+
+
+{% set message=service.event_message %}
+{% include "msg__type_support.cpp.template" %}
+
+{% set include_directives = get_global_variable("include_directives") %}
+{% set header_files = ["rmw/error_handling.h","rosidl_typesupport_cpp/service_type_support.hpp","rosidl_typesupport_fastrtps_cpp/identifier.hpp","rosidl_typesupport_fastrtps_cpp/service_type_support.h","rosidl_typesupport_fastrtps_cpp/service_type_support_decl.hpp"] %}
+
+{% for header_file in header_files %}
+{%     if header_file in include_directives %}
+// already included above
+// {%  else -%}
+{% set include_directives = set_global_variable("include_directives", push_back(include_directives, header_file)) %}
+{%     endif %}
+#include "{{ header_file }}"
+{% endfor %}
+
+{% for ns in service.type.namespaces %}
+namespace {{ ns }}
+{
+
+{% endfor %}
+namespace typesupport_fastrtps_cpp
+{
+
+static service_type_support_callbacks_t _{{ service.type.name }}__callbacks = {
+  "{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") }}",
+  "{{ service.type.name }}",
+  ROSIDL_TYPESUPPORT_INTERFACE__MESSAGE_SYMBOL_NAME(rosidl_typesupport_fastrtps_cpp, {{ package_name + ", " + join(split_string(interface_path.filedir, "/"), ", ") }}, {{ service.type.name + SERVICE_REQUEST_MESSAGE_SUFFIX }})(),
+  ROSIDL_TYPESUPPORT_INTERFACE__MESSAGE_SYMBOL_NAME(rosidl_typesupport_fastrtps_cpp, {{ package_name + ", " + join(split_string(interface_path.filedir, "/"), ", ") }}, {{ service.type.name + SERVICE_RESPONSE_MESSAGE_SUFFIX }})(),
+};
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+static const rosidl_service_type_support_t _{{ service.type.name }}__handle{
+  rosidl_typesupport_fastrtps_cpp::typesupport_identifier,
+  &_{{ service.type.name }}__callbacks,
+  get_service_typesupport_handle_function,
+  ::rosidl_typesupport_fastrtps_cpp::get_message_type_support_handle<{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") + "::" + service.type.name }}{{ SERVICE_REQUEST_MESSAGE_SUFFIX }}>(),
+  ::rosidl_typesupport_fastrtps_cpp::get_message_type_support_handle<{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") + "::" + service.type.name }}{{ SERVICE_RESPONSE_MESSAGE_SUFFIX }}>(),
+  ::rosidl_typesupport_fastrtps_cpp::get_message_type_support_handle<{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") + "::" + service.type.name }}{{ SERVICE_EVENT_MESSAGE_SUFFIX }}>(),
+  &::rosidl_typesupport_cpp::service_create_event_message<{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") + "::" + service.type.name }}>,
+  &::rosidl_typesupport_cpp::service_destroy_event_message<{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") + "::" + service.type.name }}>,
+  &{{ idl_structure_type_to_c_typename(service.type) }}__{{ GET_HASH_FUNC }},
+  &{{ idl_structure_type_to_c_typename(service.type) }}__{{ GET_DESCRIPTION_FUNC }},
+  &{{ idl_structure_type_to_c_typename(service.type) }}__{{ GET_SOURCES_FUNC }},
+};
+
+#ifdef __cplusplus
+}
+#endif
+
+}  // namespace typesupport_fastrtps_cpp
+{% for i in range(length(service.type.namespaces)) %}
+
+}  // namespace {{ at(service.type.namespaces, length(service.type.namespaces) - 1 - i) }}
+{% endfor %}
+
+namespace rosidl_typesupport_fastrtps_cpp
+{
+
+template<>
+ROSIDL_TYPESUPPORT_FASTRTPS_CPP_EXPORT_{{ package_name }}
+const rosidl_service_type_support_t *
+get_service_type_support_handle<{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") + "::" + service.type.name }}>()
+{
+  return &{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") }}::typesupport_fastrtps_cpp::_{{ service.type.name }}__handle;
+}
+
+}  // namespace rosidl_typesupport_fastrtps_cpp
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+const rosidl_service_type_support_t *
+ROSIDL_TYPESUPPORT_INTERFACE__SERVICE_SYMBOL_NAME(rosidl_typesupport_fastrtps_cpp, {{ package_name + ", " + join(split_string(interface_path.filedir, "/"), ", ") }}, {{ service.type.name }})() {
+  return &{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") }}::typesupport_fastrtps_cpp::_{{ service.type.name }}__handle;
+}
+
+#ifdef __cplusplus
+}
+#endif
