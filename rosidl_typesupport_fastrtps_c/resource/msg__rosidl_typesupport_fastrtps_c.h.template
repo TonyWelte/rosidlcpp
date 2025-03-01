@@ -1,0 +1,69 @@
+{% set include_directives = get_global_variable("include_directives") -%}
+{% set header_files = ["stddef.h", "rosidl_runtime_c/message_type_support_struct.h", "rosidl_typesupport_interface/macros.h"] %}
+{% set include_base = package_name + "/" + interface_path.filedir + "/detail/" + convert_camel_case_to_lower_case_underscore(interface_path.filename) %}
+{% set header_files = push_back(header_files, package_name + "/msg/rosidl_typesupport_fastrtps_c__visibility_control.h") %}
+{% set header_files = push_back(header_files, include_base + "__struct.h") %}
+{% set header_files = push_back(header_files, "fastcdr/Cdr.h") %}
+
+{% for header_file in header_files %}
+{%     if header_file in include_directives %}
+// already included above
+// {%  else -%}
+{% set include_directives = set_global_variable("include_directives", push_back(include_directives, header_file)) %}
+{%     endif %}
+{%     if not string_contains(header_file, "/") %}
+#include <{{ header_file }}>
+{%     else %}
+#include "{{ header_file }}"
+{%     endif %}
+{% endfor %}
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_{{ package_name }}
+bool cdr_serialize_{{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }}(
+  const {{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }} * ros_message,
+  eprosima::fastcdr::Cdr & cdr);
+
+ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_{{ package_name }}
+bool cdr_deserialize_{{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }}(
+  eprosima::fastcdr::Cdr &,
+  {{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }} * ros_message);
+
+ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_{{ package_name }}
+size_t get_serialized_size_{{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }}(
+  const void * untyped_ros_message,
+  size_t current_alignment);
+
+ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_{{ package_name }}
+size_t max_serialized_size_{{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }}(
+  bool & full_bounded,
+  bool & is_plain,
+  size_t current_alignment);
+
+ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_{{ package_name }}
+bool cdr_serialize_key_{{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }}(
+  const {{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }} * ros_message,
+  eprosima::fastcdr::Cdr & cdr);
+
+ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_{{ package_name }}
+size_t get_serialized_size_key_{{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }}(
+  const void * untyped_ros_message,
+  size_t current_alignment);
+
+ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_{{ package_name }}
+size_t max_serialized_size_key_{{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }}(
+  bool & full_bounded,
+  bool & is_plain,
+  size_t current_alignment);
+
+ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_{{ package_name }}
+const rosidl_message_type_support_t *
+ROSIDL_TYPESUPPORT_INTERFACE__MESSAGE_SYMBOL_NAME(rosidl_typesupport_fastrtps_c, {{ package_name + ", " + join(split_string(interface_path.filedir, "/"), ", ") }}, {{ message.type.name }})();
+
+#ifdef __cplusplus
+}
+#endif

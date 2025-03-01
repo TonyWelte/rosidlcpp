@@ -1,0 +1,509 @@
+{% set include_directives = get_global_variable("include_directives") -%}
+{% set include_base = package_name + "/" + interface_path.filedir + "/detail/" + convert_camel_case_to_lower_case_underscore(interface_path.filename) %}
+{% set header_files = ["cassert", "cstddef", "limits", "string", "rosidl_typesupport_fastrtps_c/identifier.h", "rosidl_typesupport_fastrtps_c/serialization_helpers.hpp", "rosidl_typesupport_fastrtps_c/wstring_conversion.hpp", "rosidl_typesupport_fastrtps_cpp/message_type_support.h"] %}
+{% set header_files = push_back(header_files, package_name + "/msg/rosidl_typesupport_fastrtps_c__visibility_control.h") %}
+{% set header_files = push_back(header_files, include_base + "__struct.h") %}
+{% set header_files = push_back(header_files, include_base + "__functions.h") %}
+{% set header_files = push_back(header_files, "fastcdr/Cdr.h") %}
+{# #}
+{% set function_prefix = package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name + "__rosidl_typesupport_introspection_c" %}
+{# #}
+{% for header_file in header_files %}
+{%     if header_file in include_directives %}
+// already included above
+// {%  else -%}
+{% set include_directives = set_global_variable("include_directives", push_back(include_directives, header_file)) %}
+{%     endif %}
+{%     if not string_contains(header_file, "/") %}
+#include <{{ header_file }}>
+{%     else %}
+#include "{{ header_file }}"
+{%     endif %}
+{% endfor %}
+
+#ifndef _WIN32
+# pragma GCC diagnostic push
+# pragma GCC diagnostic ignored "-Wunused-parameter"
+# ifdef __clang__
+#  pragma clang diagnostic ignored "-Wdeprecated-register"
+#  pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
+# endif
+#endif
+#ifndef _WIN32
+# pragma GCC diagnostic pop
+#endif
+
+// includes and forward declarations of message dependencies and their conversion functions
+
+{# // Include the message header for each non-primitive field. #}
+#if defined(__cplusplus)
+extern "C"
+{
+#endif
+
+{#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<#}
+{# Collect necessary include directives for all members #}
+{% set includes = get_includes(message) %}
+{#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>#}
+{% if includes %}
+{% for include in includes %}
+{% set include_directives = get_global_variable("include_directives") %}
+{% if include.header_file in include_directives %}
+// already included above
+// {{ "" -}}
+{% else %}
+{% set include_directives = set_global_variable("include_directives", push_back(include_directives, include.header_file)) %}
+{% endif %}
+#include "{{ include.header_file }}"  // {{ join(sort(include.member_names), ", ") }}
+{% endfor %}
+{% endif %}
+{#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<#}
+
+// forward declare type support functions
+{% set forward_declared_types = [] %}
+{% for member in message.members %}
+{% set type_ = member.type %}
+{%   if is_nestedtype(type_) %}
+{%     set type_ = type_.value_type %}
+{%   endif %}
+{%   if is_namespaced(type_) %}
+{%     if type_ in forward_declared_types %}
+{%     else %}
+{%       set forward_declared_types = push_back(forward_declared_types, type_) %}
+{% endfor %}
+{% for key in sort_forward_declared_types(forward_declared_types) %}
+
+{%   if key.namespaces.0 != package_name %}
+ROSIDL_TYPESUPPORT_FASTRTPS_C_IMPORT_{{ package_name }}
+{%   endif %}
+bool cdr_serialize_{{ join(key.namespaces, "__") + "__" + key.name }}(
+  const {{ join(key.namespaces, "__") + "__" + key.name }} * ros_message,
+  eprosima::fastcdr::Cdr & cdr);
+
+{%   if key.namespaces.0 != package_name %}
+ROSIDL_TYPESUPPORT_FASTRTPS_C_IMPORT_{{ package_name }}
+{%   endif %}
+bool cdr_deserialize_{{ join(key.namespaces, "__") + "__" + key.name }}(
+  eprosima::fastcdr::Cdr & cdr,
+  {{ join(key.namespaces, "__") + "__" + key.name }} * ros_message);
+
+{%   if key.namespaces.0 != package_name %}
+ROSIDL_TYPESUPPORT_FASTRTPS_C_IMPORT_{{ package_name }}
+{%   endif %}
+size_t get_serialized_size_{{ join(key.namespaces, "__") + "__" + key.name }}(
+  const void * untyped_ros_message,
+  size_t current_alignment);
+
+{%   if key.namespaces.0 != package_name %}
+ROSIDL_TYPESUPPORT_FASTRTPS_C_IMPORT_{{ package_name }}
+{%   endif %}
+size_t max_serialized_size_{{ join(key.namespaces, "__") + "__" + key.name }}(
+  bool & full_bounded,
+  bool & is_plain,
+  size_t current_alignment);
+
+{%   if key.namespaces.0 != package_name %}
+ROSIDL_TYPESUPPORT_FASTRTPS_C_IMPORT_{{ package_name }}
+{%   endif %}
+bool cdr_serialize_key_{{ join(key.namespaces, "__") + "__" + key.name }}(
+  const {{ join(key.namespaces, "__") + "__" + key.name }} * ros_message,
+  eprosima::fastcdr::Cdr & cdr);
+
+{%   if key.namespaces.0 != package_name %}
+ROSIDL_TYPESUPPORT_FASTRTPS_C_IMPORT_{{ package_name }}
+{%   endif %}
+size_t get_serialized_size_key_{{ join(key.namespaces, "__") + "__" + key.name }}(
+  const void * untyped_ros_message,
+  size_t current_alignment);
+
+{%   if key.namespaces.0 != package_name %}
+ROSIDL_TYPESUPPORT_FASTRTPS_C_IMPORT_{{ package_name }}
+{%   endif %}
+size_t max_serialized_size_key_{{ join(key.namespaces, "__") + "__" + key.name }}(
+  bool & full_bounded,
+  bool & is_plain,
+  size_t current_alignment);
+
+{%   if key.namespaces.0 != package_name %}
+ROSIDL_TYPESUPPORT_FASTRTPS_C_IMPORT_{{ package_name }}
+{%   endif %}
+const rosidl_message_type_support_t *
+  ROSIDL_TYPESUPPORT_INTERFACE__MESSAGE_SYMBOL_NAME(rosidl_typesupport_fastrtps_c, {{ join(key.namespaces, ", ") + ", " + key.name }})();
+{%     endif %}
+{%   endif %}
+{% endfor %}
+
+
+using _{{ message.type.name }}__ros_msg_type = {{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }};
+
+
+ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_{{ package_name }}
+bool cdr_serialize_{{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }}(
+  const {{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }} * ros_message,
+  eprosima::fastcdr::Cdr & cdr)
+{
+{% for member in message.members %}
+{%   for line in generate_member_for_cdr_serialize(member, "") %}
+  {{ line }}
+{%   endfor %}
+
+{% endfor %}
+  return true;
+}
+
+ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_{{ package_name }}
+bool cdr_deserialize_{{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }}(
+  eprosima::fastcdr::Cdr & cdr,
+  {{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }} * ros_message)
+{
+{% for member in message.members %}
+  // Field name: {{ member.name }}
+  {
+{% set type_ = member.type %}
+{%   if is_nestedtype(type_) %}
+{%     set type_ = type_.value_type %}
+{%   endif %}
+{%   if is_nestedtype(member.type) %}
+{%     if member.type.name == "array" %}
+    size_t size = {{ member.type.size }};
+    auto array_ptr = ros_message->{{ member.name }};
+{%     else %}
+{%       if member.type.value_type.name == "string" %}
+{%         set array_init = "rosidl_runtime_c__String__Sequence__init" %}
+{%         set array_fini = "rosidl_runtime_c__String__Sequence__fini" %}
+{%       else if member.type.value_type.name == "wstring" %}
+{%         set array_init = "rosidl_runtime_c__U16String__Sequence__init" %}
+{%         set array_fini = "rosidl_runtime_c__U16String__Sequence__fini" %}
+{%       else if is_primitive(member.type.value_type) %}
+{%         set array_init = "rosidl_runtime_c__" + member.type.value_type.name + "__Sequence__init" %}
+{%         set array_fini = "rosidl_runtime_c__" + member.type.value_type.name + "__Sequence__fini" %}
+{%       else %}
+{%         set array_init = join(type_.namespaces, "__") + "__" + type_.name + "__Sequence__init" %}
+{%         set array_fini = join(type_.namespaces, "__") + "__" + type_.name + "__Sequence__fini" %}
+{%       endif %}
+    uint32_t cdrSize;
+    cdr >> cdrSize;
+    size_t size = static_cast<size_t>(cdrSize);
+    if (ros_message->{{ member.name }}.data) {
+      {{ array_fini }}(&ros_message->{{ member.name }});
+    }
+    if (!{{ array_init }}(&ros_message->{{ member.name }}, size)) {
+      fprintf(stderr, "failed to create array for field '{{ member.name }}'");
+      return false;
+    }
+    auto array_ptr = ros_message->{{ member.name }}.data;
+{%     endif %}
+{%     if member.type.value_type.name == "string" %}
+    for (size_t i = 0; i < size; ++i) {
+      std::string tmp;
+      cdr >> tmp;
+      auto & ros_i = array_ptr[i];
+      if (!ros_i.data) {
+        rosidl_runtime_c__String__init(&ros_i);
+      }
+      bool succeeded = rosidl_runtime_c__String__assign(
+        &ros_i,
+        tmp.c_str());
+      if (!succeeded) {
+        fprintf(stderr, "failed to assign string into field '{{ member.name }}'\n");
+        return false;
+      }
+    }
+{%     else if member.type.value_type.name == "wstring" %}
+    std::wstring wstr;
+    for (size_t i = 0; i < size; ++i) {
+      auto & ros_i = array_ptr[i];
+      if (!ros_i.data) {
+        rosidl_runtime_c__U16String__init(&ros_i);
+      }
+      bool succeeded = rosidl_typesupport_fastrtps_c::cdr_deserialize(cdr, ros_i);
+      if (!succeeded) {
+        fprintf(stderr, "failed to create wstring from u16string\n");
+        rosidl_runtime_c__U16String__fini(&ros_i);
+        return false;
+      }
+    }
+{%     else if member.type.value_type.name == "boolean" %}
+    for (size_t i = 0; i < size; ++i) {
+      uint8_t tmp;
+      cdr >> tmp;
+      array_ptr[i] = tmp ? true : false;
+    }
+{%     else if member.type.value_type.name == "wchar" %}
+    for (size_t i = 0; i < size; ++i) {
+      wchar_t tmp;
+      cdr >> tmp;
+      array_ptr[i] = static_cast<char16_t>(tmp);
+    }
+{%     else if is_primitive(member.type.value_type) %}
+    cdr.deserialize_array(array_ptr, size);
+{%     else %}
+    for (size_t i = 0; i < size; ++i) {
+      cdr_deserialize_{{ join(member.type.value_type.namespaces, "__") + "__" + member.type.value_type.name }}(cdr, &array_ptr[i]);
+    }
+{%     endif %}
+{%    else if member.type.name == "string" %}
+    std::string tmp;
+    cdr >> tmp;
+    if (!ros_message->{{ member.name }}.data) {
+      rosidl_runtime_c__String__init(&ros_message->{{ member.name }});
+    }
+    bool succeeded = rosidl_runtime_c__String__assign(
+      &ros_message->{{ member.name }},
+      tmp.c_str());
+    if (!succeeded) {
+      fprintf(stderr, "failed to assign string into field '{{ member.name }}'\n");
+      return false;
+    }
+{%    else if member.type.name == "wstring" %}
+    if (!ros_message->{{ member.name }}.data) {
+      rosidl_runtime_c__U16String__init(&ros_message->{{ member.name }});
+    }
+    bool succeeded = rosidl_typesupport_fastrtps_c::cdr_deserialize(cdr, ros_message->{{ member.name }});
+    if (!succeeded) {
+      fprintf(stderr, "failed to create wstring from u16string\n");
+      rosidl_runtime_c__U16String__fini(&ros_message->{{ member.name }});
+      return false;
+    }
+{%  else if member.type.name == "boolean" %}
+    uint8_t tmp;
+    cdr >> tmp;
+    ros_message->{{ member.name }} = tmp ? true : false;
+{%  else if member.type.name == "wchar" %}
+    wchar_t tmp;
+    cdr >> tmp;
+    ros_message->{{ member.name }} = static_cast<char16_t>(tmp);
+{%   else if is_primitive(member.type) %}
+    cdr >> ros_message->{{ member.name }};
+{%   else %}
+    cdr_deserialize_{{ join(member.type.namespaces, "__") + "__" + member.type.name }}(cdr, &ros_message->{{ member.name }});
+{%   endif %}
+  }
+
+{% endfor %}
+  return true;
+}  // NOLINT(readability/fn_size)
+
+
+ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_{{ package_name }}
+size_t get_serialized_size_{{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }}(
+  const void * untyped_ros_message,
+  size_t current_alignment)
+{
+  const _{{ message.type.name }}__ros_msg_type * ros_message = static_cast<const _{{ message.type.name }}__ros_msg_type *>(untyped_ros_message);
+  (void)ros_message;
+  size_t initial_alignment = current_alignment;
+
+  const size_t padding = 4;
+  const size_t wchar_size = 4;
+  (void)padding;
+  (void)wchar_size;
+
+{% for member in message.members %}
+{%   for line in generate_member_for_get_serialized_size(member, "") %}
+  {{ line }}
+{%   endfor %}
+
+{% endfor %}
+  return current_alignment - initial_alignment;
+}
+
+
+ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_{{ package_name }}
+size_t max_serialized_size_{{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }}(
+  bool & full_bounded,
+  bool & is_plain,
+  size_t current_alignment)
+{
+  size_t initial_alignment = current_alignment;
+
+  const size_t padding = 4;
+  const size_t wchar_size = 4;
+  size_t last_member_size = 0;
+  (void)last_member_size;
+  (void)padding;
+  (void)wchar_size;
+
+  full_bounded = true;
+  is_plain = true;
+
+{% for member in message.members %}
+{%   for line in generate_member_for_max_serialized_size(member, "") %}
+  {{ line }}
+{%   endfor %}
+
+{% endfor %}
+
+  size_t ret_val = current_alignment - initial_alignment;
+{% if length(message.members) != 0 %}
+  if (is_plain) {
+    // All members are plain, and type is not empty.
+    // We still need to check that the in-memory alignment
+    // is the same as the CDR mandated alignment.
+    using DataType = {{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }};
+    is_plain =
+      (
+      offsetof(DataType, {{ at(last(message.members), "name") }}) +
+      last_member_size
+      ) == ret_val;
+  }
+{% endif %}
+  return ret_val;
+}
+
+ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_{{ package_name }}
+bool cdr_serialize_key_{{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }}(
+  const {{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }} * ros_message,
+  eprosima::fastcdr::Cdr & cdr)
+{
+{% for member in message.members %}
+{%   for line in generate_member_for_cdr_serialize(member, "_key") %}
+  {{ line }}
+{%   endfor %}
+
+{% endfor %}
+  return true;
+}
+
+ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_{{ package_name }}
+size_t get_serialized_size_key_{{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }}(
+  const void * untyped_ros_message,
+  size_t current_alignment)
+{
+  const _{{ message.type.name }}__ros_msg_type * ros_message = static_cast<const _{{ message.type.name }}__ros_msg_type *>(untyped_ros_message);
+  (void)ros_message;
+
+  size_t initial_alignment = current_alignment;
+
+  const size_t padding = 4;
+  const size_t wchar_size = 4;
+  (void)padding;
+  (void)wchar_size;
+
+{% for member in message.members %}
+{%   for line in generate_member_for_get_serialized_size(member, "_key") %}
+  {{ line }}
+{%   endfor %}
+
+{% endfor %}
+  return current_alignment - initial_alignment;
+}
+
+ROSIDL_TYPESUPPORT_FASTRTPS_C_PUBLIC_{{ package_name }}
+size_t max_serialized_size_key_{{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }}(
+  bool & full_bounded,
+  bool & is_plain,
+  size_t current_alignment)
+{
+  size_t initial_alignment = current_alignment;
+
+  const size_t padding = 4;
+  const size_t wchar_size = 4;
+  size_t last_member_size = 0;
+  (void)last_member_size;
+  (void)padding;
+  (void)wchar_size;
+
+  full_bounded = true;
+  is_plain = true;
+{% for member in message.members %}
+{%   for line in generate_member_for_max_serialized_size(member, "_key") %}
+  {{ line }}
+{%   endfor %}
+
+{% endfor %}
+  size_t ret_val = current_alignment - initial_alignment;
+{% if length(message.members) != 0 %}
+  if (is_plain) {
+    // All members are plain, and type is not empty.
+    // We still need to check that the in-memory alignment
+    // is the same as the CDR mandated alignment.
+    using DataType = {{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }};
+    is_plain =
+      (
+      offsetof(DataType, {{ at(last(message.members), "name") }}) +
+      last_member_size
+      ) == ret_val;
+  }
+{% endif %}
+  return ret_val;
+}
+
+{# TODO: Add key things #}
+
+static bool _{{ message.type.name }}__cdr_serialize(
+  const void * untyped_ros_message,
+  eprosima::fastcdr::Cdr & cdr)
+{
+  if (!untyped_ros_message) {
+    fprintf(stderr, "ros message handle is null\n");
+    return false;
+  }
+  const {{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }} * ros_message = static_cast<const {{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }} *>(untyped_ros_message);
+  (void)ros_message;
+  return cdr_serialize_{{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }}(ros_message, cdr);
+}
+
+static bool _{{ message.type.name }}__cdr_deserialize(
+  eprosima::fastcdr::Cdr & cdr,
+  void * untyped_ros_message)
+{
+  if (!untyped_ros_message) {
+    fprintf(stderr, "ros message handle is null\n");
+    return false;
+  }
+  {{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }} * ros_message = static_cast<{{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }} *>(untyped_ros_message);
+  (void)ros_message;
+  return cdr_deserialize_{{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }}(cdr, ros_message);
+}
+
+static uint32_t _{{ message.type.name }}__get_serialized_size(const void * untyped_ros_message)
+{
+  return static_cast<uint32_t>(
+    get_serialized_size_{{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }}(
+      untyped_ros_message, 0));
+}
+
+static size_t _{{ message.type.name }}__max_serialized_size(char & bounds_info)
+{
+  bool full_bounded;
+  bool is_plain;
+  size_t ret_val;
+
+  ret_val = max_serialized_size_{{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }}(
+    full_bounded, is_plain, 0);
+
+  bounds_info =
+    is_plain ? ROSIDL_TYPESUPPORT_FASTRTPS_PLAIN_TYPE :
+    full_bounded ? ROSIDL_TYPESUPPORT_FASTRTPS_BOUNDED_TYPE : ROSIDL_TYPESUPPORT_FASTRTPS_UNBOUNDED_TYPE;
+  return ret_val;
+}
+
+
+static message_type_support_callbacks_t __callbacks_{{ message.type.name }} = {
+  "{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") }}",
+  "{{ message.type.name }}",
+  _{{ message.type.name }}__cdr_serialize,
+  _{{ message.type.name }}__cdr_deserialize,
+  _{{ message.type.name }}__get_serialized_size,
+  _{{ message.type.name }}__max_serialized_size,
+  nullptr
+};
+
+static rosidl_message_type_support_t _{{ message.type.name }}__type_support = {
+  rosidl_typesupport_fastrtps_c__identifier,
+  &__callbacks_{{ message.type.name }},
+  get_message_typesupport_handle_function,
+  &{{ idl_structure_type_to_c_typename(message.type) }}__{{ GET_HASH_FUNC }},
+  &{{ idl_structure_type_to_c_typename(message.type) }}__{{ GET_DESCRIPTION_FUNC }},
+  &{{ idl_structure_type_to_c_typename(message.type) }}__{{ GET_SOURCES_FUNC }},
+};
+
+const rosidl_message_type_support_t *
+ROSIDL_TYPESUPPORT_INTERFACE__MESSAGE_SYMBOL_NAME(rosidl_typesupport_fastrtps_c, {{ package_name + ", " + join(split_string(interface_path.filedir, "/"), ", ") + ", " + message.type.name }})() {
+  return &_{{ message.type.name }}__type_support;
+}
+
+#if defined(__cplusplus)
+}
+#endif

@@ -1,0 +1,54 @@
+// generated from rosidl_typesupport_fastrtps_c/resource/idl__type_support_c.cpp.em
+// with input from {{ package_name }}:{{ interface_path.filepath }}
+// generated code does not contain a copyright notice
+{# #}
+{% set include_base = package_name + "/" + interface_path.filedir + "/detail/" + convert_camel_case_to_lower_case_underscore(interface_path.filename) %}
+#include "{{ include_base }}__rosidl_typesupport_fastrtps_c.h"
+
+
+{% set include_directives = set_global_variable("include_directives", []) %}
+{% set forward_declared_types = set_global_variable("forward_declared_types", []) %}
+{########################################################################}
+{# Handle message #}
+{########################################################################}
+{% for msg_object in messages %}
+{% set message=msg_object.message %}
+{% include "msg__type_support_c.cpp.template" %}
+
+{% endfor %}
+{########################################################################}
+{# Handle service #}
+{########################################################################}
+{% for service in services %}
+{% set message=service.request_message %}
+{% include "srv__type_support_c.cpp.template" %}
+
+{% endfor %}
+{########################################################################}
+{# Handle action #}
+{########################################################################}
+{% for action in actions %}
+{% set message=action.goal %}
+{% include "msg__type_support_c.cpp.template" %}
+
+
+{% set message=action.result %}
+{% include "msg__type_support_c.cpp.template" %}
+
+
+{% set message=action.feedback %}
+{% include "msg__type_support_c.cpp.template" %}
+
+
+{% set service=action.send_goal_service %}
+{% include "srv__type_support_c.cpp.template" %}
+
+
+{% set service=action.get_result_service %}
+{% include "srv__type_support_c.cpp.template" %}
+
+
+{% set message=action.feedback_message %}
+{% include "msg__type_support_c.cpp.template" %}
+
+{% endfor %}

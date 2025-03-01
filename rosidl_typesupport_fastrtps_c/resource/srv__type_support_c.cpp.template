@@ -1,0 +1,72 @@
+{% set message=service.request_message %}
+{% include "msg__type_support_c.cpp.template" %}
+
+
+{% set message=service.response_message %}
+{% include "msg__type_support_c.cpp.template" %}
+
+
+{% set message=service.event_message %}
+{% include "msg__type_support_c.cpp.template" %}
+
+{% set include_directives = get_global_variable("include_directives") %}
+{% set include_base = package_name + "/" + interface_path.filedir + "/" + convert_camel_case_to_lower_case_underscore(interface_path.filename) %}
+{% set header_files = ["rosidl_typesupport_fastrtps_cpp/service_type_support.h", "rosidl_typesupport_cpp/service_type_support.hpp", "rosidl_typesupport_fastrtps_c/identifier.h"] %}
+{% set header_files = push_back(header_files, package_name + "/msg/rosidl_typesupport_fastrtps_c__visibility_control.h") %}
+{% set header_files = push_back(header_files, include_base + ".h") %}
+
+{% for header_file in header_files %}
+{%     if header_file in include_directives %}
+// already included above
+// {%  else -%}
+{% set include_directives = set_global_variable("include_directives", push_back(include_directives, header_file)) %}
+{%     endif %}
+#include "{{ header_file }}"
+{% endfor %}
+
+#if defined(__cplusplus)
+extern "C"
+{
+#endif
+
+static service_type_support_callbacks_t {{ service.type.name }}__callbacks = {
+  "{{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") }}",
+  "{{ service.type.name }}",
+  ROSIDL_TYPESUPPORT_INTERFACE__MESSAGE_SYMBOL_NAME(rosidl_typesupport_fastrtps_c, {{ package_name + ", " + join(split_string(interface_path.filedir, "/"), ", ") }}, {{ service.type.name + SERVICE_REQUEST_MESSAGE_SUFFIX }})(),
+  ROSIDL_TYPESUPPORT_INTERFACE__MESSAGE_SYMBOL_NAME(rosidl_typesupport_fastrtps_c, {{ package_name + ", " + join(split_string(interface_path.filedir, "/"), ", ") }}, {{ service.type.name + SERVICE_RESPONSE_MESSAGE_SUFFIX }})(),
+};
+
+static rosidl_service_type_support_t {{ service.type.name }}__handle = {
+  rosidl_typesupport_fastrtps_c__identifier,
+  &{{ service.type.name }}__callbacks,
+  get_service_typesupport_handle_function,
+  &_{{ service.type.name }}{{ SERVICE_REQUEST_MESSAGE_SUFFIX }}__type_support,
+  &_{{ service.type.name }}{{ SERVICE_RESPONSE_MESSAGE_SUFFIX }}__type_support,
+  &_{{ service.type.name }}{{ SERVICE_EVENT_MESSAGE_SUFFIX }}__type_support,
+  ROSIDL_TYPESUPPORT_INTERFACE__SERVICE_CREATE_EVENT_MESSAGE_SYMBOL_NAME(
+    rosidl_typesupport_c,
+{% for ns in service.type.namespaces %}
+    {{ ns }},
+{% endfor %}
+    {{ service.type.name }}
+  ),
+  ROSIDL_TYPESUPPORT_INTERFACE__SERVICE_DESTROY_EVENT_MESSAGE_SYMBOL_NAME(
+    rosidl_typesupport_c,
+{% for ns in service.type.namespaces %}
+    {{ ns }},
+{% endfor %}
+    {{ service.type.name }}
+  ),
+  &{{ idl_structure_type_to_c_typename(service.type) }}__{{ GET_HASH_FUNC }},
+  &{{ idl_structure_type_to_c_typename(service.type) }}__{{ GET_DESCRIPTION_FUNC }},
+  &{{ idl_structure_type_to_c_typename(service.type) }}__{{ GET_SOURCES_FUNC }},
+};
+
+const rosidl_service_type_support_t *
+ROSIDL_TYPESUPPORT_INTERFACE__SERVICE_SYMBOL_NAME(rosidl_typesupport_fastrtps_c, {{ package_name + ", " + join(split_string(interface_path.filedir, "/"), ", ") }}, {{ service.type.name }})() {
+  return &{{ service.type.name }}__handle;
+}
+
+#if defined(__cplusplus)
+}
+#endif
