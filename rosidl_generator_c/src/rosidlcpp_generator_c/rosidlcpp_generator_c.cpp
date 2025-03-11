@@ -2,6 +2,7 @@
 #include <fmt/format.h>
 #include <algorithm>
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <limits>
 #include <regex>
@@ -621,7 +622,6 @@ GeneratorC::GeneratorC(int argc, char** argv) : GeneratorBase() {
   m_arguments = rosidlcpp_core::parse_arguments(generator_arguments_file);
 
   m_env.set_input_path(m_arguments.template_dir + "/");
-  _output_path = m_arguments.output_dir + "/";
 
   m_env.add_callback("get_includes", 2, get_includes);
   m_env.add_callback("idl_structure_type_to_c_typename", 1, [](rosidlcpp_core::CallbackArgs& args) {
@@ -709,8 +709,8 @@ GeneratorC::GeneratorC(int argc, char** argv) : GeneratorBase() {
   });
   m_env.add_callback("escape_tab", 1, [](rosidlcpp_core::CallbackArgs& args) {
     std::string escaped_string;
-    for(const auto& c : args.at(0)->get<std::string>()) {
-      if(c == '\t') {
+    for (const auto& c : args.at(0)->get<std::string>()) {
+      if (c == '\t') {
         escaped_string += "\\t";
       } else {
         escaped_string += c;
@@ -788,15 +788,16 @@ void GeneratorC::run() {
     auto write_template = [&](const inja::Template& template_object, const nlohmann::json& data, std::string_view output_file) {
       std::string result = m_env.render(template_object, data);
 
-      if(rosidlcpp_parser::has_non_ascii(result)) {
+      if (rosidlcpp_parser::has_non_ascii(result)) {
         result = "\ufeff// NOLINT: This file starts with a BOM since it contain non-ASCII characters\n" + result;
       }
 
-      std::ofstream file(_output_path + std::string{output_file});
+      std::ofstream file(m_arguments.output_dir + "/" + std::string{output_file});
       file << result;
       file.close();
     };
 
+    std::filesystem::create_directories(m_arguments.output_dir + "/" + msg_directory + "/detail");
     write_template(template_idl_description_c, ros_json, std::format("{}/detail/{}__description.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
     write_template(template_idl_functions_c, ros_json, std::format("{}/detail/{}__functions.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
     write_template(template_idl_functions_h, ros_json, std::format("{}/detail/{}__functions.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));

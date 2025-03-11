@@ -373,7 +373,6 @@ GeneratorCpp::GeneratorCpp(int argc, char **argv) : GeneratorBase() {
   m_arguments = rosidlcpp_core::parse_arguments(generator_arguments_file);
 
   m_env.set_input_path(m_arguments.template_dir + "/");
-  _output_path = m_arguments.output_dir + "/";
 
   // m_env.add_callback("is_python_builtin", 1, is_python_builtin);
   m_env.add_callback("get_includes", 2, [](inja::Arguments &args) {
@@ -619,18 +618,19 @@ void GeneratorCpp::run() {
     const auto msg_directory = ros_json["interface_path"]["filedir"].get<std::string>();
     const auto msg_type = ros_json["interface_path"]["filename"].get<std::string>();
 
-    auto write_template = [&](const inja::Template& template_object, const nlohmann::json& data, std::string_view output_file) {
+    auto write_template = [&](const inja::Template &template_object, const nlohmann::json &data, std::string_view output_file) {
       std::string result = m_env.render(template_object, data);
 
-      if(rosidlcpp_parser::has_non_ascii(result)) {
+      if (rosidlcpp_parser::has_non_ascii(result)) {
         result = "\ufeff// NOLINT: This file starts with a BOM since it contain non-ASCII characters\n" + result;
       }
 
-      std::ofstream file(_output_path + std::string{output_file});
+      std::ofstream file(m_arguments.output_dir + "/" + std::string{output_file});
       file << result;
       file.close();
     };
 
+    std::filesystem::create_directories(m_arguments.output_dir + "/" + msg_directory + "/detail");
     write_template(template_idl_builder, ros_json, std::format("{}/detail/{}__builder.hpp", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
     write_template(template_idl_struct, ros_json, std::format("{}/detail/{}__struct.hpp", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
     write_template(template_idl_traits, ros_json, std::format("{}/detail/{}__traits.hpp", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
