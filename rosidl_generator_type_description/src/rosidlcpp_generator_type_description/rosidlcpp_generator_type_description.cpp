@@ -539,6 +539,10 @@ int GeneratorTypeDescription::run() {
     hash_lookup[type_name] = calculate_type_hash(full_type_description);
   }
 
+  std::filesystem::create_directories(m_arguments.output_dir + "/msg");
+  std::filesystem::create_directories(m_arguments.output_dir + "/srv");
+  std::filesystem::create_directories(m_arguments.output_dir + "/action");
+
   for (const auto &full_type_description : type_description) {
     std::string top_type_name = full_type_description["type_description"]["type_name"];
     std::vector<nlohmann::ordered_json> hashes;
