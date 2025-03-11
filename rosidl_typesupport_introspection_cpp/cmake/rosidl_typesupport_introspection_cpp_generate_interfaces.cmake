@@ -105,6 +105,42 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
+target_precompile_headers(${rosidl_generate_interfaces_TARGET}${_target_suffix}
+  PRIVATE
+    # msg__type_support.cpp.em
+    <array>
+    <cstddef>
+    <string>
+    <vector>
+    [["rosidl_runtime_c/message_type_support_struct.h"]]
+    [["rosidl_typesupport_cpp/message_type_support.hpp"]]
+    [["rosidl_typesupport_interface/macros.h"]]
+    # rosidl_generator_c/ressource/idl__functions.h.em
+    <stdbool.h>
+    <stdlib.h>
+    [["rosidl_runtime_c/action_type_support_struct.h"]]
+    [["rosidl_runtime_c/message_type_support_struct.h"]]
+    [["rosidl_runtime_c/service_type_support_struct.h"]]
+    [["rosidl_runtime_c/type_description/type_description__struct.h"]]
+    [["rosidl_runtime_c/type_description/type_source__struct.h"]]
+    [["rosidl_runtime_c/type_hash.h"]]
+    [["rosidl_runtime_c/visibility_control.h"]]
+    # rosidl_generator_cpp/ressource/idl__struct.hpp.em
+    <algorithm>
+    <array>
+    <memory>
+    <string>
+    <vector>
+    [["rosidl_runtime_cpp/bounded_vector.hpp"]]
+    [["rosidl_runtime_cpp/message_initialization.hpp"]]
+    # msg__type_support.cpp.em (2)
+    [["rosidl_typesupport_introspection_cpp/field_types.hpp"]]
+    [["rosidl_typesupport_introspection_cpp/identifier.hpp"]]
+    [["rosidl_typesupport_introspection_cpp/message_introspection.hpp"]]
+    [["rosidl_typesupport_introspection_cpp/message_type_support_decl.hpp"]]
+    [["rosidl_typesupport_introspection_cpp/visibility_control.h"]]
+)
+
 target_include_directories(${rosidl_generate_interfaces_TARGET}${_target_suffix}
   PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/rosidl_typesupport_introspection_cpp>"

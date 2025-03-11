@@ -2,20 +2,14 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>rosidl_typesupport_c</name>
-  <version>3.3.1</version>
+  <version>0.0.0</version>
   <description>Generate the type support for C messages.</description>
 
-  <maintainer email="dharini@openrobotics.org">Dharini Dutia</maintainer>
-  <maintainer email="sloretz@openrobotics.org">Shane Loretz</maintainer>
+  <maintainer email="tony.welte@gmail.com">Anthony Welte</maintainer>
 
   <license>Apache License 2.0</license>
 
-  <author email="clalancette@openrobotics.org">Chris Lalancette</author>
-  <author email="dthomas@osrfoundation.org">Dirk Thomas</author>
-
   <buildtool_depend>ament_cmake_ros</buildtool_depend>
-
-  <buildtool_export_depend>python3</buildtool_export_depend>
 
   <depend>rcpputils</depend>
   <depend>rcutils</depend>
