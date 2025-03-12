@@ -1,10 +1,11 @@
-#include <nlohmann/json_fwd.hpp>
 #include <rosidlcpp_parser/rosidlcpp_parser.hpp>
 
+#include <algorithm>
 #include <cassert>
 #include <cctype>
 #include <charconv>
 #include <cstddef>
+#include <filesystem>
 #include <format>
 #include <fstream>
 #include <iterator>
@@ -12,11 +13,14 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include <iostream>
 #include <system_error>
 
-#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 constexpr std::string_view STRING_MODULE = "module";
 constexpr std::string_view STRING_STRUCT = "struct";
@@ -35,7 +39,7 @@ using TypedefMap = std::unordered_map<std::string, std::string>;
 
 namespace rosidlcpp_parser {
 
-std::vector<std::string> split_string(std::string_view value, std::string_view sep) {
+std::vector<std::string> split_string_view(std::string_view value, std::string_view sep) {
   std::vector<std::string> result;
 
   auto cursor = value.find(sep);
@@ -47,6 +51,10 @@ std::vector<std::string> split_string(std::string_view value, std::string_view s
   result.push_back(std::string{value});
 
   return result;
+}
+
+std::vector<std::string> split_string(const std::string& value, const std::string& sep) {
+  return split_string_view(value, sep);
 }
 
 auto consume_white_space(std::string_view& content_view) -> void {
@@ -128,7 +136,7 @@ auto interpret_type(std::string_view type_string, TypedefMap typedefs) -> json {
   } else if (typedefs.contains(std::string{type_string})) {
     result = interpret_type(typedefs[std::string{type_string}], typedefs);
   } else {  // Check for namespaced type
-    auto namespaced_type = split_string(type_string, "::");
+    auto namespaced_type = split_string_view(type_string, "::");
     if (namespaced_type.size() > 1) {
       result["name"] = namespaced_type.back();
       namespaced_type.pop_back();
@@ -499,7 +507,7 @@ auto parse_structure(std::string_view& content_view, TypedefMap typedefs) -> jso
       }
       for (const auto& verbatim : annotations.value("verbatim", json::array())) {
         if (verbatim["language"] == "comment") {
-          for (const auto& line : rosidlcpp_parser::split_string(verbatim["text"].get<std::string>(), "\\n")) {
+          for (const auto& line : rosidlcpp_parser::split_string_view(verbatim["text"].get<std::string>(), "\\n")) {
             module_json["members"].back()["comments"].push_back(line);
           }
         }
@@ -551,7 +559,7 @@ auto parse_module(std::string_view& content_view, TypedefMap typedefs) -> json {
       module_json["structures"].push_back(parse_structure(content_view, typedefs));
       for (const auto& verbatim : annotations.value("verbatim", json::array())) {
         if (verbatim["language"] == "comment") {
-          for (const auto& line : rosidlcpp_parser::split_string(verbatim["text"].get<std::string>(), "\\n")) {
+          for (const auto& line : rosidlcpp_parser::split_string_view(verbatim["text"].get<std::string>(), "\\n")) {
             module_json["structures"].back()["comments"].push_back(line);
           }
         }
@@ -565,7 +573,7 @@ auto parse_module(std::string_view& content_view, TypedefMap typedefs) -> json {
       module_json["constants"].push_back(parse_constant(content_view, typedefs));
       for (const auto& verbatim : annotations.value("verbatim", json::array())) {
         if (verbatim["language"] == "comment") {
-          for (const auto& line : rosidlcpp_parser::split_string(verbatim["text"].get<std::string>(), "\\n")) {
+          for (const auto& line : rosidlcpp_parser::split_string_view(verbatim["text"].get<std::string>(), "\\n")) {
             module_json["constants"].back()["comments"].push_back(line);
           }
         }

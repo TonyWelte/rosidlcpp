@@ -19,6 +19,7 @@
 #include <string_view>
 
 #include <rosidlcpp_generator_core/generator_base.hpp>
+#include <rosidlcpp_generator_core/generator_utils.hpp>
 #include <rosidlcpp_parser/rosidlcpp_parser.hpp>
 
 #include <argparse/argparse.hpp>
@@ -446,10 +447,8 @@ GeneratorCpp::GeneratorCpp(int argc, char **argv) : GeneratorBase() {
     return msg_type_to_cpp(*args.at(0));
   });
 
-  m_env.add_callback("create_init_alloc_and_member_lists", 1,
-                     [](inja::Arguments &args) {
-                       return create_init_alloc_and_member_lists(*args.at(0));
-                     });
+  GENERATOR_BASE_REGISTER_FUNCTION("create_init_alloc_and_member_lists", 1, create_init_alloc_and_member_lists);
+
   m_env.add_callback("generate_zero_string", 2, [](inja::Arguments &args) {
     const auto membset = (*args.at(0));
     const std::string fill_args = *args.at(1);

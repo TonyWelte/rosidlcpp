@@ -2,6 +2,7 @@
 #include <rosidlcpp_typesupport_cpp/rosidlcpp_typesupport_cpp.hpp>
 
 #include <rosidlcpp_generator_core/generator_base.hpp>
+#include <rosidlcpp_generator_core/generator_utils.hpp>
 #include <rosidlcpp_parser/rosidlcpp_parser.hpp>
 
 #include <argparse/argparse.hpp>
@@ -12,11 +13,6 @@
 #include <iostream>
 #include <ostream>
 #include <string>
-
-// TODO: Move this to a common place
-std::string idl_structure_type_to_c_typename(const nlohmann::json& type) {
-  return fmt::format("{}__{}", fmt::join(type["namespaces"], "__"), type["name"].get<std::string>());
-}
 
 GeneratorTypesupportCpp::GeneratorTypesupportCpp(int argc, char** argv) : GeneratorBase() {
   // Arguments
@@ -41,28 +37,12 @@ GeneratorTypesupportCpp::GeneratorTypesupportCpp(int argc, char** argv) : Genera
   auto typesupport_implementations =
       argument_parser.get<std::string>("--typesupports");
   m_typesupport_implementations =
-      rosidlcpp_parser::split_string(typesupport_implementations, ";");
+      rosidlcpp_parser::split_string_view(typesupport_implementations, ";");
 
   m_arguments = rosidlcpp_core::parse_arguments(generator_arguments_file);
 
   m_env.set_input_path(m_arguments.template_dir + "/");
   m_env.set_output_path(m_arguments.output_dir + "/");
-
-  m_env.add_callback("GET_DESCRIPTION_FUNC", 0, [](rosidlcpp_core::CallbackArgs& args) {
-    return "get_type_description";
-  });
-  m_env.add_callback("GET_HASH_FUNC", 0, [](rosidlcpp_core::CallbackArgs& args) {
-    return "get_type_hash";
-  });
-  m_env.add_callback("GET_INDIVIDUAL_SOURCE_FUNC", 0, [](rosidlcpp_core::CallbackArgs& args) {
-    return "get_individual_type_description_source";
-  });
-  m_env.add_callback("GET_SOURCES_FUNC", 0, [](rosidlcpp_core::CallbackArgs& args) {
-    return "get_type_description_sources";
-  });
-  m_env.add_callback("idl_structure_type_to_c_typename", 1, [](rosidlcpp_core::CallbackArgs& args) {
-    return idl_structure_type_to_c_typename(*args.at(0));
-  });
 }
 
 void GeneratorTypesupportCpp::run() {

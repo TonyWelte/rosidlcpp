@@ -6,6 +6,7 @@
 #include <rosidlcpp_typesupport_fastrtps_c/rosidlcpp_typesupport_fastrtps_c.hpp>
 
 #include <rosidlcpp_generator_core/generator_base.hpp>
+#include <rosidlcpp_generator_core/generator_utils.hpp>
 #include <rosidlcpp_parser/rosidlcpp_parser.hpp>
 
 #include <argparse/argparse.hpp>
@@ -18,11 +19,6 @@
 #include <iostream>
 #include <ostream>
 #include <string>
-
-// TODO: Move this to a common place
-std::string idl_structure_type_to_c_typename(const nlohmann::json& type) {
-  return fmt::format("{}__{}", fmt::join(type["namespaces"], "__"), type["name"].get<std::string>());
-}
 
 const std::unordered_map<std::string, std::string> BASIC_IDL_TYPES_TO_C = {
     {"float", "float"},
@@ -55,7 +51,7 @@ std::string basetype_to_c(const nlohmann::json& type) {
     return "rosidl_runtime_c__U16String";
   }
   if (rosidlcpp_core::is_namespaced(type)) {
-    return idl_structure_type_to_c_typename(type);
+    return rosidlcpp_core::type_to_c_typename(type);
   }
 
   throw std::runtime_error("Unknown basetype: " + type.dump());
@@ -212,21 +208,6 @@ GeneratorTypesupportFastrtpsC::GeneratorTypesupportFastrtpsC(int argc, char** ar
   m_env.set_input_path(m_arguments.template_dir + "/");
   m_env.set_output_path(m_arguments.output_dir + "/");
 
-  m_env.add_callback("GET_DESCRIPTION_FUNC", 0, [](rosidlcpp_core::CallbackArgs& args) {
-    return "get_type_description";
-  });
-  m_env.add_callback("GET_HASH_FUNC", 0, [](rosidlcpp_core::CallbackArgs& args) {
-    return "get_type_hash";
-  });
-  m_env.add_callback("GET_INDIVIDUAL_SOURCE_FUNC", 0, [](rosidlcpp_core::CallbackArgs& args) {
-    return "get_individual_type_description_source";
-  });
-  m_env.add_callback("GET_SOURCES_FUNC", 0, [](rosidlcpp_core::CallbackArgs& args) {
-    return "get_type_description_sources";
-  });
-  m_env.add_callback("idl_structure_type_to_c_typename", 1, [](rosidlcpp_core::CallbackArgs& args) {
-    return idl_structure_type_to_c_typename(*args.at(0));
-  });
   m_env.add_callback("get_includes", 1, [](rosidlcpp_core::CallbackArgs& args) {
     return get_includes(args);
   });

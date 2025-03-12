@@ -1,29 +1,22 @@
 #pragma once
 
+#include <functional>
+#include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 
 #include <cstddef>
 
-#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 #include <inja/inja.hpp>
 
 namespace rosidlcpp_core {
 
+using nlohmann::json;
+
 using CallbackArgs = std::vector<const nlohmann::json*>;
-
-constexpr std::string_view SERVICE_EVENT_MESSAGE_SUFFIX = "_Event";
-constexpr std::string_view SERVICE_REQUEST_MESSAGE_SUFFIX = "_Request";
-constexpr std::string_view SERVICE_RESPONSE_MESSAGE_SUFFIX = "_Response";
-constexpr std::string_view ACTION_GOAL_SUFFIX = "_Goal";
-constexpr std::string_view ACTION_RESULT_SUFFIX = "_Result";
-constexpr std::string_view ACTION_FEEDBACK_SUFFIX = "_Feedback";
-constexpr std::string_view ACTION_GOAL_SERVICE_SUFFIX = "_SendGoal";
-constexpr std::string_view ACTION_RESULT_SERVICE_SUFFIX = "_GetResult";
-constexpr std::string_view ACTION_FEEDBACK_MESSAGE_SUFFIX = "_FeedbackMessage";
-
-constexpr std::string_view EMPTY_STRUCTURE_REQUIRED_MEMBER_NAME =
-    "structure_needs_at_least_one_member";
 
 struct GeneratorArguments {
   std::string package_name;
@@ -37,11 +30,7 @@ struct GeneratorArguments {
   std::vector<std::pair<std::string, std::string>> include_paths;
 };
 
-std::string escape_string(const std::string& str);
-
 GeneratorArguments parse_arguments(const std::string& filepath);
-
-std::string camel_to_snake(const std::string& input);
 
 class GeneratorEnvironment : public inja::Environment {
  public:
@@ -49,16 +38,36 @@ class GeneratorEnvironment : public inja::Environment {
   void set_output_path(const std::string& directory) { output_path = directory; }
 };
 
+#define GENERATOR_BASE_REGISTER_FUNCTION_GET_ARGS_1 *args.at(0)
+#define GENERATOR_BASE_REGISTER_FUNCTION_GET_ARGS_2 *args.at(0), *args.at(1)
+#define GENERATOR_BASE_REGISTER_FUNCTION_GET_ARGS_3 *args.at(0), *args.at(1), *args.at(2)
+#define GENERATOR_BASE_REGISTER_FUNCTION_GET_ARGS_4 *args.at(0), *args.at(1), *args.at(2), *args.at(3)
+#define GENERATOR_BASE_REGISTER_FUNCTION_GET_ARGS_5 *args.at(0), *args.at(1), *args.at(2), *args.at(3), *args.at(4)
+
+// Dispatcher Macro
+#define GENERATOR_BASE_REGISTER_FUNCTION_GET_ARGS(count) GENERATOR_BASE_REGISTER_FUNCTION_GET_ARGS_##count
+
+#define GENERATOR_BASE_REGISTER_VOID_FUNCTION(name, arg_count, function_name)          \
+  m_env.add_void_callback(name, arg_count,                                             \
+                          [](inja::Arguments& args) {                                  \
+                            function_name(                                             \
+                                GENERATOR_BASE_REGISTER_FUNCTION_GET_ARGS(arg_count)); \
+                          })
+
+#define GENERATOR_BASE_REGISTER_FUNCTION(name, arg_count, function_name)          \
+  m_env.add_callback(name, arg_count,                                             \
+                     [](inja::Arguments& args) {                                  \
+                       return function_name(                                      \
+                           GENERATOR_BASE_REGISTER_FUNCTION_GET_ARGS(arg_count)); \
+                     })
+
 class GeneratorBase {
  public:
   GeneratorBase();
   virtual ~GeneratorBase() = default;
 
- protected:
-  void register_callback(
-      const std::string& name, std::size_t arg_count,
-      std::function<nlohmann::json(std::vector<const nlohmann::json*>&)>
-          callback);
+  void register_function(std::string_view name, int arg_count, auto callback);
+  void register_variable(std::string_view name, auto value);
 
  protected:
   GeneratorEnvironment m_env;
@@ -66,17 +75,12 @@ class GeneratorBase {
   nlohmann::json m_global_storage;
 };
 
-bool is_sequence(const nlohmann::json& type);
-bool is_array(const nlohmann::json& type);
-bool is_bounded(const nlohmann::json& type);
-bool is_nestedtype(const nlohmann::json& type);
-bool is_string(const nlohmann::json& type);
-bool is_primitive(const nlohmann::json& type);
-bool is_namespaced(const nlohmann::json& type);
-bool is_float(const nlohmann::json& type);
-bool is_character(const nlohmann::json& type);
+void GeneratorBase::register_function(std::string_view name, int arg_count, auto callback) {
+  m_env.add_callback(std::string{name}, arg_count, callback);
+}
 
-bool is_unsigned_integer(const nlohmann::json& type);
-bool is_signed_integer(const nlohmann::json& type);
+void GeneratorBase::register_variable(std::string_view name, auto value) {
+  m_env.add_callback(std::string{name}, 0, [value](CallbackArgs&) { return value; });
+}
 
 }  // namespace rosidlcpp_core

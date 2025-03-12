@@ -1,3 +1,4 @@
+#include <nlohmann/json_fwd.hpp>
 #include <rosidlcpp_generator_py/rosidlcpp_generator_py.hpp>
 
 #include <cassert>
@@ -10,6 +11,7 @@
 #include <unordered_map>
 
 #include <rosidlcpp_generator_core/generator_base.hpp>
+#include <rosidlcpp_generator_core/generator_utils.hpp>
 #include <rosidlcpp_parser/rosidlcpp_parser.hpp>
 
 #include <argparse/argparse.hpp>
@@ -27,16 +29,16 @@ struct SpecialNestedType {
   std::string type_code;
 };
 const std::unordered_map<std::string, SpecialNestedType> SPECIAL_NESTED_BASIC_TYPES = {
-    {"float", {"numpy.float32", "f"}},
-    {"double", {"numpy.float64", "d"}},
-    {"int8", {"numpy.int8", "b"}},
-    {"uint8", {"numpy.uint8", "B"}},
-    {"int16", {"numpy.int16", "h"}},
-    {"uint16", {"numpy.uint16", "H"}},
-    {"int32", {"numpy.int32", "i"}},
-    {"uint32", {"numpy.uint32", "I"}},
-    {"int64", {"numpy.int64", "q"}},
-    {"uint64", {"numpy.uint64", "Q"}}};
+    {"float", {.dtype = "numpy.float32", .type_code = "f"}},
+    {"double", {.dtype = "numpy.float64", .type_code = "d"}},
+    {"int8", {.dtype = "numpy.int8", .type_code = "b"}},
+    {"uint8", {.dtype = "numpy.uint8", .type_code = "B"}},
+    {"int16", {.dtype = "numpy.int16", .type_code = "h"}},
+    {"uint16", {.dtype = "numpy.uint16", .type_code = "H"}},
+    {"int32", {.dtype = "numpy.int32", .type_code = "i"}},
+    {"uint32", {.dtype = "numpy.uint32", .type_code = "I"}},
+    {"int64", {.dtype = "numpy.int64", .type_code = "q"}},
+    {"uint64", {.dtype = "numpy.uint64", .type_code = "Q"}}};
 
 const static std::unordered_set<std::string> PYTHON_BUILTINS = {
     "ArithmeticError", "AssertionError", "AttributeError", "BaseException",
@@ -75,9 +77,7 @@ constexpr std::string_view ACTION_GOAL_SUFFIX = "_Goal";
 constexpr std::string_view ACTION_RESULT_SUFFIX = "_Result";
 constexpr std::string_view ACTION_FEEDBACK_SUFFIX = "_Feedback";
 
-nlohmann::json get_imports(CallbackArgs& args) {
-  const auto members = *args.at(0);
-
+nlohmann::json get_imports(const nlohmann::json& members) {
   nlohmann::json result = nlohmann::json::object();
   if (!members.empty()) {
     result["import rosidl_parser.definition"] = nlohmann::json::array();
@@ -158,10 +158,7 @@ std::string primitive_value_to_py(nlohmann::json type, nlohmann::json value) {
   return value.get<std::string>();
 }
 
-std::string constant_value_to_py(CallbackArgs& args) {
-  const auto type = *args.at(0);
-  const auto value = *args.at(1);
-
+std::string constant_value_to_py(const nlohmann::json& type, const nlohmann::json& value) {
   assert(!value.is_null());
 
   if (rosidlcpp_core::is_primitive(type)) {
@@ -205,9 +202,7 @@ std::string constant_value_to_py(CallbackArgs& args) {
   return "";
 }
 
-auto get_importable_typesupports(CallbackArgs& args) -> nlohmann::json {
-  const auto members = *args.at(0);
-
+auto get_importable_typesupports(const nlohmann::json& members) -> nlohmann::json {
   nlohmann::json result = nlohmann::json::array();
   for (const auto& member : members) {
     auto type = member["type"];
@@ -227,7 +222,7 @@ auto get_importable_typesupports(CallbackArgs& args) -> nlohmann::json {
               ACTION_RESULT_SUFFIX) ||
           type["name"].get<std::string>().ends_with(
               ACTION_FEEDBACK_SUFFIX)) {
-        auto action_info = rosidlcpp_parser::split_string(
+        auto action_info = rosidlcpp_parser::split_string_view(
             type["name"].get<std::string>(), "_");
         typesupport["namespaces"] = type["namespaces"];
         typesupport["type"] = action_info[0];
@@ -248,10 +243,7 @@ auto get_importable_typesupports(CallbackArgs& args) -> nlohmann::json {
   return result;
 }
 
-auto value_to_py(CallbackArgs& args) -> nlohmann::json {
-  const auto type = *args.at(0);
-  const auto value = *args.at(1);
-
+auto value_to_py(const nlohmann::json& type, const nlohmann::json& value) -> nlohmann::json {
   if (!rosidlcpp_core::is_nestedtype(type)) {
     return primitive_value_to_py(type, value);
   }
@@ -283,8 +275,7 @@ auto value_to_py(CallbackArgs& args) -> nlohmann::json {
   return fmt::format("[{}]", fmt::join(py_values, ", "));
 }
 
-auto get_rosidl_parser_type(CallbackArgs& args) -> nlohmann::json {
-  const auto type = *args.at(0);
+auto get_rosidl_parser_type(const nlohmann::json& type) -> nlohmann::json {
   if (type["name"] == "sequence") {
     if (type.contains("maximum_size")) {
       return "rosidl_parser.definition.BoundedSequence";
@@ -315,8 +306,7 @@ auto get_rosidl_parser_type(CallbackArgs& args) -> nlohmann::json {
   return "rosidl_parser.definition.BasicType";
 }
 
-auto get_special_nested_basic_type(CallbackArgs& args) -> nlohmann::json {
-  const auto type = *args.at(0);
+auto get_special_nested_basic_type(const nlohmann::json& type) -> nlohmann::json {
   if (SPECIAL_NESTED_BASIC_TYPES.contains(
           type["name"].get<std::string>())) {
     const auto special_basic_type =
@@ -327,8 +317,7 @@ auto get_special_nested_basic_type(CallbackArgs& args) -> nlohmann::json {
   return nlohmann::json::object();
 }
 
-auto get_python_type(CallbackArgs& args) -> nlohmann::json {
-  const auto type = *args.at(0);
+auto get_python_type(const nlohmann::json& type) -> nlohmann::json {
   if (rosidlcpp_core::is_string(type)) {
     return "str";
   }
@@ -357,8 +346,7 @@ auto get_python_type(CallbackArgs& args) -> nlohmann::json {
   return "object";
 }
 
-auto get_bound(CallbackArgs& args) -> nlohmann::json {
-  const auto type = *args.at(0);
+auto get_bound(const nlohmann::json& type) -> nlohmann::json {
   if (type["name"] == "int8") {
     return {{"max", std::numeric_limits<std::int8_t>::max()},
             {"max_plus_one", "128"},
@@ -424,8 +412,7 @@ auto get_bound(CallbackArgs& args) -> nlohmann::json {
           {"max_string", "unknown"}};
 }
 
-auto primitive_msg_type_to_c(CallbackArgs& args) -> std::string {
-  const auto type = *args.at(0);
+auto primitive_msg_type_to_c(const nlohmann::json& type) -> std::string {
   static const std::unordered_map<std::string, std::string> type_map = {
       {"boolean", "bool"},
       {"byte", "int8_t"},
@@ -453,9 +440,8 @@ auto primitive_msg_type_to_c(CallbackArgs& args) -> std::string {
   return {};
 }
 
-auto is_python_builtin(CallbackArgs& args) -> bool {
-  const auto name = *args.at(0);
-  return PYTHON_BUILTINS.contains(name.get<std::string>());
+auto is_python_builtin(const std::string& name) -> bool {
+  return PYTHON_BUILTINS.contains(name);
 }
 
 GeneratorPython::GeneratorPython(int argc, char** argv) : GeneratorBase() {
@@ -481,23 +467,23 @@ GeneratorPython::GeneratorPython(int argc, char** argv) : GeneratorBase() {
   auto typesupport_implementations =
       argument_parser.get<std::string>("--typesupport-impls");
   m_typesupport_implementations =
-      rosidlcpp_parser::split_string(typesupport_implementations, ";");
+      rosidlcpp_parser::split_string_view(typesupport_implementations, ";");
 
   m_arguments = rosidlcpp_core::parse_arguments(generator_arguments_file);
 
   m_env.set_input_path(m_arguments.template_dir + "/");
   m_env.set_output_path(m_arguments.output_dir + "/");
 
-  m_env.add_callback("get_imports", 1, get_imports);
-  m_env.add_callback("constant_value_to_py", 2, constant_value_to_py);
-  m_env.add_callback("get_importable_typesupports", 1, get_importable_typesupports);
-  m_env.add_callback("value_to_py", 2, value_to_py);
-  m_env.add_callback("get_rosidl_parser_type", 1, get_rosidl_parser_type);
-  m_env.add_callback("get_special_nested_basic_type", 1, get_special_nested_basic_type);
-  m_env.add_callback("get_python_type", 1, get_python_type);
-  m_env.add_callback("get_bound", 1, get_bound);
-  m_env.add_callback("primitive_msg_type_to_c", 1, primitive_msg_type_to_c);
-  m_env.add_callback("is_python_builtin", 1, is_python_builtin);
+  GENERATOR_BASE_REGISTER_FUNCTION("get_imports", 1, get_imports);
+  GENERATOR_BASE_REGISTER_FUNCTION("constant_value_to_py", 2, constant_value_to_py);
+  GENERATOR_BASE_REGISTER_FUNCTION("get_importable_typesupports", 1, get_importable_typesupports);
+  GENERATOR_BASE_REGISTER_FUNCTION("value_to_py", 2, value_to_py);
+  GENERATOR_BASE_REGISTER_FUNCTION("get_rosidl_parser_type", 1, get_rosidl_parser_type);
+  GENERATOR_BASE_REGISTER_FUNCTION("get_special_nested_basic_type", 1, get_special_nested_basic_type);
+  GENERATOR_BASE_REGISTER_FUNCTION("get_python_type", 1, get_python_type);
+  GENERATOR_BASE_REGISTER_FUNCTION("get_bound", 1, get_bound);
+  GENERATOR_BASE_REGISTER_FUNCTION("primitive_msg_type_to_c", 1, primitive_msg_type_to_c);
+  GENERATOR_BASE_REGISTER_FUNCTION("is_python_builtin", 1, is_python_builtin);
 }
 
 void GeneratorPython::run() {

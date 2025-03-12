@@ -29,6 +29,7 @@
 #include <rosidl_runtime_c/type_hash.h>
 
 #include <rosidlcpp_generator_core/generator_base.hpp>
+#include <rosidlcpp_generator_core/generator_utils.hpp>
 #include <rosidlcpp_generator_type_description/json_utils.hpp>
 #include <rosidlcpp_parser/rosidlcpp_parser.hpp>
 
