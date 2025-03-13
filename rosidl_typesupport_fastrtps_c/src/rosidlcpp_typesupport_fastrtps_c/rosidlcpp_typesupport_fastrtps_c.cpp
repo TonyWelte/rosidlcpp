@@ -1,6 +1,8 @@
+#include <fmt/core.h>
 #include <fmt/format.h>
 #include <algorithm>
 #include <cstddef>
+#include <filesystem>
 #include <inja/inja.hpp>
 #include <nlohmann/json_fwd.hpp>
 #include <rosidlcpp_typesupport_fastrtps_c/rosidlcpp_typesupport_fastrtps_c.hpp>
@@ -18,7 +20,11 @@
 #include <format>
 #include <iostream>
 #include <ostream>
+#include <stdexcept>
 #include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 const std::unordered_map<std::string, std::string> BASIC_IDL_TYPES_TO_C = {
     {"float", "float"},
@@ -157,6 +163,250 @@ nlohmann::json get_includes(const nlohmann::json& message) {
   return includes_json;
 }
 
+auto generate_member_for_cdr_serialize(const nlohmann::json& member, const std::string& suffix) -> std::vector<std::string> {
+  std::vector<std::string> strlist;
+  strlist.push_back("// Field name: " + member["name"].get<std::string>());
+  strlist.push_back("{");
+
+  auto type = member["type"];
+  if (rosidlcpp_core::is_nestedtype(type)) {
+    type = type["value_type"];
+  }
+
+  if (rosidlcpp_core::is_nestedtype(member["type"])) {
+    if (rosidlcpp_core::is_array(member["type"])) {
+      strlist.push_back(std::format("  size_t size = {};", member["type"]["size"].get<size_t>()));
+      strlist.push_back("  auto array_ptr = ros_message->" + member["name"].get<std::string>() + ";");
+    } else {
+      strlist.push_back("  size_t size = ros_message->" + member["name"].get<std::string>() + ".size;");
+      strlist.push_back("  auto array_ptr = ros_message->" + member["name"].get<std::string>() + ".data;");
+      if (rosidlcpp_core::is_bounded(member["type"])) {
+        strlist.push_back("  if (size > " + std::to_string(member["type"]["maximum_size"].get<size_t>()) + ") {");
+        strlist.push_back("    fprintf(stderr, \"array size exceeds upper bound\\n\");");
+        strlist.push_back("    return false;");
+        strlist.push_back("  }");
+      }
+      strlist.push_back("  cdr << static_cast<uint32_t>(size);");
+    }
+    if (type["name"] == "string") {
+      strlist.push_back("  for (size_t i = 0; i < size; ++i) {");
+      strlist.push_back("    const rosidl_runtime_c__String * str = &array_ptr[i];");
+      strlist.push_back("    if (str->capacity == 0 || str->capacity <= str->size) {");
+      strlist.push_back("      fprintf(stderr, \"string capacity not greater than size\\n\");");
+      strlist.push_back("      return false;");
+      strlist.push_back("    }");
+      strlist.push_back("    if (str->data[str->size] != '\\0') {");
+      strlist.push_back("      fprintf(stderr, \"string not null-terminated\\n\");");
+      strlist.push_back("      return false;");
+      strlist.push_back("    }");
+      strlist.push_back("    cdr << str->data;");
+      strlist.push_back("  }");
+    } else if (type["name"] == "wstring") {
+      strlist.push_back("  for (size_t i = 0; i < size; ++i) {");
+      strlist.push_back("    const rosidl_runtime_c__U16String * str = &array_ptr[i];");
+      strlist.push_back("    if (str->capacity == 0 || str->capacity <= str->size) {");
+      strlist.push_back("      fprintf(stderr, \"string capacity not greater than size\\n\");");
+      strlist.push_back("      return false;");
+      strlist.push_back("    }");
+      strlist.push_back("    if (str->data[str->size] != '\\0') {");
+      strlist.push_back("      fprintf(stderr, \"string not null-terminated\\n\");");
+      strlist.push_back("      return false;");
+      strlist.push_back("    }");
+      strlist.push_back("    rosidl_typesupport_fastrtps_c::cdr_serialize(cdr, *str);");
+      strlist.push_back("  }");
+    } else if (rosidlcpp_core::is_primitive(type) && type["name"] == "wchar") {
+      strlist.push_back("  for (size_t i = 0; i < size; ++i) {");
+      strlist.push_back("    cdr_serialize" + suffix + "_" + fmt::format("{}__{}(", fmt::join(type["namespaces"], "__"), type["name"]));
+      strlist.push_back("      &array_ptr[i], cdr);");
+      strlist.push_back("  }");
+    } else if (rosidlcpp_core::is_primitive(type)) {
+      strlist.push_back("  cdr.serialize_array(array_ptr, size);");
+    } else {
+      strlist.push_back("  for (size_t i = 0; i < size; ++i) {");
+      strlist.push_back("    cdr_serialize" + suffix + "_" + fmt::format("{}__{}(", fmt::join(type["namespaces"], "__"), type["name"]));
+      strlist.push_back("      &array_ptr[i], cdr);");
+      strlist.push_back("  }");
+    }
+  } else if (type["name"] == "string") {
+    strlist.push_back("  const rosidl_runtime_c__String * str = &ros_message->" + member["name"].get<std::string>() + ";");
+    strlist.push_back("  if (str->capacity == 0 || str->capacity <= str->size) {");
+    strlist.push_back("    fprintf(stderr, \"string capacity not greater than size\\n\");");
+    strlist.push_back("    return false;");
+    strlist.push_back("  }");
+    strlist.push_back("  if (str->data[str->size] != '\\0') {");
+    strlist.push_back("    fprintf(stderr, \"string not null-terminated\\n\");");
+    strlist.push_back("    return false;");
+    strlist.push_back("  }");
+    strlist.push_back("  cdr << str->data;");
+  } else if (type["name"] == "wstring") {
+    strlist.push_back("  rosidl_typesupport_fastrtps_c::cdr_serialize(cdr, ros_message->" + member["name"].get<std::string>() + ");");
+  } else if (rosidlcpp_core::is_primitive(type) && type["name"] == "boolean") {
+    strlist.push_back("  cdr << (ros_message->" + member["name"].get<std::string>() + " ? true : false);");
+  } else if (rosidlcpp_core::is_primitive(type) && type["name"] == "wchar") {
+    strlist.push_back("  cdr << static_cast<wchar_t>(ros_message->" + member["name"].get<std::string>() + ");");
+  } else if (rosidlcpp_core::is_primitive(type)) {
+    strlist.push_back("  cdr << ros_message->" + member["name"].get<std::string>() + ";");
+  } else {
+    strlist.push_back("  cdr_serialize" + suffix + "_" + fmt::format("{}__{}(", fmt::join(type["namespaces"], "__"), type["name"]));
+    strlist.push_back("    &ros_message->" + member["name"].get<std::string>() + ", cdr);");
+  }
+  strlist.push_back("}");
+
+  return strlist;
+}
+auto generate_member_for_get_serialized_size(const nlohmann::json& member, const std::string& suffix) -> std::vector<std::string> {
+  std::vector<std::string> strlist;
+  strlist.push_back("// Field name: " + member["name"].get<std::string>());
+
+  if (rosidlcpp_core::is_nestedtype(member["type"])) {
+    strlist.push_back("{");
+    if (rosidlcpp_core::is_array(member["type"])) {
+      strlist.push_back("  size_t array_size = " + std::to_string(member["type"]["size"].get<size_t>()) + ";");
+      strlist.push_back("  auto array_ptr = ros_message->" + member["name"].get<std::string>() + ";");
+    } else {
+      strlist.push_back("  size_t array_size = ros_message->" + member["name"].get<std::string>() + ".size;");
+      strlist.push_back("  auto array_ptr = ros_message->" + member["name"].get<std::string>() + ".data;");
+      strlist.push_back("  current_alignment += padding +");
+      strlist.push_back("    eprosima::fastcdr::Cdr::alignment(current_alignment, padding);");
+    }
+    if (rosidlcpp_core::is_string(member["type"]["value_type"])) {
+      strlist.push_back("  for (size_t index = 0; index < array_size; ++index) {");
+      strlist.push_back("    current_alignment += padding +");
+      strlist.push_back("      eprosima::fastcdr::Cdr::alignment(current_alignment, padding) +");
+      if (member["type"]["value_type"]["name"] == "wstring") {
+        strlist.push_back("      wchar_size *");
+      }
+      strlist.push_back("      (array_ptr[index].size + 1);");
+      strlist.push_back("  }");
+    } else if (rosidlcpp_core::is_primitive(member["type"]["value_type"])) {
+      strlist.push_back("  (void)array_ptr;");
+      strlist.push_back("  size_t item_size = sizeof(array_ptr[0]);");
+      strlist.push_back("  current_alignment += array_size * item_size +");
+      strlist.push_back("    eprosima::fastcdr::Cdr::alignment(current_alignment, item_size);");
+    } else {
+      strlist.push_back("  for (size_t index = 0; index < array_size; ++index) {");
+      strlist.push_back("    current_alignment += get_serialized_size" + suffix + "_" + fmt::format("{}__{}", fmt::join(member["type"]["value_type"]["namespaces"], "__"), member["type"]["value_type"]["name"]) + "(");
+      strlist.push_back("      &array_ptr[index], current_alignment);");
+      strlist.push_back("  }");
+    }
+    strlist.push_back("}");
+  } else {
+    if (rosidlcpp_core::is_string(member["type"])) {
+      strlist.push_back("current_alignment += padding +");
+      strlist.push_back("  eprosima::fastcdr::Cdr::alignment(current_alignment, padding) +");
+      if (member["type"]["name"] == "wstring") {
+        strlist.push_back("  wchar_size *");
+      }
+      strlist.push_back("  (ros_message->" + member["name"].get<std::string>() + ".size + 1);");
+    } else if (rosidlcpp_core::is_primitive(member["type"])) {
+      strlist.push_back("{");
+      strlist.push_back("  size_t item_size = sizeof(ros_message->" + member["name"].get<std::string>() + ");");
+      strlist.push_back("  current_alignment += item_size +");
+      strlist.push_back("    eprosima::fastcdr::Cdr::alignment(current_alignment, item_size);");
+      strlist.push_back("}");
+    } else {
+      strlist.push_back("current_alignment += get_serialized_size" + suffix + "_" + fmt::format("{}__{}", fmt::join(member["type"]["namespaces"], "__"), member["type"]["name"]) + "(");
+      strlist.push_back("  &(ros_message->" + member["name"].get<std::string>() + "), current_alignment);");
+    }
+  }
+  return strlist;
+}
+auto generate_member_for_max_serialized_size(const nlohmann::json& member, const std::string& suffix) -> std::vector<std::string> {
+  std::vector<std::string> strlist;
+  strlist.push_back("// Field name: " + member["name"].get<std::string>());
+  strlist.push_back("{");
+
+  if (rosidlcpp_core::is_nestedtype(member["type"])) {
+    if (rosidlcpp_core::is_array(member["type"])) {
+      strlist.push_back("  size_t array_size = " + std::to_string(member["type"]["size"].get<size_t>()) + ";");
+    } else if (rosidlcpp_core::is_bounded(member["type"])) {
+      strlist.push_back("  size_t array_size = " + std::to_string(member["type"]["maximum_size"].get<size_t>()) + ";");
+    } else {
+      strlist.push_back("  size_t array_size = 0;");
+      strlist.push_back("  full_bounded = false;");
+    }
+    if (rosidlcpp_core::is_sequence(member["type"])) {
+      strlist.push_back("  is_plain = false;");
+      strlist.push_back("  current_alignment += padding +");
+      strlist.push_back("    eprosima::fastcdr::Cdr::alignment(current_alignment, padding);");
+    }
+  } else {
+    strlist.push_back("  size_t array_size = 1;");
+  }
+
+  auto type = member["type"];
+  if (rosidlcpp_core::is_nestedtype(type)) {
+    type = type["value_type"];
+  }
+
+  if (rosidlcpp_core::is_string(type)) {
+    strlist.push_back("  full_bounded = false;");
+    strlist.push_back("  is_plain = false;");
+    strlist.push_back("  for (size_t index = 0; index < array_size; ++index) {");
+    strlist.push_back("    current_alignment += padding +");
+    strlist.push_back("      eprosima::fastcdr::Cdr::alignment(current_alignment, padding) +");
+    if (type.contains("maximum_size")) {
+      if (type["name"] == "wstring") {
+        strlist.push_back("      wchar_size *");
+      }
+      strlist.push_back("      " + std::to_string(type["maximum_size"].get<size_t>()) + " +");
+    }
+    if (type["name"] == "wstring") {
+      strlist.push_back("      wchar_size *");
+    }
+    strlist.push_back("      1;");
+    strlist.push_back("  }");
+  } else if (rosidlcpp_core::is_primitive(type)) {
+    if (type["name"] == "boolean" || type["name"] == "octet" || type["name"] == "char" || type["name"] == "uint8" || type["name"] == "int8") {
+      strlist.push_back("  last_member_size = array_size * sizeof(uint8_t);");
+      strlist.push_back("  current_alignment += array_size * sizeof(uint8_t);");
+    } else if (type["name"] == "wchar" || type["name"] == "int16" || type["name"] == "uint16") {
+      strlist.push_back("  last_member_size = array_size * sizeof(uint16_t);");
+      strlist.push_back("  current_alignment += array_size * sizeof(uint16_t) +");
+      strlist.push_back("    eprosima::fastcdr::Cdr::alignment(current_alignment, sizeof(uint16_t));");
+    } else if (type["name"] == "int32" || type["name"] == "uint32" || type["name"] == "float") {
+      strlist.push_back("  last_member_size = array_size * sizeof(uint32_t);");
+      strlist.push_back("  current_alignment += array_size * sizeof(uint32_t) +");
+      strlist.push_back("    eprosima::fastcdr::Cdr::alignment(current_alignment, sizeof(uint32_t));");
+    } else if (type["name"] == "int64" || type["name"] == "uint64" || type["name"] == "double") {
+      strlist.push_back("  last_member_size = array_size * sizeof(uint64_t);");
+      strlist.push_back("  current_alignment += array_size * sizeof(uint64_t) +");
+      strlist.push_back("    eprosima::fastcdr::Cdr::alignment(current_alignment, sizeof(uint64_t));");
+    } else if (type["name"] == "long double") {
+      strlist.push_back("  last_member_size = array_size * sizeof(long double);");
+      strlist.push_back("  current_alignment += array_size * sizeof(long double) +");
+      strlist.push_back("    eprosima::fastcdr::Cdr::alignment(current_alignment, sizeof(long double));");
+    }
+  } else {
+    strlist.push_back("  last_member_size = 0;");
+    strlist.push_back("  for (size_t index = 0; index < array_size; ++index) {");
+    strlist.push_back("    bool inner_full_bounded;");
+    strlist.push_back("    bool inner_is_plain;");
+    strlist.push_back("    size_t inner_size;");
+    strlist.push_back("    inner_size =");
+    strlist.push_back("      " + fmt::format("max_serialized_size{}_{}__{}(", suffix, fmt::join(type["namespaces"], "__"), type["name"]));
+    strlist.push_back("      inner_full_bounded, inner_is_plain, current_alignment);");
+    strlist.push_back("    last_member_size += inner_size;");
+    strlist.push_back("    current_alignment += inner_size;");
+    strlist.push_back("    full_bounded &= inner_full_bounded;");
+    strlist.push_back("    is_plain &= inner_is_plain;");
+    strlist.push_back("  }");
+  }
+  strlist.push_back("}");
+  return strlist;
+}
+auto sort_forward_declared_types(std::vector<nlohmann::json> types) -> std::vector<nlohmann::json> {
+  std::sort(types.begin(), types.end(), [](const nlohmann::json& a, const nlohmann::json& b) {
+    for (int i = 0; i < a["namespaces"].size(); i++) {
+      if (a["namespaces"][i].get<std::string>() != b["namespaces"][i].get<std::string>()) {
+        return a["namespaces"][i].get<std::string>() < b["namespaces"][i].get<std::string>();
+      }
+    }
+    return a["name"].get<std::string>() < b["name"].get<std::string>();
+  });
+  return types;
+}
+
 GeneratorTypesupportFastrtpsC::GeneratorTypesupportFastrtpsC(int argc, char** argv) : GeneratorBase() {
   // Arguments
   argparse::ArgumentParser argument_parser("rosidl_typesupport_cpp");
@@ -181,259 +431,10 @@ GeneratorTypesupportFastrtpsC::GeneratorTypesupportFastrtpsC(int argc, char** ar
   set_output_path(m_arguments.output_dir + "/");
 
   GENERATOR_BASE_REGISTER_FUNCTION("get_includes", 1, get_includes);
-  register_callback("generate_member_for_cdr_serialize", 2, [](rosidlcpp_core::CallbackArgs& args) {
-    const auto& member = *args.at(0);
-    const auto& suffix = args.at(1)->get<std::string>();
-
-    std::vector<std::string> strlist;
-    strlist.push_back("// Field name: " + member["name"].get<std::string>());
-    strlist.push_back("{");
-
-    auto type = member["type"];
-    if (rosidlcpp_core::is_nestedtype(type)) {
-      type = type["value_type"];
-    }
-
-    if (rosidlcpp_core::is_nestedtype(member["type"])) {
-      if (rosidlcpp_core::is_array(member["type"])) {
-        strlist.push_back(std::format("  size_t size = {};", member["type"]["size"].get<size_t>()));
-        strlist.push_back("  auto array_ptr = ros_message->" + member["name"].get<std::string>() + ";");
-      } else {
-        strlist.push_back("  size_t size = ros_message->" + member["name"].get<std::string>() + ".size;");
-        strlist.push_back("  auto array_ptr = ros_message->" + member["name"].get<std::string>() + ".data;");
-        if (rosidlcpp_core::is_bounded(member["type"])) {
-          strlist.push_back("  if (size > " + std::to_string(member["type"]["maximum_size"].get<size_t>()) + ") {");
-          strlist.push_back("    fprintf(stderr, \"array size exceeds upper bound\\n\");");
-          strlist.push_back("    return false;");
-          strlist.push_back("  }");
-        }
-        strlist.push_back("  cdr << static_cast<uint32_t>(size);");
-      }
-      if (type["name"] == "string") {
-        strlist.push_back("  for (size_t i = 0; i < size; ++i) {");
-        strlist.push_back("    const rosidl_runtime_c__String * str = &array_ptr[i];");
-        strlist.push_back("    if (str->capacity == 0 || str->capacity <= str->size) {");
-        strlist.push_back("      fprintf(stderr, \"string capacity not greater than size\\n\");");
-        strlist.push_back("      return false;");
-        strlist.push_back("    }");
-        strlist.push_back("    if (str->data[str->size] != '\\0') {");
-        strlist.push_back("      fprintf(stderr, \"string not null-terminated\\n\");");
-        strlist.push_back("      return false;");
-        strlist.push_back("    }");
-        strlist.push_back("    cdr << str->data;");
-        strlist.push_back("  }");
-      } else if (type["name"] == "wstring") {
-        strlist.push_back("  for (size_t i = 0; i < size; ++i) {");
-        strlist.push_back("    const rosidl_runtime_c__U16String * str = &array_ptr[i];");
-        strlist.push_back("    if (str->capacity == 0 || str->capacity <= str->size) {");
-        strlist.push_back("      fprintf(stderr, \"string capacity not greater than size\\n\");");
-        strlist.push_back("      return false;");
-        strlist.push_back("    }");
-        strlist.push_back("    if (str->data[str->size] != '\\0') {");
-        strlist.push_back("      fprintf(stderr, \"string not null-terminated\\n\");");
-        strlist.push_back("      return false;");
-        strlist.push_back("    }");
-        strlist.push_back("    rosidl_typesupport_fastrtps_c::cdr_serialize(cdr, *str);");
-        strlist.push_back("  }");
-      } else if (rosidlcpp_core::is_primitive(type) && type["name"] == "wchar") {
-        strlist.push_back("  for (size_t i = 0; i < size; ++i) {");
-        strlist.push_back("    cdr_serialize" + suffix + "_" + fmt::format("{}__{}(", fmt::join(type["namespaces"], "__"), type["name"]));
-        strlist.push_back("      &array_ptr[i], cdr);");
-        strlist.push_back("  }");
-      } else if (rosidlcpp_core::is_primitive(type)) {
-        strlist.push_back("  cdr.serialize_array(array_ptr, size);");
-      } else {
-        strlist.push_back("  for (size_t i = 0; i < size; ++i) {");
-        strlist.push_back("    cdr_serialize" + suffix + "_" + fmt::format("{}__{}(", fmt::join(type["namespaces"], "__"), type["name"]));
-        strlist.push_back("      &array_ptr[i], cdr);");
-        strlist.push_back("  }");
-      }
-    } else if (type["name"] == "string") {
-      strlist.push_back("  const rosidl_runtime_c__String * str = &ros_message->" + member["name"].get<std::string>() + ";");
-      strlist.push_back("  if (str->capacity == 0 || str->capacity <= str->size) {");
-      strlist.push_back("    fprintf(stderr, \"string capacity not greater than size\\n\");");
-      strlist.push_back("    return false;");
-      strlist.push_back("  }");
-      strlist.push_back("  if (str->data[str->size] != '\\0') {");
-      strlist.push_back("    fprintf(stderr, \"string not null-terminated\\n\");");
-      strlist.push_back("    return false;");
-      strlist.push_back("  }");
-      strlist.push_back("  cdr << str->data;");
-    } else if (type["name"] == "wstring") {
-      strlist.push_back("  rosidl_typesupport_fastrtps_c::cdr_serialize(cdr, ros_message->" + member["name"].get<std::string>() + ");");
-    } else if (rosidlcpp_core::is_primitive(type) && type["name"] == "boolean") {
-      strlist.push_back("  cdr << (ros_message->" + member["name"].get<std::string>() + " ? true : false);");
-    } else if (rosidlcpp_core::is_primitive(type) && type["name"] == "wchar") {
-      strlist.push_back("  cdr << static_cast<wchar_t>(ros_message->" + member["name"].get<std::string>() + ");");
-    } else if (rosidlcpp_core::is_primitive(type)) {
-      strlist.push_back("  cdr << ros_message->" + member["name"].get<std::string>() + ";");
-    } else {
-      strlist.push_back("  cdr_serialize" + suffix + "_" + fmt::format("{}__{}(", fmt::join(type["namespaces"], "__"), type["name"]));
-      strlist.push_back("    &ros_message->" + member["name"].get<std::string>() + ", cdr);");
-    }
-    strlist.push_back("}");
-
-    return strlist;
-  });
-  register_callback("generate_member_for_get_serialized_size", 2, [](rosidlcpp_core::CallbackArgs& args) {
-    const auto& member = *args.at(0);
-    const auto& suffix = args.at(1)->get<std::string>();
-
-    std::vector<std::string> strlist;
-    strlist.push_back("// Field name: " + member["name"].get<std::string>());
-
-    if (rosidlcpp_core::is_nestedtype(member["type"])) {
-      strlist.push_back("{");
-      if (rosidlcpp_core::is_array(member["type"])) {
-        strlist.push_back("  size_t array_size = " + std::to_string(member["type"]["size"].get<size_t>()) + ";");
-        strlist.push_back("  auto array_ptr = ros_message->" + member["name"].get<std::string>() + ";");
-      } else {
-        strlist.push_back("  size_t array_size = ros_message->" + member["name"].get<std::string>() + ".size;");
-        strlist.push_back("  auto array_ptr = ros_message->" + member["name"].get<std::string>() + ".data;");
-        strlist.push_back("  current_alignment += padding +");
-        strlist.push_back("    eprosima::fastcdr::Cdr::alignment(current_alignment, padding);");
-      }
-      if (rosidlcpp_core::is_string(member["type"]["value_type"])) {
-        strlist.push_back("  for (size_t index = 0; index < array_size; ++index) {");
-        strlist.push_back("    current_alignment += padding +");
-        strlist.push_back("      eprosima::fastcdr::Cdr::alignment(current_alignment, padding) +");
-        if (member["type"]["value_type"]["name"] == "wstring") {
-          strlist.push_back("      wchar_size *");
-        }
-        strlist.push_back("      (array_ptr[index].size + 1);");
-        strlist.push_back("  }");
-      } else if (rosidlcpp_core::is_primitive(member["type"]["value_type"])) {
-        strlist.push_back("  (void)array_ptr;");
-        strlist.push_back("  size_t item_size = sizeof(array_ptr[0]);");
-        strlist.push_back("  current_alignment += array_size * item_size +");
-        strlist.push_back("    eprosima::fastcdr::Cdr::alignment(current_alignment, item_size);");
-      } else {
-        strlist.push_back("  for (size_t index = 0; index < array_size; ++index) {");
-        strlist.push_back("    current_alignment += get_serialized_size" + suffix + "_" + fmt::format("{}__{}", fmt::join(member["type"]["value_type"]["namespaces"], "__"), member["type"]["value_type"]["name"]) + "(");
-        strlist.push_back("      &array_ptr[index], current_alignment);");
-        strlist.push_back("  }");
-      }
-      strlist.push_back("}");
-    } else {
-      if (rosidlcpp_core::is_string(member["type"])) {
-        strlist.push_back("current_alignment += padding +");
-        strlist.push_back("  eprosima::fastcdr::Cdr::alignment(current_alignment, padding) +");
-        if (member["type"]["name"] == "wstring") {
-          strlist.push_back("  wchar_size *");
-        }
-        strlist.push_back("  (ros_message->" + member["name"].get<std::string>() + ".size + 1);");
-      } else if (rosidlcpp_core::is_primitive(member["type"])) {
-        strlist.push_back("{");
-        strlist.push_back("  size_t item_size = sizeof(ros_message->" + member["name"].get<std::string>() + ");");
-        strlist.push_back("  current_alignment += item_size +");
-        strlist.push_back("    eprosima::fastcdr::Cdr::alignment(current_alignment, item_size);");
-        strlist.push_back("}");
-      } else {
-        strlist.push_back("current_alignment += get_serialized_size" + suffix + "_" + fmt::format("{}__{}", fmt::join(member["type"]["namespaces"], "__"), member["type"]["name"]) + "(");
-        strlist.push_back("  &(ros_message->" + member["name"].get<std::string>() + "), current_alignment);");
-      }
-    }
-    return strlist;
-  });
-  register_callback("generate_member_for_max_serialized_size", 2, [](rosidlcpp_core::CallbackArgs& args) {
-    const auto& member = *args.at(0);
-    const auto& suffix = args.at(1)->get<std::string>();
-
-    std::vector<std::string> strlist;
-    strlist.push_back("// Field name: " + member["name"].get<std::string>());
-    strlist.push_back("{");
-
-    if (rosidlcpp_core::is_nestedtype(member["type"])) {
-      if (rosidlcpp_core::is_array(member["type"])) {
-        strlist.push_back("  size_t array_size = " + std::to_string(member["type"]["size"].get<size_t>()) + ";");
-      } else if (rosidlcpp_core::is_bounded(member["type"])) {
-        strlist.push_back("  size_t array_size = " + std::to_string(member["type"]["maximum_size"].get<size_t>()) + ";");
-      } else {
-        strlist.push_back("  size_t array_size = 0;");
-        strlist.push_back("  full_bounded = false;");
-      }
-      if (rosidlcpp_core::is_sequence(member["type"])) {
-        strlist.push_back("  is_plain = false;");
-        strlist.push_back("  current_alignment += padding +");
-        strlist.push_back("    eprosima::fastcdr::Cdr::alignment(current_alignment, padding);");
-      }
-    } else {
-      strlist.push_back("  size_t array_size = 1;");
-    }
-
-    auto type = member["type"];
-    if (rosidlcpp_core::is_nestedtype(type)) {
-      type = type["value_type"];
-    }
-
-    if (rosidlcpp_core::is_string(type)) {
-      strlist.push_back("  full_bounded = false;");
-      strlist.push_back("  is_plain = false;");
-      strlist.push_back("  for (size_t index = 0; index < array_size; ++index) {");
-      strlist.push_back("    current_alignment += padding +");
-      strlist.push_back("      eprosima::fastcdr::Cdr::alignment(current_alignment, padding) +");
-      if (type.contains("maximum_size")) {
-        if (type["name"] == "wstring") {
-          strlist.push_back("      wchar_size *");
-        }
-        strlist.push_back("      " + std::to_string(type["maximum_size"].get<size_t>()) + " +");
-      }
-      if (type["name"] == "wstring") {
-        strlist.push_back("      wchar_size *");
-      }
-      strlist.push_back("      1;");
-      strlist.push_back("  }");
-    } else if (rosidlcpp_core::is_primitive(type)) {
-      if (type["name"] == "boolean" || type["name"] == "octet" || type["name"] == "char" || type["name"] == "uint8" || type["name"] == "int8") {
-        strlist.push_back("  last_member_size = array_size * sizeof(uint8_t);");
-        strlist.push_back("  current_alignment += array_size * sizeof(uint8_t);");
-      } else if (type["name"] == "wchar" || type["name"] == "int16" || type["name"] == "uint16") {
-        strlist.push_back("  last_member_size = array_size * sizeof(uint16_t);");
-        strlist.push_back("  current_alignment += array_size * sizeof(uint16_t) +");
-        strlist.push_back("    eprosima::fastcdr::Cdr::alignment(current_alignment, sizeof(uint16_t));");
-      } else if (type["name"] == "int32" || type["name"] == "uint32" || type["name"] == "float") {
-        strlist.push_back("  last_member_size = array_size * sizeof(uint32_t);");
-        strlist.push_back("  current_alignment += array_size * sizeof(uint32_t) +");
-        strlist.push_back("    eprosima::fastcdr::Cdr::alignment(current_alignment, sizeof(uint32_t));");
-      } else if (type["name"] == "int64" || type["name"] == "uint64" || type["name"] == "double") {
-        strlist.push_back("  last_member_size = array_size * sizeof(uint64_t);");
-        strlist.push_back("  current_alignment += array_size * sizeof(uint64_t) +");
-        strlist.push_back("    eprosima::fastcdr::Cdr::alignment(current_alignment, sizeof(uint64_t));");
-      } else if (type["name"] == "long double") {
-        strlist.push_back("  last_member_size = array_size * sizeof(long double);");
-        strlist.push_back("  current_alignment += array_size * sizeof(long double) +");
-        strlist.push_back("    eprosima::fastcdr::Cdr::alignment(current_alignment, sizeof(long double));");
-      }
-    } else {
-      strlist.push_back("  last_member_size = 0;");
-      strlist.push_back("  for (size_t index = 0; index < array_size; ++index) {");
-      strlist.push_back("    bool inner_full_bounded;");
-      strlist.push_back("    bool inner_is_plain;");
-      strlist.push_back("    size_t inner_size;");
-      strlist.push_back("    inner_size =");
-      strlist.push_back("      " + fmt::format("max_serialized_size{}_{}__{}(", suffix, fmt::join(type["namespaces"], "__"), type["name"]));
-      strlist.push_back("      inner_full_bounded, inner_is_plain, current_alignment);");
-      strlist.push_back("    last_member_size += inner_size;");
-      strlist.push_back("    current_alignment += inner_size;");
-      strlist.push_back("    full_bounded &= inner_full_bounded;");
-      strlist.push_back("    is_plain &= inner_is_plain;");
-      strlist.push_back("  }");
-    }
-    strlist.push_back("}");
-    return strlist;
-  });
-  register_callback("sort_forward_declared_types", 1, [](rosidlcpp_core::CallbackArgs& args) {
-    auto types = args.at(0)->get<std::vector<nlohmann::json>>();
-    std::sort(types.begin(), types.end(), [](const nlohmann::json& a, const nlohmann::json& b) {
-      for (int i = 0; i < a["namespaces"].size(); i++) {
-        if (a["namespaces"][i].get<std::string>() != b["namespaces"][i].get<std::string>()) {
-          return a["namespaces"][i].get<std::string>() < b["namespaces"][i].get<std::string>();
-        }
-      }
-      return a["name"].get<std::string>() < b["name"].get<std::string>();
-    });
-    return types;
-  });
+  GENERATOR_BASE_REGISTER_FUNCTION("generate_member_for_cdr_serialize", 2, generate_member_for_cdr_serialize);
+  GENERATOR_BASE_REGISTER_FUNCTION("generate_member_for_get_serialized_size", 2, generate_member_for_get_serialized_size);
+  GENERATOR_BASE_REGISTER_FUNCTION("generate_member_for_max_serialized_size", 2, generate_member_for_max_serialized_size);
+  GENERATOR_BASE_REGISTER_FUNCTION("sort_forward_declared_types", 1, sort_forward_declared_types);
 }
 
 void GeneratorTypesupportFastrtpsC::run() {
