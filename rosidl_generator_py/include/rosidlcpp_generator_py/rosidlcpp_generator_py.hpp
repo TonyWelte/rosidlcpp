@@ -8,7 +8,6 @@
 class GeneratorPython : public rosidlcpp_core::GeneratorBase {
  public:
   GeneratorPython(rosidlcpp_core::GeneratorArguments generator_arguments, std::vector<std::string> typesupport_implementations_list);
-  virtual ~GeneratorPython() = default;
 
   void run();
 

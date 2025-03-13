@@ -1,58 +1,46 @@
-#include <fmt/core.h>
-#include <fmt/format.h>
-#include <algorithm>
-#include <array>
-#include <cstdint>
-#include <cstring>
-#include <filesystem>
-#include <fstream>
-#include <limits>
-#include <regex>
 #include <rosidlcpp_generator_c/rosidlcpp_generator_c.hpp>
-
-#include <cstdlib>
-#include <exception>
-#include <format>
-#include <iostream>
-#include <ostream>
-#include <stdexcept>
-#include <string>
-#include <string_view>
-#include <tuple>
-#include <utility>
-#include <vector>
-
-#include <argparse/argparse.hpp>
-#include <inja/inja.hpp>
-
-#include <nlohmann/json_fwd.hpp>
 
 #include <rosidlcpp_generator_core/generator_base.hpp>
 #include <rosidlcpp_generator_core/generator_utils.hpp>
 #include <rosidlcpp_parser/rosidlcpp_parser.hpp>
 
-std::string idl_structure_type_to_c_include_prefix(const nlohmann::json& type, const std::string& subdirectory = "") {
-  std::vector<std::string> parts;
-  for (const auto& part : type["namespaces"]) {
-    parts.push_back(rosidlcpp_core::camel_to_snake(part.get<std::string>()));
-  }
-  std::string include_prefix = fmt::format("{}/{}", fmt::join(parts, "/"), subdirectory + "/" + rosidlcpp_core::camel_to_snake(type["name"]));
+#include <argparse/argparse.hpp>
 
-  // Strip service or action suffixes
-  static constexpr std::array<std::string_view, 7> service_and_action_prefixes = {"__request", "__response", "__goal", "__result", "__feedback", "__send_goal", "__get_result"};
-  for (auto prefix : service_and_action_prefixes) {
-    if (include_prefix.ends_with(prefix)) {
-      include_prefix = include_prefix.substr(0, include_prefix.size() - prefix.size());
-    }
-  }
-  return include_prefix;
-}
+#include <fmt/core.h>
+#include <fmt/format.h>
 
-std::string idl_structure_type_sequence_to_c_typename(const nlohmann::json& type) {
+#include <inja/inja.hpp>
+
+#include <nlohmann/json_fwd.hpp>
+
+#include <algorithm>
+#include <cassert>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <exception>
+#include <filesystem>
+#include <format>
+#include <fstream>
+#include <iostream>
+#include <limits>
+#include <ostream>
+#include <regex>
+#include <set>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <tuple>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
+auto idl_structure_type_sequence_to_c_typename(const nlohmann::json& type) -> std::string {
   return rosidlcpp_core::type_to_c_typename(type) + "__Sequence";
 }
 
-nlohmann::json get_includes(const nlohmann::json& message, const std::string& suffix) {
+auto get_includes(const nlohmann::json& message, const std::string& suffix) -> nlohmann::json {
   nlohmann::json includes_json = nlohmann::json::array();
 
   const std::string runtime_c_suffix = suffix != "__struct.h" ? std::string{std::string_view{suffix}.substr(1)} : ".h";
@@ -96,7 +84,7 @@ nlohmann::json get_includes(const nlohmann::json& message, const std::string& su
         }
         type["name"] = type_name;
       }
-      auto include_prefix = idl_structure_type_to_c_include_prefix(type, "detail");
+      auto include_prefix = rosidlcpp_core::idl_structure_type_to_c_include_prefix(type, "detail");
       append_header_to_members(header_to_members, include_prefix + suffix, member["name"]);
     }
   }
@@ -108,7 +96,7 @@ nlohmann::json get_includes(const nlohmann::json& message, const std::string& su
   return includes_json;
 }
 
-nlohmann::json get_full_description_includes(const nlohmann::json& implicit_type_description, const nlohmann::json& toplevel_type_description) {
+auto get_full_description_includes(const nlohmann::json& implicit_type_description, const nlohmann::json& toplevel_type_description) -> nlohmann::json {
   std::set<std::string> implicit_type_names;
   for (const auto& td : implicit_type_description) {
     implicit_type_names.insert(td["msg"]["type_description"]["type_name"].get<std::string>());
@@ -130,7 +118,7 @@ nlohmann::json get_full_description_includes(const nlohmann::json& implicit_type
     type_parts.pop_back();
     type["namespaces"] = type_parts;
 
-    auto include_prefix = idl_structure_type_to_c_include_prefix(type, "detail");
+    auto include_prefix = rosidlcpp_core::idl_structure_type_to_c_include_prefix(type, "detail");
     header_to_members.push_back(include_prefix + "__functions.h");
   }
 
@@ -244,7 +232,7 @@ std::string value_to_c(const nlohmann::json& type, const nlohmann::json& value) 
 std::string idl_type_to_c(const nlohmann::json& type) {
   std::string c_type;
   if (rosidlcpp_core::is_array(type)) {
-    std::runtime_error("The array size is part of the variable");
+    throw std::runtime_error("The array size is part of the variable");
   }
   if (rosidlcpp_core::is_sequence(type)) {
     if (rosidlcpp_core::is_primitive(type["value_type"])) {
@@ -329,9 +317,9 @@ nlohmann::json extract_subinterface(const nlohmann::json& type_description_msg, 
   return extract_full_type_description(output_type_name, type_map);
 }
 
-nlohmann::json get_implicit_type_description(const nlohmann::json& services, const nlohmann::json& actions, const nlohmann::json& type_description_info) {
+auto get_implicit_type_description(const nlohmann::json& services, const nlohmann::json& actions, const nlohmann::json& type_description_info) -> nlohmann::json {
   nlohmann::json implicit_type_description = nlohmann::json::array();
-  for (const auto& service : services) {
+  for (const auto& service : services) {  // TODO: Check if the service variable is required for something
     implicit_type_description.push_back({
         {"msg", extract_subinterface(type_description_info["type_description_msg"], "request_message")},
         {"type", "message"},
@@ -345,7 +333,7 @@ nlohmann::json get_implicit_type_description(const nlohmann::json& services, con
         {"type", "message"},
     });
   }
-  for (const auto& action : actions) {
+  for (const auto& action : actions) {  // TODO: Check if the action variable is required for something
     const auto send_goal_service = extract_subinterface(type_description_info["type_description_msg"], "send_goal_service");
     const auto get_result_service = extract_subinterface(type_description_info["type_description_msg"], "get_result_service");
     implicit_type_description.push_back({
@@ -401,7 +389,7 @@ nlohmann::json get_implicit_type_description(const nlohmann::json& services, con
   return implicit_type_description;
 }
 
-nlohmann::json get_toplevel_type_description(const nlohmann::json& messages, const nlohmann::json& services, const nlohmann::json& actions, const nlohmann::json& type_description_info) {
+auto get_toplevel_type_description(const nlohmann::json& messages, const nlohmann::json& services, const nlohmann::json& actions, const nlohmann::json& type_description_info) -> nlohmann::json {
   if (!messages.empty()) {
     return {
         {"msg", type_description_info["type_description_msg"]},
@@ -417,9 +405,10 @@ nlohmann::json get_toplevel_type_description(const nlohmann::json& messages, con
         {"msg", type_description_info["type_description_msg"]},
         {"type", "action"}};
   }
+  throw std::runtime_error("get_toplevel_type_description called without any interface");
 }
 
-nlohmann::json get_hash_lookup(const nlohmann::json& type_description_hashes) {
+auto get_hash_lookup(const nlohmann::json& type_description_hashes) -> nlohmann::json {
   nlohmann::json hash_lookup = nlohmann::json::object();
   for (const auto& type_description_hash : type_description_hashes) {
     hash_lookup[type_description_hash["type_name"]] = type_description_hash["hash_string"];
@@ -427,7 +416,7 @@ nlohmann::json get_hash_lookup(const nlohmann::json& type_description_hashes) {
   return hash_lookup;
 }
 
-std::tuple<int, std::string> parse_rihs_string(const std::string& rihs_str) {
+auto parse_rihs_string(const std::string& rihs_str) -> std::tuple<int, std::string> {
   static const std::regex rihs01_pattern(R"(RIHS([0-9a-f]{2})_([0-9a-f]{64}))");
   std::smatch match;
   if (!std::regex_match(rihs_str, match, rihs01_pattern)) {
@@ -438,12 +427,12 @@ std::tuple<int, std::string> parse_rihs_string(const std::string& rihs_str) {
   return std::make_tuple(version, value);
 }
 
-std::string type_hash_to_c_definition(const std::string& hash_string, int indent = 2) {
+auto type_hash_to_c_definition(const std::string& hash_string, int indent = 2) -> std::string {
   const int bytes_per_row = 8;
   const int rows = 4;
 
-  int version;
-  std::string value;
+  int version{};
+  std::string value{};
   std::tie(version, value) = parse_rihs_string(hash_string);
   assert(version == 1 && "This function only knows how to generate RIHS01 definitions.");
 
@@ -584,14 +573,14 @@ const std::unordered_map<int, std::string> FIELD_TYPE_ID_TO_NAME = [] {
   return map;
 }();
 
-std::string static_seq_n(const std::string& varname, int n) {
+auto static_seq_n(const std::string& varname, int n) -> std::string {
   if (n > 0) {
     return fmt::format("{{{}, {}, {}}}", varname, n, n);
   }
   return std::string("{NULL, 0, 0}");
 }
 
-std::string static_seq(const std::string& varname, const nlohmann::json& value) {
+auto static_seq(const std::string& varname, const nlohmann::json& value) -> std::string {
   if (value.is_string()) {
     std::string n_str = value.get<std::string>();
     if (!n_str.empty()) {
@@ -603,7 +592,7 @@ std::string static_seq(const std::string& varname, const nlohmann::json& value) 
   return std::string("{NULL, 0, 0}");
 }
 
-std::string utf8_encode(const std::string& value_string) {
+auto utf8_encode(const std::string& value_string) -> std::string {
   std::string utf8_encoded;
   for (const auto& c : value_string) {
     if (static_cast<unsigned char>(c) < 0x80) {
@@ -615,7 +604,7 @@ std::string utf8_encode(const std::string& value_string) {
   return rosidlcpp_core::escape_string(utf8_encoded);
 }
 
-std::string escape_tab(const std::string& value_string) {
+auto escape_tab(const std::string& value_string) -> std::string {
   std::string escaped_string;
   for (const auto& c : value_string) {
     if (c == '\t') {
@@ -626,11 +615,11 @@ std::string escape_tab(const std::string& value_string) {
   }
   return escaped_string;
 }
-std::string field_type_id_to_name(int field_type_id) {
+auto field_type_id_to_name(int field_type_id) -> std::string {
   return FIELD_TYPE_ID_TO_NAME.at(field_type_id);
 }
 
-GeneratorC::GeneratorC(const rosidlcpp_core::GeneratorArguments& generator_arguments, bool disable_description_codegen) : GeneratorBase(), m_arguments(generator_arguments), m_disable_description_codegen(disable_description_codegen) {
+GeneratorC::GeneratorC(rosidlcpp_core::GeneratorArguments generator_arguments, bool disable_description_codegen) : GeneratorBase(), m_arguments(std::move(generator_arguments)), m_disable_description_codegen(disable_description_codegen) {
   set_input_path(m_arguments.template_dir + "/");
   set_output_path(m_arguments.output_dir + "/");
 
@@ -697,7 +686,7 @@ void GeneratorC::run() {
     ros_json["disable_description_codegen"] = m_disable_description_codegen;
 
     // Raw source content
-    auto it = std::find_if(m_arguments.ros_interface_files.begin(), m_arguments.ros_interface_files.end(), [&](const auto& v) { return v.ends_with("/" + ros_json["type"]["name"].get<std::string>() + "." + ros_json["type"]["namespaces"].back().get<std::string>()); });
+    auto it = std::ranges::find_if(m_arguments.ros_interface_files, [&](const auto& v) { return v.ends_with("/" + ros_json["type"]["name"].get<std::string>() + "." + ros_json["type"]["namespaces"].back().get<std::string>()); });
     if (it != m_arguments.ros_interface_files.end()) {
       std::ifstream raw_source_file(*it);
       std::stringstream raw_source_stream;
@@ -729,7 +718,7 @@ void GeneratorC::run() {
   }
 }
 
-int main(int argc, char** argv) {
+auto main(int argc, char** argv) -> int {
   /**
    * CLI Arguments
    */
@@ -740,7 +729,7 @@ int main(int argc, char** argv) {
   try {
     argument_parser.parse_args(argc, argv);
   } catch (const std::exception& error) {
-    std::cerr << error.what() << std::endl;
+    std::cerr << error.what() << '\n';
     std::cerr << argument_parser;
     return 1;
   }

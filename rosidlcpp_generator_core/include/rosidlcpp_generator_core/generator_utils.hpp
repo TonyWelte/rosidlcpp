@@ -86,6 +86,7 @@ auto is_service_type(const nlohmann::json& type) -> bool;
 auto type_to_c_typename(const nlohmann::json& type) -> std::string;
 auto basetype_to_c(const nlohmann::json& type) -> std::string;
 auto idl_type_to_c(const nlohmann::json& type) -> std::string;
+auto idl_structure_type_to_c_include_prefix(const nlohmann::json& type, const std::string& subdirectory = "") -> std::string;
 
 /**
  * C++ API

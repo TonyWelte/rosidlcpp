@@ -1,4 +1,3 @@
-#include <fmt/format.h>
 #include <rosidlcpp_typesupport_c/rosidlcpp_typesupport_c.hpp>
 
 #include <rosidlcpp_generator_core/generator_base.hpp>
@@ -6,6 +5,8 @@
 #include <rosidlcpp_parser/rosidlcpp_parser.hpp>
 
 #include <argparse/argparse.hpp>
+
+#include <fmt/format.h>
 
 #include <cstdlib>
 #include <exception>
@@ -46,7 +47,7 @@ void GeneratorTypesupportC::run() {
   }
 }
 
-int main(int argc, char** argv) {
+auto main(int argc, char** argv) -> int {
   /**
    * CLI Arguments
    */
@@ -57,7 +58,7 @@ int main(int argc, char** argv) {
   try {
     argument_parser.parse_args(argc, argv);
   } catch (const std::exception& error) {
-    std::cerr << error.what() << std::endl;
+    std::cerr << error.what() << '\n';
     std::cerr << argument_parser;
     return 1;
   }

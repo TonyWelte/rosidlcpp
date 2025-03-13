@@ -2,13 +2,9 @@
 
 #include <rosidlcpp_generator_core/generator_base.hpp>
 
-#include <string>
-#include <vector>
-
 class GeneratorTypesupportFastrtpsC : public rosidlcpp_core::GeneratorBase {
  public:
-  GeneratorTypesupportFastrtpsC(const rosidlcpp_core::GeneratorArguments& generator_arguments);
-  virtual ~GeneratorTypesupportFastrtpsC() = default;
+  GeneratorTypesupportFastrtpsC(rosidlcpp_core::GeneratorArguments generator_arguments);
 
   void run();
 

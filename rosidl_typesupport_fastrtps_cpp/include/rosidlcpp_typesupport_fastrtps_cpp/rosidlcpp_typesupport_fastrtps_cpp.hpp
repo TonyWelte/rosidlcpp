@@ -5,7 +5,6 @@
 class GeneratorTypesupportFastrtpsCpp : public rosidlcpp_core::GeneratorBase {
  public:
   GeneratorTypesupportFastrtpsCpp(const rosidlcpp_core::GeneratorArguments& generator_arguments);
-  virtual ~GeneratorTypesupportFastrtpsCpp() = default;
 
   void run();
 

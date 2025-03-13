@@ -1,3 +1,19 @@
+#include <rosidlcpp_generator_core/generator_base.hpp>
+#include <rosidlcpp_generator_core/generator_utils.hpp>
+#include <rosidlcpp_generator_type_description/json_utils.hpp>
+#include <rosidlcpp_parser/rosidlcpp_parser.hpp>
+
+#include <argparse/argparse.hpp>
+
+#include <fmt/core.h>
+#include <fmt/format.h>
+#include <fmt/ranges.h>
+
+#include <nlohmann/json_fwd.hpp>
+
+#include <rcutils/sha256.h>
+#include <rosidl_runtime_c/type_hash.h>
+
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -17,23 +33,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include <fmt/core.h>
-#include <fmt/format.h>
-#include <fmt/ranges.h>
-
-#include <argparse/argparse.hpp>
-
-#include <nlohmann/json_fwd.hpp>
-
-#include <rcutils/sha256.h>
-#include <rosidl_runtime_c/type_hash.h>
-
-#include <rosidlcpp_generator_core/generator_base.hpp>
-#include <rosidlcpp_generator_core/generator_utils.hpp>
-#include <rosidlcpp_generator_type_description/json_utils.hpp>
-#include <rosidlcpp_parser/rosidlcpp_parser.hpp>
-
-std::string escape_unicode(const std::string &input) {
+auto escape_unicode(const std::string &input) -> std::string {
   std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
   std::wstring wide_str = converter.from_bytes(input);
 
@@ -53,7 +53,7 @@ std::string escape_unicode(const std::string &input) {
   return oss.str();
 }
 
-std::string to_type_name(const nlohmann::json &type) {
+auto to_type_name(const nlohmann::json &type) -> std::string {
   assert(type.contains("namespaces") && "Type is missing namespaces");
 
   return fmt::format("{}/{}", fmt::join(type["namespaces"], "/"), type["name"].get<std::string>());
@@ -98,7 +98,7 @@ void add_action(const nlohmann::json &action, nlohmann::ordered_json &type_descr
   add_message(action["feedback_message"], type_description_json);
 }
 
-std::string field_type_type_name(const nlohmann::json &ftype) {
+auto field_type_type_name(const nlohmann::json &ftype) -> std::string {
   static const std::unordered_map<std::string, std::string> FIELD_VALUE_TYPE_MAP = {
       {"nested_type", "FIELD_TYPE_NESTED_TYPE"},
       {"int8", "FIELD_TYPE_INT8"},
@@ -145,7 +145,7 @@ std::string field_type_type_name(const nlohmann::json &ftype) {
   return value_type_name + name_suffix;
 }
 
-int field_type_type_id(const nlohmann::json &ftype) {
+auto field_type_type_id(const nlohmann::json &ftype) -> int {
   static const std::unordered_map<std::string, int> FIELD_TYPE_NAME_TO_ID = {
       {"FIELD_TYPE_NOT_SET", 0},
       {"FIELD_TYPE_NESTED_TYPE", 1},
@@ -241,7 +241,7 @@ int field_type_type_id(const nlohmann::json &ftype) {
   return FIELD_TYPE_NAME_TO_ID.at(field_type_type_name(ftype));
 }
 
-int field_type_capacity(const nlohmann::json &ftype) {
+auto field_type_capacity(const nlohmann::json &ftype) -> int {
   if (rosidlcpp_core::is_nestedtype(ftype) && ftype.contains("maximum_size")) {
     return ftype["maximum_size"].get<int>();
   }
@@ -252,7 +252,7 @@ int field_type_capacity(const nlohmann::json &ftype) {
   return 0;
 }
 
-int field_type_string_capacity(const nlohmann::json &ftype) {
+auto field_type_string_capacity(const nlohmann::json &ftype) -> int {
   nlohmann::json value_type = ftype.contains("value_type") ? ftype["value_type"] : ftype;
 
   if (rosidlcpp_core::is_string(value_type)) {
@@ -264,7 +264,7 @@ int field_type_string_capacity(const nlohmann::json &ftype) {
   return 0;
 }
 
-std::string field_type_nested_type_name(const nlohmann::json &ftype) {
+auto field_type_nested_type_name(const nlohmann::json &ftype) -> std::string {
   nlohmann::json value_type = ftype.contains("value_type") ? ftype["value_type"] : ftype;
 
   if (value_type.contains("namespaces")) {
@@ -277,7 +277,7 @@ std::string field_type_nested_type_name(const nlohmann::json &ftype) {
   return "";
 }
 
-nlohmann::ordered_json serialize_field_type(const nlohmann::json &type) {
+auto serialize_field_type(const nlohmann::json &type) -> nlohmann::ordered_json {
   return {
       {"type_id", field_type_type_id(type)},
       {"capacity", field_type_capacity(type)},
@@ -286,7 +286,7 @@ nlohmann::ordered_json serialize_field_type(const nlohmann::json &type) {
   };
 }
 
-std::string format_default(const nlohmann::json &default_value) {
+auto format_default(const nlohmann::json &default_value) -> std::string {
   if (default_value.is_boolean()) {
     return default_value.get<bool>() ? "True" : "False";
   }
@@ -310,10 +310,7 @@ std::string format_default(const nlohmann::json &default_value) {
   return default_value.dump();
 }
 
-nlohmann::ordered_json serialize_field(const nlohmann::json &member) {
-  if (member["name"] == "string_values_default") {
-  }
-
+auto serialize_field(const nlohmann::json &member) -> nlohmann::ordered_json {
   return {
       {"name", member["name"].get<std::string>()},
       {"type", serialize_field_type(member["type"])},
@@ -321,7 +318,7 @@ nlohmann::ordered_json serialize_field(const nlohmann::json &member) {
   };
 }
 
-nlohmann::ordered_json serialize_individual_type_description(const nlohmann::json &type, const nlohmann::ordered_json &members) {
+auto serialize_individual_type_description(const nlohmann::json &type, const nlohmann::ordered_json &members) -> nlohmann::ordered_json {
   nlohmann::ordered_json result = {
       {"type_name", to_type_name(type)},
       {"fields", nlohmann::ordered_json::array()},
@@ -334,7 +331,7 @@ nlohmann::ordered_json serialize_individual_type_description(const nlohmann::jso
   return result;
 }
 
-nlohmann::ordered_json extract_full_type_description(const std::string &output_type_name, const std::map<std::string, nlohmann::ordered_json> &type_map) {
+auto extract_full_type_description(const std::string &output_type_name, const std::map<std::string, nlohmann::ordered_json> &type_map) -> nlohmann::ordered_json {
   // Traverse reference graph to narrow down the references for the output type
   const auto &output_type = type_map.at(output_type_name);
   std::vector<std::string> output_references;
@@ -370,7 +367,7 @@ nlohmann::ordered_json extract_full_type_description(const std::string &output_t
       {"referenced_type_descriptions", referenced_type_descriptions}};
 }
 
-std::string calculate_type_hash(const nlohmann::ordered_json &type_description) {
+auto calculate_type_hash(const nlohmann::ordered_json &type_description) -> std::string {
   nlohmann::ordered_json hashable_dict = type_description;
 
   for (auto &field : hashable_dict["type_description"]["fields"]) {
@@ -399,14 +396,10 @@ std::string calculate_type_hash(const nlohmann::ordered_json &type_description) 
   std::string hash_string = dump(hashable_dict, custom);
   std::vector<uint8_t> hash_bytes(hash_string.begin(), hash_string.end());
 
-  if (type_description["type_description"]["type_name"] == "rosidlcpp_test_interfaces/src/Arrays_Event") {
-    std::cout << fmt::format("Hashing: {}", hash_string) << std::endl;
-  }
-
   rcutils_sha256_ctx_t sha_ctx;
   rcutils_sha256_init(&sha_ctx);
   rcutils_sha256_update(&sha_ctx, hash_bytes.data(), hash_bytes.size());
-  std::array<uint8_t, ROSIDL_TYPE_HASH_SIZE> output_hash;
+  std::array<uint8_t, ROSIDL_TYPE_HASH_SIZE> output_hash{};
   rcutils_sha256_final(&sha_ctx, output_hash.data());
 
   return fmt::format("RIHS01_{:02x}", fmt::join(output_hash, ""));
@@ -416,7 +409,7 @@ class GeneratorTypeDescription : public rosidlcpp_core::GeneratorBase {
  public:
   GeneratorTypeDescription(const rosidlcpp_core::GeneratorArguments &generator_arguments);
 
-  int run();
+  auto run() -> int;
 
  private:
   rosidlcpp_core::GeneratorArguments m_arguments;
@@ -425,7 +418,7 @@ class GeneratorTypeDescription : public rosidlcpp_core::GeneratorBase {
 GeneratorTypeDescription::GeneratorTypeDescription(const rosidlcpp_core::GeneratorArguments &generator_arguments) : GeneratorBase(), m_arguments(generator_arguments) {
 }
 
-int GeneratorTypeDescription::run() {
+auto GeneratorTypeDescription::run() -> int {
   std::unordered_map<std::string, std::string> include_map;
 
   for (const auto &[package_name, include_base_path] : m_arguments.include_paths) {
@@ -437,9 +430,6 @@ int GeneratorTypeDescription::run() {
   for (const auto &[path, file_path] : m_arguments.idl_tuples) {
     const auto full_path = path + "/" + file_path;
 
-    const auto msg_directory = std::filesystem::path(file_path).parent_path().string();
-    const auto msg_type = std::filesystem::path(file_path).stem().string();
-
     const auto idl_json = rosidlcpp_parser::parse_idl_file(full_path);
     // TODO: Save the result to an output file for debugging
 
@@ -448,13 +438,13 @@ int GeneratorTypeDescription::run() {
 
     ros_json["package_name"] = m_arguments.package_name;
 
-    for (auto msg : ros_json.value("messages", nlohmann::json::array())) {
+    for (const auto &msg : ros_json.value("messages", nlohmann::json::array())) {
       add_message(msg["message"], individual_types);
     }
-    for (auto srv : ros_json.value("services", nlohmann::json::array())) {
+    for (const auto &srv : ros_json.value("services", nlohmann::json::array())) {
       add_service(srv, individual_types);
     }
-    for (auto action : ros_json.value("actions", nlohmann::json::array())) {
+    for (const auto &action : ros_json.value("actions", nlohmann::json::array())) {
       add_action(action, individual_types);
     }
   }
@@ -564,7 +554,7 @@ int GeneratorTypeDescription::run() {
   return 0;
 }
 
-int main(int argc, char *argv[]) {
+auto main(int argc, char *argv[]) -> int {
   /**
    * CLI Arguments
    */
@@ -574,7 +564,7 @@ int main(int argc, char *argv[]) {
   try {
     argument_parser.parse_args(argc, argv);
   } catch (const std::exception &error) {
-    std::cerr << error.what() << std::endl;
+    std::cerr << error.what() << '\n';
     std::cerr << argument_parser;
     return 1;
   }

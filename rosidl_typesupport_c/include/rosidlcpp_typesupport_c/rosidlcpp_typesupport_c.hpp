@@ -8,7 +8,6 @@
 class GeneratorTypesupportC : public rosidlcpp_core::GeneratorBase {
  public:
   GeneratorTypesupportC(rosidlcpp_core::GeneratorArguments generator_arguments, std::vector<std::string> typesupport_implementations_list);
-  virtual ~GeneratorTypesupportC() = default;
 
   void run();
 

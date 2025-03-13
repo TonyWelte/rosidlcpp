@@ -1,17 +1,21 @@
 #include <rosidlcpp_generator_core/generator_utils.hpp>
 
+#include <array>
 #include <cctype>
 #include <cstddef>
 #include <iostream>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 #include <fmt/core.h>
+#include <fmt/format.h>
 #include <fmt/ranges.h>
 
 namespace rosidlcpp_core {
@@ -307,6 +311,23 @@ auto idl_type_to_c(const nlohmann::json& type) -> std::string {
     return c_type;
   }
   return basetype_to_c(type);
+}
+
+auto idl_structure_type_to_c_include_prefix(const nlohmann::json& type, const std::string& subdirectory) -> std::string {
+  std::vector<std::string> parts;
+  for (const auto& part : type["namespaces"]) {
+    parts.push_back(rosidlcpp_core::camel_to_snake(part.get<std::string>()));
+  }
+  std::string include_prefix = fmt::format("{}/{}", fmt::join(parts, "/"), (subdirectory.empty() ? "" : subdirectory + "/") + rosidlcpp_core::camel_to_snake(type["name"]));
+
+  // Strip service or action suffixes
+  static constexpr std::array<std::string_view, 7> service_and_action_prefixes = {"__request", "__response", "__goal", "__result", "__feedback", "__send_goal", "__get_result"};
+  for (auto prefix : service_and_action_prefixes) {
+    if (include_prefix.ends_with(prefix)) {
+      include_prefix = include_prefix.substr(0, include_prefix.size() - prefix.size());
+    }
+  }
+  return include_prefix;
 }
 
 /**

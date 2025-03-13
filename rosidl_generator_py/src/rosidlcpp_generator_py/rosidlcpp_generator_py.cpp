@@ -1,14 +1,4 @@
-#include <nlohmann/json_fwd.hpp>
 #include <rosidlcpp_generator_py/rosidlcpp_generator_py.hpp>
-
-#include <cassert>
-#include <cctype>
-#include <cstdint>
-#include <format>
-#include <limits>
-#include <string>
-#include <string_view>
-#include <unordered_map>
 
 #include <rosidlcpp_generator_core/generator_base.hpp>
 #include <rosidlcpp_generator_core/generator_utils.hpp>
@@ -20,10 +10,24 @@
 #include <fmt/format.h>
 
 #include <nlohmann/json.hpp>
-#include <unordered_set>
-#include "argparse/argparse.hpp"
+#include <nlohmann/json_fwd.hpp>
 
-using rosidlcpp_core::CallbackArgs;
+#include <algorithm>
+#include <cassert>
+#include <cctype>
+#include <cstdint>
+#include <exception>
+#include <filesystem>
+#include <format>
+#include <iostream>
+#include <limits>
+#include <ostream>
+#include <string>
+#include <string_view>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 
 struct SpecialNestedType {
   std::string dtype;
@@ -78,7 +82,7 @@ constexpr std::string_view ACTION_GOAL_SUFFIX = "_Goal";
 constexpr std::string_view ACTION_RESULT_SUFFIX = "_Result";
 constexpr std::string_view ACTION_FEEDBACK_SUFFIX = "_Feedback";
 
-nlohmann::json get_imports(const nlohmann::json& members) {
+auto get_imports(const nlohmann::json& members) -> nlohmann::json {
   nlohmann::json result = nlohmann::json::object();
   if (!members.empty()) {
     result["import rosidl_parser.definition"] = nlohmann::json::array();
@@ -114,7 +118,7 @@ nlohmann::json get_imports(const nlohmann::json& members) {
   return result;
 }
 
-std::string primitive_value_to_py(nlohmann::json type, nlohmann::json value) {
+auto primitive_value_to_py(nlohmann::json type, nlohmann::json value) -> std::string {
   assert(!value.is_null());
 
   if (rosidlcpp_core::is_string(type)) {
@@ -159,7 +163,7 @@ std::string primitive_value_to_py(nlohmann::json type, nlohmann::json value) {
   return value.get<std::string>();
 }
 
-std::string constant_value_to_py(const nlohmann::json& type, const nlohmann::json& value) {
+auto constant_value_to_py(const nlohmann::json& type, const nlohmann::json& value) -> std::string {
   assert(!value.is_null());
 
   if (rosidlcpp_core::is_primitive(type)) {
@@ -234,8 +238,7 @@ auto get_importable_typesupports(const nlohmann::json& members) -> nlohmann::jso
         typesupport["type"] = type["name"];
         typesupport["type2"] = type["name"];  // TODO: Find better name
       }
-      if (std::find(result.begin(), result.end(), typesupport) ==
-          result.end()) {
+      if (std::ranges::find(result, typesupport) == result.end()) {
         result.push_back(typesupport);
       }
     }
@@ -445,7 +448,7 @@ auto is_python_builtin(const std::string& name) -> bool {
   return PYTHON_BUILTINS.contains(name);
 }
 
-GeneratorPython::GeneratorPython(rosidlcpp_core::GeneratorArguments generator_arguments, std::vector<std::string> typesupport_implementations_list) : GeneratorBase(), m_arguments(generator_arguments), m_typesupport_implementations(typesupport_implementations_list) {
+GeneratorPython::GeneratorPython(rosidlcpp_core::GeneratorArguments generator_arguments, std::vector<std::string> typesupport_implementations_list) : GeneratorBase(), m_arguments(std::move(generator_arguments)), m_typesupport_implementations(std::move(typesupport_implementations_list)) {
   set_input_path(m_arguments.template_dir + "/");
   set_output_path(m_arguments.output_dir + "/");
 
@@ -494,21 +497,17 @@ void GeneratorPython::run() {
     const auto msg_type = ros_json["interface_path"]["filename"].get<std::string>();
 
     std::filesystem::create_directories(m_arguments.output_dir + "/" + msg_directory);
-    write_template(template_idl_py, ros_json,
-                   std::format("{}/_{}.py", msg_directory,
-                               rosidlcpp_core::camel_to_snake(msg_type)));
-    write_template(template_idl_support_c, ros_json,
-                   std::format("{}/_{}_s.c", msg_directory,
-                               rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_py, ros_json, std::format("{}/_{}.py", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_support_c, ros_json, std::format("{}/_{}_s.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
 
     // Add to the combined ros_json
-    for (auto msg : ros_json.value("messages", nlohmann::json::array())) {
+    for (const auto& msg : ros_json.value("messages", nlohmann::json::array())) {
       pkg_json["messages"].push_back(msg);
     }
-    for (auto srv : ros_json.value("services", nlohmann::json::array())) {
+    for (const auto& srv : ros_json.value("services", nlohmann::json::array())) {
       pkg_json["services"].push_back(srv);
     }
-    for (auto action : ros_json.value("actions", nlohmann::json::array())) {
+    for (const auto& action : ros_json.value("actions", nlohmann::json::array())) {
       pkg_json["actions"].push_back(action);
     }
 
@@ -539,21 +538,18 @@ void GeneratorPython::run() {
   // Generate package files
   for (const auto& typesupport : m_typesupport_implementations) {
     pkg_json["typesupport_impl"] = typesupport;
-    write_template(
-        template_idl_pkg_typesupport, pkg_json,
-        std::format("_{}_s.ep.{}.c", m_arguments.package_name, typesupport));
+    write_template(template_idl_pkg_typesupport, pkg_json, std::format("_{}_s.ep.{}.c", m_arguments.package_name, typesupport));
   }
 
   // Generate __init__.py
   for (const auto& [msg_directory, imports] : init_py) {
     nlohmann::json init_py_json;
     init_py_json["imports"] = imports;
-    write_template(template_init, init_py_json,
-                   std::format("{}/__init__.py", msg_directory));
+    write_template(template_init, init_py_json, std::format("{}/__init__.py", msg_directory));
   }
 }
 
-int main(int argc, char** argv) {
+auto main(int argc, char** argv) -> int {
   /**
    * CLI Arguments
    */
@@ -564,7 +560,7 @@ int main(int argc, char** argv) {
   try {
     argument_parser.parse_args(argc, argv);
   } catch (const std::exception& error) {
-    std::cerr << error.what() << std::endl;
+    std::cerr << error.what() << '\n';
     std::cerr << argument_parser;
     return 1;
   }

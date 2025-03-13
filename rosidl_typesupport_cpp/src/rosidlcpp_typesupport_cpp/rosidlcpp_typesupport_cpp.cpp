@@ -1,4 +1,3 @@
-#include <fmt/format.h>
 #include <rosidlcpp_typesupport_cpp/rosidlcpp_typesupport_cpp.hpp>
 
 #include <rosidlcpp_generator_core/generator_base.hpp>
@@ -7,14 +6,19 @@
 
 #include <argparse/argparse.hpp>
 
+#include <fmt/format.h>
+
 #include <cstdlib>
 #include <exception>
+#include <filesystem>
 #include <format>
 #include <iostream>
 #include <ostream>
 #include <string>
+#include <utility>
+#include <vector>
 
-GeneratorTypesupportCpp::GeneratorTypesupportCpp(rosidlcpp_core::GeneratorArguments generator_arguments, std::vector<std::string> typesupport_implementations_list) : GeneratorBase(), m_arguments(generator_arguments), m_typesupport_implementations(typesupport_implementations_list) {
+GeneratorTypesupportCpp::GeneratorTypesupportCpp(rosidlcpp_core::GeneratorArguments generator_arguments, std::vector<std::string> typesupport_implementations_list) : GeneratorBase(), m_arguments(std::move(generator_arguments)), m_typesupport_implementations(std::move(typesupport_implementations_list)) {
   set_input_path(m_arguments.template_dir + "/");
   set_output_path(m_arguments.output_dir + "/");
 }
@@ -39,13 +43,11 @@ void GeneratorTypesupportCpp::run() {
     const auto msg_directory = ros_json["interface_path"]["filedir"].get<std::string>();
     const auto msg_type = ros_json["interface_path"]["filename"].get<std::string>();
     std::filesystem::create_directories(m_arguments.output_dir + "/" + msg_directory);
-    write_template(template_idl, ros_json,
-                   std::format("{}/{}__type_support.cpp", msg_directory,
-                               rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl, ros_json, std::format("{}/{}__type_support.cpp", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
   }
 }
 
-int main(int argc, char** argv) {
+auto main(int argc, char** argv) -> int {
   /**
    * CLI Arguments
    */
@@ -56,7 +58,7 @@ int main(int argc, char** argv) {
   try {
     argument_parser.parse_args(argc, argv);
   } catch (const std::exception& error) {
-    std::cerr << error.what() << std::endl;
+    std::cerr << error.what() << '\n';
     std::cerr << argument_parser;
     return 1;
   }

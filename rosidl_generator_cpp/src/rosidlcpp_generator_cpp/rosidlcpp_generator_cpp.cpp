@@ -1,22 +1,4 @@
-#include <algorithm>
-#include <cstddef>
-#include <cstdint>
-#include <cstdlib>
-#include <exception>
-#include <inja/inja.hpp>
-#include <iostream>
-#include <limits>
-#include <nlohmann/json_fwd.hpp>
-#include <ostream>
 #include <rosidlcpp_generator_cpp/rosidlcpp_generator_cpp.hpp>
-
-#include <cassert>
-#include <cctype>
-#include <format>
-#include <set>
-#include <stdexcept>
-#include <string>
-#include <string_view>
 
 #include <rosidlcpp_generator_core/generator_base.hpp>
 #include <rosidlcpp_generator_core/generator_utils.hpp>
@@ -27,12 +9,30 @@
 #include <fmt/core.h>
 #include <fmt/format.h>
 
+#include <inja/inja.hpp>
+
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
+
+#include <algorithm>
+#include <cassert>
+#include <cctype>
+#include <cstddef>
+#include <cstdint>
+#include <cstdlib>
+#include <exception>
+#include <filesystem>
+#include <format>
+#include <iostream>
+#include <limits>
+#include <ostream>
+#include <set>
+#include <stdexcept>
+#include <string>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <vector>
-
-using rosidlcpp_core::CallbackArgs;
 
 // Member class definition
 class Member {
@@ -40,21 +40,20 @@ class Member {
   std::string name;
   nlohmann::json default_value;
   nlohmann::json zero_value;
-  bool zero_need_array_override;
+  bool zero_need_array_override{};
   nlohmann::json type;
-  int num_prealloc;
+  int num_prealloc{};
 
-  Member(const std::string &name)
-      : name(name), zero_need_array_override(false), num_prealloc(0) {}
+  Member(std::string name) : name(std::move(name)) {}
 
   // Compare if the default and zero values are the same for two members
-  bool same_default_and_zero_value(const Member &other) const {
+  [[nodiscard]] auto same_default_and_zero_value(const Member &other) const -> bool {
     return default_value == other.default_value &&
            zero_value == other.zero_value;
   }
 
   // Convert Member to JSON
-  nlohmann::json to_json() const {
+  [[nodiscard]] auto to_json() const -> nlohmann::json {
     return {{"name", name},
             {"default_value", default_value},
             {"zero_value", zero_value},
@@ -69,7 +68,7 @@ class CommonMemberSet {
  public:
   std::vector<Member> members;
 
-  bool add_member(const Member &member) {
+  auto add_member(const Member &member) -> bool {
     if (members.empty() || members.back().same_default_and_zero_value(member)) {
       members.push_back(member);
       return true;
@@ -78,7 +77,7 @@ class CommonMemberSet {
   }
 
   // Convert CommonMemberSet to JSON
-  nlohmann::json to_json() const {
+  [[nodiscard]] auto to_json() const -> nlohmann::json {
     nlohmann::json members_json = nlohmann::json::array();
     for (const auto &member : members) {
       members_json.push_back(member.to_json());
@@ -91,7 +90,7 @@ class CommonMemberSet {
 const std::vector<std::string> FLOATING_POINT_TYPES = {"float", "double",
                                                        "long double"};
 
-nlohmann::json default_value_from_type(const nlohmann::json &type) {
+auto default_value_from_type(const nlohmann::json &type) -> nlohmann::json {
   if (rosidlcpp_core::is_string(type)) {
     return "";  // Empty string for generic string types
   } else if (rosidlcpp_core::is_float(type)) {
@@ -102,8 +101,7 @@ nlohmann::json default_value_from_type(const nlohmann::json &type) {
   return 0;  // Default for other types (integers)
 }
 
-std::string primitive_value_to_cpp(const nlohmann::json &type,
-                                   const nlohmann::json &value) {
+auto primitive_value_to_cpp(const nlohmann::json &type, const nlohmann::json &value) -> std::string {
   auto type_name = type["name"].get<std::string>();
   if (type_name == "string") {
     return "\"" + rosidlcpp_core::escape_string(value.get<std::string>()) + "\"";
@@ -135,7 +133,7 @@ std::string primitive_value_to_cpp(const nlohmann::json &type,
   throw std::invalid_argument("unknown primitive type: " + type_name);
 }
 
-std::string value_to_cpp(const nlohmann::json &type, const nlohmann::json &value) {
+auto value_to_cpp(const nlohmann::json &type, const nlohmann::json &value) -> std::string {
   // Assume that we are working with arrays
   std::vector<std::string> cpp_values;
 
@@ -151,8 +149,7 @@ std::string value_to_cpp(const nlohmann::json &type, const nlohmann::json &value
     }
   }
 
-  std::string cpp_value =
-      "{" + fmt::format("{}", fmt::join(cpp_values, ", ")) + "}";
+  std::string cpp_value = "{" + fmt::format("{}", fmt::join(cpp_values, ", ")) + "}";
 
   // Wrap in an extra set of braces if needed to avoid scalar initializer;
   // warnings
@@ -163,8 +160,7 @@ std::string value_to_cpp(const nlohmann::json &type, const nlohmann::json &value
   return cpp_value;
 }
 
-nlohmann::json
-create_init_alloc_and_member_lists(const nlohmann::json &message) {
+auto create_init_alloc_and_member_lists(const nlohmann::json &message) -> nlohmann::json {
   std::vector<std::string> init_list;
   std::vector<std::string> alloc_list;
   std::vector<CommonMemberSet> member_list;
@@ -198,7 +194,7 @@ create_init_alloc_and_member_lists(const nlohmann::json &message) {
       }
     } else if (rosidlcpp_core::is_sequence(field["type"])) {
       if (field.contains("default")) {
-        auto default_val = field["default"];
+        const auto &default_val = field["default"];
         member.default_value = value_to_cpp(field["type"]["value_type"], default_val);
         member.num_prealloc = default_val.size();
       }
@@ -259,7 +255,7 @@ create_init_alloc_and_member_lists(const nlohmann::json &message) {
   return output_json;
 }
 
-std::string strip_end_until_char(const std::string &value, char limit) {
+auto strip_end_until_char(const std::string &value, char limit) -> std::string {
   return value.substr(0, value.find_last_of(limit));
   auto it = value.rbegin();
   while (it != value.rend()) {
@@ -301,7 +297,7 @@ const std::unordered_map<std::string, std::string> MSG_TYPE_TO_CPP = {
      "rebind_alloc<char16_t>>"},
 };
 
-std::string msg_type_only_to_cpp(const nlohmann::json &type) {
+auto msg_type_only_to_cpp(const nlohmann::json &type) -> std::string {
   nlohmann::json main_type;
   std::string cpp_type;
 
@@ -324,7 +320,7 @@ std::string msg_type_only_to_cpp(const nlohmann::json &type) {
   return cpp_type;
 }
 
-std::string msg_type_to_cpp(const nlohmann::json &type) {
+auto msg_type_to_cpp(const nlohmann::json &type) -> std::string {
   std::string cpp_type = msg_type_only_to_cpp(type);
 
   // Handle nested types
@@ -392,8 +388,7 @@ auto get_includes(const nlohmann::json &message, const std::string &suffix) {
       tmp += rosidlcpp_core::camel_to_snake(type_name);
       tmp += suffix;
       // Add include member keeping the order
-      auto it = std::find_if(includes.begin(), includes.end(),
-                             [tmp](const auto &v) { return v.first == tmp; });
+      auto it = std::ranges::find_if(includes, [tmp](const auto &v) { return v.first == tmp; });
       if (it == includes.end()) {
         it = includes.insert(it, {tmp, {}});
       }
@@ -534,7 +529,7 @@ auto get_bounded_template_strings(const nlohmann::json &members) -> nlohmann::js
   }
 }
 
-GeneratorCpp::GeneratorCpp(const rosidlcpp_core::GeneratorArguments &generator_arguments) : GeneratorBase(), m_arguments(generator_arguments) {
+GeneratorCpp::GeneratorCpp(rosidlcpp_core::GeneratorArguments generator_arguments) : GeneratorBase(), m_arguments(std::move(generator_arguments)) {
   set_input_path(m_arguments.template_dir + "/");
   set_output_path(m_arguments.output_dir + "/");
 
@@ -598,7 +593,7 @@ int main(int argc, char **argv) {
   try {
     argument_parser.parse_args(argc, argv);
   } catch (const std::exception &error) {
-    std::cerr << error.what() << std::endl;
+    std::cerr << error.what() << '\n';
     std::cerr << argument_parser;
     return 1;
   }
