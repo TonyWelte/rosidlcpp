@@ -90,7 +90,7 @@ add_custom_command(
   OUTPUT ${_generated_sources}
   COMMAND ${rosidl_typesupport_cpp_BIN}
   --generator-arguments-file "${generator_arguments_file}"
-  --typesupports "${typesupports}"
+  --typesupport-impls "${typesupports}"
   DEPENDS ${target_dependencies}
   COMMENT "Generating C++ type support dispatch for ROS interfaces"
   VERBATIM

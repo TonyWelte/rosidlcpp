@@ -630,27 +630,7 @@ std::string field_type_id_to_name(int field_type_id) {
   return FIELD_TYPE_ID_TO_NAME.at(field_type_id);
 }
 
-GeneratorC::GeneratorC(int argc, char** argv) : GeneratorBase() {
-  // Arguments
-  argparse::ArgumentParser argument_parser("rosidl_generator_cpp");
-  argument_parser.add_argument("--generator-arguments-file")
-      .required()
-      .help("The location of the file containing the generator arguments");
-  argument_parser.add_argument("--disable-description-codegen").store_into(m_disable_description_codegen);
-
-  try {
-    argument_parser.parse_args(argc, argv);
-  } catch (const std::exception& error) {
-    std::cerr << error.what() << std::endl;
-    std::cerr << argument_parser;
-    std::exit(1);  // TODO: Don't use exit in constructor
-  }
-
-  auto generator_arguments_file =
-      argument_parser.get<std::string>("--generator-arguments-file");
-
-  m_arguments = rosidlcpp_core::parse_arguments(generator_arguments_file);
-
+GeneratorC::GeneratorC(const rosidlcpp_core::GeneratorArguments& generator_arguments, bool disable_description_codegen) : GeneratorBase(), m_arguments(generator_arguments), m_disable_description_codegen(disable_description_codegen) {
   set_input_path(m_arguments.template_dir + "/");
   set_output_path(m_arguments.output_dir + "/");
 
@@ -750,7 +730,30 @@ void GeneratorC::run() {
 }
 
 int main(int argc, char** argv) {
-  GeneratorC generator(argc, argv);
+  /**
+   * CLI Arguments
+   */
+  argparse::ArgumentParser argument_parser("rosidlcpp_generator_c");
+  argument_parser.add_argument("--generator-arguments-file").required().help("The location of the file containing the generator arguments");
+  argument_parser.add_argument("--disable-description-codegen").default_value(false);
+
+  try {
+    argument_parser.parse_args(argc, argv);
+  } catch (const std::exception& error) {
+    std::cerr << error.what() << std::endl;
+    std::cerr << argument_parser;
+    return 1;
+  }
+
+  auto generator_arguments_file = argument_parser.get<std::string>("--generator-arguments-file");
+  auto generator_arguments = rosidlcpp_core::parse_arguments(generator_arguments_file);
+
+  auto disable_description_codegen = argument_parser.get<bool>("--disable-description-codegen");
+
+  /**
+   * Generation
+   */
+  GeneratorC generator(generator_arguments, disable_description_codegen);
   generator.run();
   return 0;
 }

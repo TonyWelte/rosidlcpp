@@ -407,26 +407,7 @@ auto sort_forward_declared_types(std::vector<nlohmann::json> types) -> std::vect
   return types;
 }
 
-GeneratorTypesupportFastrtpsC::GeneratorTypesupportFastrtpsC(int argc, char** argv) : GeneratorBase() {
-  // Arguments
-  argparse::ArgumentParser argument_parser("rosidl_typesupport_cpp");
-  argument_parser.add_argument("--generator-arguments-file")
-      .required()
-      .help("The location of the file containing the generator arguments");
-
-  try {
-    argument_parser.parse_args(argc, argv);
-  } catch (const std::exception& error) {
-    std::cerr << error.what() << std::endl;
-    std::cerr << argument_parser;
-    std::exit(1);  // TODO: Don't use exit in constructor
-  }
-
-  auto generator_arguments_file =
-      argument_parser.get<std::string>("--generator-arguments-file");
-
-  m_arguments = rosidlcpp_core::parse_arguments(generator_arguments_file);
-
+GeneratorTypesupportFastrtpsC::GeneratorTypesupportFastrtpsC(const rosidlcpp_core::GeneratorArguments& generator_arguments) : GeneratorBase(), m_arguments(generator_arguments) {
   set_input_path(m_arguments.template_dir + "/");
   set_output_path(m_arguments.output_dir + "/");
 
@@ -444,8 +425,6 @@ void GeneratorTypesupportFastrtpsC::run() {
 
   // Generate message specific files
   for (const auto& [path, file_path] : m_arguments.idl_tuples) {
-    // std::cout << "Processing " << file_path << std::endl;
-
     const auto full_path = path + "/" + file_path;
 
     const auto idl_json = rosidlcpp_parser::parse_idl_file(full_path);
@@ -469,7 +448,27 @@ void GeneratorTypesupportFastrtpsC::run() {
 }
 
 int main(int argc, char** argv) {
-  GeneratorTypesupportFastrtpsC generator(argc, argv);
+  /**
+   * CLI Arguments
+   */
+  argparse::ArgumentParser argument_parser("rosidlcpp_typesupport_fastrtps_c");
+  argument_parser.add_argument("--generator-arguments-file").required().help("The location of the file containing the generator arguments");
+
+  try {
+    argument_parser.parse_args(argc, argv);
+  } catch (const std::exception& error) {
+    std::cerr << error.what() << std::endl;
+    std::cerr << argument_parser;
+    return 1;
+  }
+
+  auto generator_arguments_file = argument_parser.get<std::string>("--generator-arguments-file");
+  auto generator_arguments = rosidlcpp_core::parse_arguments(generator_arguments_file);
+
+  /**
+   * Generation
+   */
+  GeneratorTypesupportFastrtpsC generator(generator_arguments);
   generator.run();
   return 0;
 }

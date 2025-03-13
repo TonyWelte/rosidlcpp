@@ -4,6 +4,7 @@
 
 class GeneratorC : public rosidlcpp_core::GeneratorBase {
  public:
+  GeneratorC(const rosidlcpp_core::GeneratorArguments& generator_arguments, bool disable_description_codegen);
   GeneratorC(int argc, char** argv);
   virtual ~GeneratorC() = default;
 

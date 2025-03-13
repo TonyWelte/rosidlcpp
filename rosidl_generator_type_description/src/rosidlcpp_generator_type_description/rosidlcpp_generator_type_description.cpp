@@ -53,36 +53,6 @@ std::string escape_unicode(const std::string &input) {
   return oss.str();
 }
 
-class GeneratorTypeDescription : public rosidlcpp_core::GeneratorBase {
- public:
-  GeneratorTypeDescription(int argc, char **argv);
-
-  int run();
-
- private:
-  rosidlcpp_core::GeneratorArguments m_arguments;
-};
-
-GeneratorTypeDescription::GeneratorTypeDescription(int argc, char **argv)
-    : GeneratorBase() {
-  // Arguments
-  argparse::ArgumentParser argument_parser("rosidl_generator_type_description");
-  argument_parser.add_argument("--generator-arguments-file")
-      .required()
-      .help("The location of the file containing the generator arguments");
-
-  try {
-    argument_parser.parse_args(argc, argv);
-  } catch (const std::exception &error) {
-    std::cerr << error.what() << std::endl;
-    std::cerr << argument_parser;
-    std::exit(1);  // TODO: Don't use exit in constructor
-  }
-
-  auto generator_arguments_file = argument_parser.get<std::string>("--generator-arguments-file");
-  m_arguments = rosidlcpp_core::parse_arguments(generator_arguments_file);
-}
-
 std::string to_type_name(const nlohmann::json &type) {
   assert(type.contains("namespaces") && "Type is missing namespaces");
 
@@ -442,6 +412,19 @@ std::string calculate_type_hash(const nlohmann::ordered_json &type_description) 
   return fmt::format("RIHS01_{:02x}", fmt::join(output_hash, ""));
 }
 
+class GeneratorTypeDescription : public rosidlcpp_core::GeneratorBase {
+ public:
+  GeneratorTypeDescription(const rosidlcpp_core::GeneratorArguments &generator_arguments);
+
+  int run();
+
+ private:
+  rosidlcpp_core::GeneratorArguments m_arguments;
+};
+
+GeneratorTypeDescription::GeneratorTypeDescription(const rosidlcpp_core::GeneratorArguments &generator_arguments) : GeneratorBase(), m_arguments(generator_arguments) {
+}
+
 int GeneratorTypeDescription::run() {
   std::unordered_map<std::string, std::string> include_map;
 
@@ -452,8 +435,6 @@ int GeneratorTypeDescription::run() {
   nlohmann::ordered_json individual_types;
   // Generate message specific files
   for (const auto &[path, file_path] : m_arguments.idl_tuples) {
-    std::cout << "Processing " << file_path << std::endl;
-
     const auto full_path = path + "/" + file_path;
 
     const auto msg_directory = std::filesystem::path(file_path).parent_path().string();
@@ -584,6 +565,26 @@ int GeneratorTypeDescription::run() {
 }
 
 int main(int argc, char *argv[]) {
-  GeneratorTypeDescription generator(argc, argv);
+  /**
+   * CLI Arguments
+   */
+  argparse::ArgumentParser argument_parser("rosidlcpp_generator_type_description");
+  argument_parser.add_argument("--generator-arguments-file").required().help("The location of the file containing the generator arguments");
+
+  try {
+    argument_parser.parse_args(argc, argv);
+  } catch (const std::exception &error) {
+    std::cerr << error.what() << std::endl;
+    std::cerr << argument_parser;
+    return 1;
+  }
+
+  auto generator_arguments_file = argument_parser.get<std::string>("--generator-arguments-file");
+  auto generator_arguments = rosidlcpp_core::parse_arguments(generator_arguments_file);
+
+  /**
+   * Generation
+   */
+  GeneratorTypeDescription generator(generator_arguments);
   return generator.run();
 }

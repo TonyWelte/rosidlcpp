@@ -7,7 +7,7 @@
 
 class GeneratorTypesupportFastrtpsC : public rosidlcpp_core::GeneratorBase {
  public:
-  GeneratorTypesupportFastrtpsC(int argc, char** argv);
+  GeneratorTypesupportFastrtpsC(const rosidlcpp_core::GeneratorArguments& generator_arguments);
   virtual ~GeneratorTypesupportFastrtpsC() = default;
 
   void run();
