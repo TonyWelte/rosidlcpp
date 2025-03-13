@@ -2,15 +2,19 @@
 
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace rosidlcpp_parser {
 
 using TypedefMap = std::unordered_map<std::string, std::string>;
 
-std::vector<std::string> split_string(std::string_view value, std::string_view sep);
+auto split_string_view(std::string_view value, std::string_view sep) -> std::vector<std::string>;
+auto split_string(const std::string& value, const std::string& sep) -> std::vector<std::string>;
 
 auto consume_white_space(std::string_view& content_view) -> void;
 auto consume_comment(std::string_view& content_view) -> void;

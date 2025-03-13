@@ -1,22 +1,25 @@
-#include <nlohmann/json_fwd.hpp>
 #include <rosidlcpp_parser/rosidlcpp_parser.hpp>
 
+#include <nlohmann/json_fwd.hpp>
+
+#include <algorithm>
 #include <cassert>
 #include <cctype>
 #include <charconv>
 #include <cstddef>
+#include <filesystem>
 #include <format>
 #include <fstream>
+#include <iostream>
 #include <iterator>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
-
-#include <iostream>
 #include <system_error>
-
-#include <nlohmann/json.hpp>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 constexpr std::string_view STRING_MODULE = "module";
 constexpr std::string_view STRING_STRUCT = "struct";
@@ -35,18 +38,22 @@ using TypedefMap = std::unordered_map<std::string, std::string>;
 
 namespace rosidlcpp_parser {
 
-std::vector<std::string> split_string(std::string_view value, std::string_view sep) {
+auto split_string_view(std::string_view value, std::string_view sep) -> std::vector<std::string> {
   std::vector<std::string> result;
 
   auto cursor = value.find(sep);
   while (cursor != std::string::npos) {
-    result.push_back(std::string{value.substr(0, cursor)});
+    result.emplace_back(value.substr(0, cursor));
     value.remove_prefix(cursor + sep.size());
     cursor = value.find(sep);
   }
-  result.push_back(std::string{value});
+  result.emplace_back(value);
 
   return result;
+}
+
+auto split_string(const std::string& value, const std::string& sep) -> std::vector<std::string> {
+  return split_string_view(value, sep);
 }
 
 auto consume_white_space(std::string_view& content_view) -> void {
@@ -70,7 +77,7 @@ auto consume_comment(std::string_view& content_view) -> void {
 }
 
 auto consume_white_space_and_comment(std::string_view& content_view) -> void {
-  size_t old_size;
+  size_t old_size{};
   do {
     old_size = content_view.size();
     consume_white_space(content_view);
@@ -128,7 +135,7 @@ auto interpret_type(std::string_view type_string, TypedefMap typedefs) -> json {
   } else if (typedefs.contains(std::string{type_string})) {
     result = interpret_type(typedefs[std::string{type_string}], typedefs);
   } else {  // Check for namespaced type
-    auto namespaced_type = split_string(type_string, "::");
+    auto namespaced_type = split_string_view(type_string, "::");
     if (namespaced_type.size() > 1) {
       result["name"] = namespaced_type.back();
       namespaced_type.pop_back();
@@ -278,7 +285,7 @@ auto parse_numeric(std::string_view& content_view) -> json {
   auto end_of_numeric = content_view.find_first_not_of(VALID_NUMERIC);
 
   if (content_view[end_of_numeric] == 'e' || content_view[end_of_numeric] == '.') {  // is float
-    double result;
+    double result{};
     auto [ptr, ec] = std::from_chars(content_view.data(), content_view.data() + content_view.size(), result);
     if (ec != std::errc()) {
       throw std::runtime_error("Failed to parse floating point value");
@@ -287,7 +294,7 @@ auto parse_numeric(std::string_view& content_view) -> json {
     consume_white_space_and_comment(content_view);
     return result;
   } else if (is_negative) {  // is signed integer
-    long long result;
+    long long result{};
     auto [ptr, ec] = std::from_chars(content_view.data(), content_view.data() + content_view.size(), result);
     if (ec != std::errc()) {
       throw std::runtime_error("Failed to parse integer value");
@@ -297,7 +304,7 @@ auto parse_numeric(std::string_view& content_view) -> json {
     return result;
   }
   {  // assume is unsigned integer (even if it's signed, it will fit in unsigned)
-    unsigned long long result;
+    unsigned long long result{};
     auto [ptr, ec] = std::from_chars(content_view.data(), content_view.data() + content_view.size(), result);
     if (ec != std::errc()) {
       throw std::runtime_error("Failed to parse integer value");
@@ -499,7 +506,7 @@ auto parse_structure(std::string_view& content_view, TypedefMap typedefs) -> jso
       }
       for (const auto& verbatim : annotations.value("verbatim", json::array())) {
         if (verbatim["language"] == "comment") {
-          for (const auto& line : rosidlcpp_parser::split_string(verbatim["text"].get<std::string>(), "\\n")) {
+          for (const auto& line : rosidlcpp_parser::split_string_view(verbatim["text"].get<std::string>(), "\\n")) {
             module_json["members"].back()["comments"].push_back(line);
           }
         }
@@ -551,7 +558,7 @@ auto parse_module(std::string_view& content_view, TypedefMap typedefs) -> json {
       module_json["structures"].push_back(parse_structure(content_view, typedefs));
       for (const auto& verbatim : annotations.value("verbatim", json::array())) {
         if (verbatim["language"] == "comment") {
-          for (const auto& line : rosidlcpp_parser::split_string(verbatim["text"].get<std::string>(), "\\n")) {
+          for (const auto& line : rosidlcpp_parser::split_string_view(verbatim["text"].get<std::string>(), "\\n")) {
             module_json["structures"].back()["comments"].push_back(line);
           }
         }
@@ -565,7 +572,7 @@ auto parse_module(std::string_view& content_view, TypedefMap typedefs) -> json {
       module_json["constants"].push_back(parse_constant(content_view, typedefs));
       for (const auto& verbatim : annotations.value("verbatim", json::array())) {
         if (verbatim["language"] == "comment") {
-          for (const auto& line : rosidlcpp_parser::split_string(verbatim["text"].get<std::string>(), "\\n")) {
+          for (const auto& line : rosidlcpp_parser::split_string_view(verbatim["text"].get<std::string>(), "\\n")) {
             module_json["constants"].back()["comments"].push_back(line);
           }
         }
@@ -653,9 +660,9 @@ auto parse_idl_file(const std::string& filename) -> json {
     }
 
   } catch (const std::runtime_error& error) {
-    std::cerr << error.what() << std::endl;
-    std::cerr << "Remaining unparsed content: \n"
-              << content_view << std::endl;
+    std::cerr << error.what() << '\n'
+              << "Remaining unparsed content: \n"
+              << content_view << '\n';
   }
 
   return result;
@@ -788,7 +795,7 @@ auto make_action_feedback_message(const nlohmann::json& action_type) -> nlohmann
 }
 
 auto has_non_ascii(const std::string& str) -> bool {
-  return std::any_of(str.begin(), str.end(), [](unsigned char c) { return c > 127; });
+  return std::ranges::any_of(str, [](unsigned char c) { return c > 127; });
 }
 
 template <typename Function>

@@ -4,8 +4,7 @@
 
 class GeneratorTypesupportIntrospectionC : public rosidlcpp_core::GeneratorBase {
  public:
-  GeneratorTypesupportIntrospectionC(int argc, char** argv);
-  virtual ~GeneratorTypesupportIntrospectionC() = default;
+  GeneratorTypesupportIntrospectionC(const rosidlcpp_core::GeneratorArguments& generator_arguments);
 
   void run();
 

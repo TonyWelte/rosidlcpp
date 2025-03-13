@@ -1,70 +1,46 @@
-#include <fmt/core.h>
-#include <fmt/format.h>
-#include <algorithm>
-#include <cstdint>
-#include <filesystem>
-#include <fstream>
-#include <limits>
-#include <regex>
 #include <rosidlcpp_generator_c/rosidlcpp_generator_c.hpp>
 
-#include <cstdlib>
-#include <exception>
-#include <format>
-#include <iostream>
-#include <ostream>
-#include <stdexcept>
-#include <string>
-#include <string_view>
-#include <tuple>
-#include <utility>
-#include <vector>
+#include <rosidlcpp_generator_core/generator_base.hpp>
+#include <rosidlcpp_generator_core/generator_utils.hpp>
+#include <rosidlcpp_parser/rosidlcpp_parser.hpp>
 
 #include <argparse/argparse.hpp>
+
+#include <fmt/core.h>
+#include <fmt/format.h>
+
 #include <inja/inja.hpp>
 
 #include <nlohmann/json_fwd.hpp>
 
-#include <rosidlcpp_generator_core/generator_base.hpp>
-#include <rosidlcpp_parser/rosidlcpp_parser.hpp>
+#include <algorithm>
+#include <cassert>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <exception>
+#include <filesystem>
+#include <format>
+#include <fstream>
+#include <iostream>
+#include <limits>
+#include <ostream>
+#include <regex>
+#include <set>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <tuple>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
-std::string idl_structure_type_to_c_include_prefix(const nlohmann::json& type, const std::string& subdirectory = "") {
-  std::vector<std::string> parts;
-  for (const auto& part : type["namespaces"]) {
-    parts.push_back(rosidlcpp_core::camel_to_snake(part.get<std::string>()));
-  }
-  std::string include_prefix = fmt::format("{}/{}", fmt::join(parts, "/"), subdirectory + "/" + rosidlcpp_core::camel_to_snake(type["name"]));
-
-  // Strip service or action suffixes
-  if (include_prefix.ends_with("__request")) {
-    include_prefix = include_prefix.substr(0, include_prefix.size() - 9);
-  } else if (include_prefix.ends_with("__response")) {
-    include_prefix = include_prefix.substr(0, include_prefix.size() - 10);
-  } else if (include_prefix.ends_with("__goal")) {
-    include_prefix = include_prefix.substr(0, include_prefix.size() - 6);
-  } else if (include_prefix.ends_with("__result")) {
-    include_prefix = include_prefix.substr(0, include_prefix.size() - 8);
-  } else if (include_prefix.ends_with("__feedback")) {
-    include_prefix = include_prefix.substr(0, include_prefix.size() - 10);
-  } else if (include_prefix.ends_with("__send_goal")) {
-    include_prefix = include_prefix.substr(0, include_prefix.size() - 11);
-  } else if (include_prefix.ends_with("__get_result")) {
-    include_prefix = include_prefix.substr(0, include_prefix.size() - 12);
-  }
-  return include_prefix;
+auto idl_structure_type_sequence_to_c_typename(const nlohmann::json& type) -> std::string {
+  return rosidlcpp_core::type_to_c_typename(type) + "__Sequence";
 }
 
-std::string idl_structure_type_to_c_typename(const nlohmann::json& type) {
-  return fmt::format("{}__{}", fmt::join(type["namespaces"], "__"), type["name"].get<std::string>());
-}
-
-std::string idl_structure_type_sequence_to_c_typename(const nlohmann::json& type) {
-  return idl_structure_type_to_c_typename(type) + "__Sequence";
-}
-
-nlohmann::json get_includes(rosidlcpp_core::CallbackArgs& args) {
-  const auto& message = *args.at(0);
-  const std::string suffix = *args.at(1);
+auto get_includes(const nlohmann::json& message, const std::string& suffix) -> nlohmann::json {
   nlohmann::json includes_json = nlohmann::json::array();
 
   const std::string runtime_c_suffix = suffix != "__struct.h" ? std::string{std::string_view{suffix}.substr(1)} : ".h";
@@ -108,7 +84,7 @@ nlohmann::json get_includes(rosidlcpp_core::CallbackArgs& args) {
         }
         type["name"] = type_name;
       }
-      auto include_prefix = idl_structure_type_to_c_include_prefix(type, "detail");
+      auto include_prefix = rosidlcpp_core::idl_structure_type_to_c_include_prefix(type, "detail");
       append_header_to_members(header_to_members, include_prefix + suffix, member["name"]);
     }
   }
@@ -120,10 +96,7 @@ nlohmann::json get_includes(rosidlcpp_core::CallbackArgs& args) {
   return includes_json;
 }
 
-nlohmann::json get_full_description_includes(rosidlcpp_core::CallbackArgs& args) {
-  nlohmann::json implicit_type_description = *args.at(0);
-  nlohmann::json toplevel_type_description = *args.at(1);
-
+auto get_full_description_includes(const nlohmann::json& implicit_type_description, const nlohmann::json& toplevel_type_description) -> nlohmann::json {
   std::set<std::string> implicit_type_names;
   for (const auto& td : implicit_type_description) {
     implicit_type_names.insert(td["msg"]["type_description"]["type_name"].get<std::string>());
@@ -139,28 +112,27 @@ nlohmann::json get_full_description_includes(rosidlcpp_core::CallbackArgs& args)
       continue;
     }
 
-    auto type_parts = rosidlcpp_parser::split_string(referenced_td["type_name"].get<std::string>(), "/");
+    auto type_parts = rosidlcpp_parser::split_string_view(referenced_td["type_name"].get<std::string>(), "/");
     nlohmann::json type = nlohmann::json::object();
     type["name"] = type_parts.back();
     type_parts.pop_back();
     type["namespaces"] = type_parts;
 
-    auto include_prefix = idl_structure_type_to_c_include_prefix(type, "detail");
+    auto include_prefix = rosidlcpp_core::idl_structure_type_to_c_include_prefix(type, "detail");
     header_to_members.push_back(include_prefix + "__functions.h");
   }
 
   return header_to_members;
 }
 
-nlohmann::json get_upper_bounds(rosidlcpp_core::CallbackArgs& args) {
-  const auto& message = *args.at(0);
+nlohmann::json get_upper_bounds(const nlohmann::json& message) {
   nlohmann::json upper_bounds = nlohmann::json::array();
 
   for (const auto& member : message["members"]) {
     auto type = member["type"];
     if (rosidlcpp_core::is_sequence(type) && type.contains("maximum_size")) {
       upper_bounds.push_back({{"field_name", member["name"]},
-                              {"enum_name", idl_structure_type_to_c_typename(message["type"]) + "__" + member["name"].get<std::string>() + "__MAX_SIZE"},
+                              {"enum_name", rosidlcpp_core::type_to_c_typename(message["type"]) + "__" + member["name"].get<std::string>() + "__MAX_SIZE"},
                               {"enum_value", type["maximum_size"]}});
     }
     if (rosidlcpp_core::is_nestedtype(type)) {
@@ -168,7 +140,7 @@ nlohmann::json get_upper_bounds(rosidlcpp_core::CallbackArgs& args) {
     }
     if (rosidlcpp_core::is_string(type) && type.contains("maximum_size")) {
       upper_bounds.push_back({{"field_name", member["name"]},
-                              {"enum_name", idl_structure_type_to_c_typename(message["type"]) + "__" + member["name"].get<std::string>() + "__MAX_STRING_SIZE"},
+                              {"enum_name", rosidlcpp_core::type_to_c_typename(message["type"]) + "__" + member["name"].get<std::string>() + "__MAX_STRING_SIZE"},
                               {"enum_value", type["maximum_size"]}});
     }
   }
@@ -205,7 +177,7 @@ std::string basetype_to_c(const nlohmann::json& type) {
     return "rosidl_runtime_c__U16String";
   }
   if (rosidlcpp_core::is_namespaced(type)) {
-    return idl_structure_type_to_c_typename(type);
+    return rosidlcpp_core::type_to_c_typename(type);
   }
 
   throw std::runtime_error("Unknown basetype: " + type.dump());
@@ -260,7 +232,7 @@ std::string value_to_c(const nlohmann::json& type, const nlohmann::json& value) 
 std::string idl_type_to_c(const nlohmann::json& type) {
   std::string c_type;
   if (rosidlcpp_core::is_array(type)) {
-    std::runtime_error("The array size is part of the variable");
+    throw std::runtime_error("The array size is part of the variable");
   }
   if (rosidlcpp_core::is_sequence(type)) {
     if (rosidlcpp_core::is_primitive(type["value_type"])) {
@@ -345,9 +317,9 @@ nlohmann::json extract_subinterface(const nlohmann::json& type_description_msg, 
   return extract_full_type_description(output_type_name, type_map);
 }
 
-nlohmann::json get_implicit_type_description(const nlohmann::json& services, const nlohmann::json& actions, const nlohmann::json& type_description_info) {
+auto get_implicit_type_description(const nlohmann::json& services, const nlohmann::json& actions, const nlohmann::json& type_description_info) -> nlohmann::json {
   nlohmann::json implicit_type_description = nlohmann::json::array();
-  for (const auto& service : services) {
+  for (const auto& service : services) {  // TODO: Check if the service variable is required for something
     implicit_type_description.push_back({
         {"msg", extract_subinterface(type_description_info["type_description_msg"], "request_message")},
         {"type", "message"},
@@ -361,7 +333,7 @@ nlohmann::json get_implicit_type_description(const nlohmann::json& services, con
         {"type", "message"},
     });
   }
-  for (const auto& action : actions) {
+  for (const auto& action : actions) {  // TODO: Check if the action variable is required for something
     const auto send_goal_service = extract_subinterface(type_description_info["type_description_msg"], "send_goal_service");
     const auto get_result_service = extract_subinterface(type_description_info["type_description_msg"], "get_result_service");
     implicit_type_description.push_back({
@@ -417,7 +389,7 @@ nlohmann::json get_implicit_type_description(const nlohmann::json& services, con
   return implicit_type_description;
 }
 
-nlohmann::json get_toplevel_type_description(const nlohmann::json& messages, const nlohmann::json& services, const nlohmann::json& actions, const nlohmann::json& type_description_info) {
+auto get_toplevel_type_description(const nlohmann::json& messages, const nlohmann::json& services, const nlohmann::json& actions, const nlohmann::json& type_description_info) -> nlohmann::json {
   if (!messages.empty()) {
     return {
         {"msg", type_description_info["type_description_msg"]},
@@ -433,9 +405,10 @@ nlohmann::json get_toplevel_type_description(const nlohmann::json& messages, con
         {"msg", type_description_info["type_description_msg"]},
         {"type", "action"}};
   }
+  throw std::runtime_error("get_toplevel_type_description called without any interface");
 }
 
-nlohmann::json get_hash_lookup(const nlohmann::json& type_description_hashes) {
+auto get_hash_lookup(const nlohmann::json& type_description_hashes) -> nlohmann::json {
   nlohmann::json hash_lookup = nlohmann::json::object();
   for (const auto& type_description_hash : type_description_hashes) {
     hash_lookup[type_description_hash["type_name"]] = type_description_hash["hash_string"];
@@ -443,7 +416,7 @@ nlohmann::json get_hash_lookup(const nlohmann::json& type_description_hashes) {
   return hash_lookup;
 }
 
-std::tuple<int, std::string> parse_rihs_string(const std::string& rihs_str) {
+auto parse_rihs_string(const std::string& rihs_str) -> std::tuple<int, std::string> {
   static const std::regex rihs01_pattern(R"(RIHS([0-9a-f]{2})_([0-9a-f]{64}))");
   std::smatch match;
   if (!std::regex_match(rihs_str, match, rihs01_pattern)) {
@@ -454,12 +427,12 @@ std::tuple<int, std::string> parse_rihs_string(const std::string& rihs_str) {
   return std::make_tuple(version, value);
 }
 
-std::string type_hash_to_c_definition(const std::string& hash_string, int indent = 2) {
+auto type_hash_to_c_definition(const std::string& hash_string, int indent = 2) -> std::string {
   const int bytes_per_row = 8;
   const int rows = 4;
 
-  int version;
-  std::string value;
+  int version{};
+  std::string value{};
   std::tie(version, value) = parse_rihs_string(hash_string);
   assert(version == 1 && "This function only knows how to generate RIHS01 definitions.");
 
@@ -600,139 +573,88 @@ const std::unordered_map<int, std::string> FIELD_TYPE_ID_TO_NAME = [] {
   return map;
 }();
 
-GeneratorC::GeneratorC(int argc, char** argv) : GeneratorBase() {
-  // Arguments
-  argparse::ArgumentParser argument_parser("rosidl_generator_cpp");
-  argument_parser.add_argument("--generator-arguments-file")
-      .required()
-      .help("The location of the file containing the generator arguments");
-  argument_parser.add_argument("--disable-description-codegen").store_into(m_disable_description_codegen);
-
-  try {
-    argument_parser.parse_args(argc, argv);
-  } catch (const std::exception& error) {
-    std::cerr << error.what() << std::endl;
-    std::cerr << argument_parser;
-    std::exit(1);  // TODO: Don't use exit in constructor
+auto static_seq_n(const std::string& varname, int n) -> std::string {
+  if (n > 0) {
+    return fmt::format("{{{}, {}, {}}}", varname, n, n);
   }
+  return std::string("{NULL, 0, 0}");
+}
 
-  auto generator_arguments_file =
-      argument_parser.get<std::string>("--generator-arguments-file");
-
-  m_arguments = rosidlcpp_core::parse_arguments(generator_arguments_file);
-
-  m_env.set_input_path(m_arguments.template_dir + "/");
-
-  m_env.add_callback("get_includes", 2, get_includes);
-  m_env.add_callback("idl_structure_type_to_c_typename", 1, [](rosidlcpp_core::CallbackArgs& args) {
-    return idl_structure_type_to_c_typename(*args.at(0));
-  });
-  m_env.add_callback("value_to_c", 2, [](rosidlcpp_core::CallbackArgs& args) {
-    return value_to_c(*args.at(0), *args.at(1));
-  });
-  m_env.add_callback("basetype_to_c", 1, [](rosidlcpp_core::CallbackArgs& args) {
-    return basetype_to_c(*args.at(0));
-  });
-  m_env.add_callback("get_upper_bounds", 1, get_upper_bounds);
-  m_env.add_callback("idl_declaration_to_c", 2, [](rosidlcpp_core::CallbackArgs& args) {
-    return idl_declaration_to_c(*args.at(0), *args.at(1));
-  });
-  m_env.add_callback("idl_structure_type_sequence_to_c_typename", 1, [](rosidlcpp_core::CallbackArgs& args) {
-    return idl_structure_type_sequence_to_c_typename(*args.at(0));
-  });
-  m_env.add_callback("idl_type_to_c", 1, [](rosidlcpp_core::CallbackArgs& args) {
-    return idl_type_to_c(*args.at(0));
-  });
-
-  m_env.add_callback("GET_DESCRIPTION_FUNC", 0, [](rosidlcpp_core::CallbackArgs& args) {
-    return "get_type_description";
-  });
-  m_env.add_callback("GET_HASH_FUNC", 0, [](rosidlcpp_core::CallbackArgs& args) {
-    return "get_type_hash";
-  });
-  m_env.add_callback("GET_INDIVIDUAL_SOURCE_FUNC", 0, [](rosidlcpp_core::CallbackArgs& args) {
-    return "get_individual_type_description_source";
-  });
-  m_env.add_callback("GET_SOURCES_FUNC", 0, [](rosidlcpp_core::CallbackArgs& args) {
-    return "get_type_description_sources";
-  });
-  m_env.add_callback("extract_subinterface", 2, [](rosidlcpp_core::CallbackArgs& args) {
-    return extract_subinterface(*args.at(0), *args.at(1));
-  });
-  m_env.add_callback("get_implicit_type_descriptions", 3, [](rosidlcpp_core::CallbackArgs& args) {
-    return get_implicit_type_description(*args.at(0), *args.at(1), *args.at(2));
-  });
-  m_env.add_callback("get_toplevel_type_description", 4, [](rosidlcpp_core::CallbackArgs& args) {
-    return get_toplevel_type_description(*args.at(0), *args.at(1), *args.at(2), *args.at(3));
-  });
-  m_env.add_callback("get_hash_lookup", 1, [](rosidlcpp_core::CallbackArgs& args) {
-    return get_hash_lookup(*args.at(0));
-  });
-  m_env.add_callback("type_hash_to_c_definition", 2, [](rosidlcpp_core::CallbackArgs& args) {
-    return type_hash_to_c_definition(args.at(0)->get<std::string>(), args.at(1)->get<int>());
-  });
-  m_env.add_callback("get_full_description_includes", 2, get_full_description_includes);
-
-  m_env.add_callback("static_seq_n", 2, [](rosidlcpp_core::CallbackArgs& args) {
-    const auto& varname = args.at(0)->get<std::string>();
-    const auto& n = args.at(1)->get<int>();
-    if (n > 0) {
-      return fmt::format("{{{}, {}, {}}}", varname, n, n);
+auto static_seq(const std::string& varname, const nlohmann::json& value) -> std::string {
+  if (value.is_string()) {
+    std::string n_str = value.get<std::string>();
+    if (!n_str.empty()) {
+      return fmt::format("{{{}, {}, {}}}", varname, n_str.size(), n_str.size());
     }
-    return std::string("{NULL, 0, 0}");
-  });
+  } else if (value.is_array() && value.size() > 0) {
+    return fmt::format("{{{}, {}, {}}}", varname, value.size(), value.size());
+  }
+  return std::string("{NULL, 0, 0}");
+}
 
-  m_env.add_callback("static_seq", 2, [](rosidlcpp_core::CallbackArgs& args) {
-    const auto& varname = args.at(0)->get<std::string>();
-    if (args.at(1)->is_string()) {
-      std::string n_str = args.at(1)->get<std::string>();
-      if (!n_str.empty()) {
-        return fmt::format("{{{}, {}, {}}}", varname, n_str.size(), n_str.size());
-      }
-    } else if (args.at(1)->is_array() && args.at(1)->size() > 0) {
-      return fmt::format("{{{}, {}, {}}}", varname, args.at(1)->size(), args.at(1)->size());
+auto utf8_encode(const std::string& value_string) -> std::string {
+  std::string utf8_encoded;
+  for (const auto& c : value_string) {
+    if (static_cast<unsigned char>(c) < 0x80) {
+      utf8_encoded += c;
+    } else {
+      utf8_encoded += fmt::format("\\x{:02x}", static_cast<unsigned char>(c));
     }
-    return std::string("{NULL, 0, 0}");
-  });
+  }
+  return rosidlcpp_core::escape_string(utf8_encoded);
+}
 
-  m_env.add_callback("utf8_encode", 1, [](rosidlcpp_core::CallbackArgs& args) {
-    const auto& value_string = args.at(0)->get<std::string>();
-    std::string utf8_encoded;
-    for (const auto& c : value_string) {
-      if (static_cast<unsigned char>(c) < 0x80) {
-        utf8_encoded += c;
-      } else {
-        utf8_encoded += fmt::format("\\x{:02x}", static_cast<unsigned char>(c));
-      }
+auto escape_tab(const std::string& value_string) -> std::string {
+  std::string escaped_string;
+  for (const auto& c : value_string) {
+    if (c == '\t') {
+      escaped_string += "\\t";
+    } else {
+      escaped_string += c;
     }
-    return rosidlcpp_core::escape_string(utf8_encoded);
-  });
-  m_env.add_callback("escape_tab", 1, [](rosidlcpp_core::CallbackArgs& args) {
-    std::string escaped_string;
-    for (const auto& c : args.at(0)->get<std::string>()) {
-      if (c == '\t') {
-        escaped_string += "\\t";
-      } else {
-        escaped_string += c;
-      }
-    }
-    return escaped_string;
-  });
-  m_env.add_callback("FIELD_TYPE_ID_TO_NAME", 1, [](rosidlcpp_core::CallbackArgs& args) -> std::string {
-    const auto& field_type_id = args.at(0)->get<int>();
-    return FIELD_TYPE_ID_TO_NAME.at(field_type_id);
-  });
+  }
+  return escaped_string;
+}
+auto field_type_id_to_name(int field_type_id) -> std::string {
+  return FIELD_TYPE_ID_TO_NAME.at(field_type_id);
+}
+
+GeneratorC::GeneratorC(rosidlcpp_core::GeneratorArguments generator_arguments, bool disable_description_codegen) : GeneratorBase(), m_arguments(std::move(generator_arguments)), m_disable_description_codegen(disable_description_codegen) {
+  set_input_path(m_arguments.template_dir + "/");
+  set_output_path(m_arguments.output_dir + "/");
+
+  GENERATOR_BASE_REGISTER_FUNCTION("get_includes", 2, get_includes);
+  GENERATOR_BASE_REGISTER_FUNCTION("value_to_c", 2, value_to_c);
+  GENERATOR_BASE_REGISTER_FUNCTION("basetype_to_c", 1, basetype_to_c);
+  GENERATOR_BASE_REGISTER_FUNCTION("get_upper_bounds", 1, get_upper_bounds);
+  GENERATOR_BASE_REGISTER_FUNCTION("idl_declaration_to_c", 2, idl_declaration_to_c);
+  GENERATOR_BASE_REGISTER_FUNCTION("idl_structure_type_sequence_to_c_typename", 1, idl_structure_type_sequence_to_c_typename);
+  GENERATOR_BASE_REGISTER_FUNCTION("idl_type_to_c", 1, idl_type_to_c);
+
+  GENERATOR_BASE_REGISTER_FUNCTION("extract_subinterface", 2, extract_subinterface);
+  GENERATOR_BASE_REGISTER_FUNCTION("get_implicit_type_descriptions", 3, get_implicit_type_description);
+  GENERATOR_BASE_REGISTER_FUNCTION("get_toplevel_type_description", 4, get_toplevel_type_description);
+  GENERATOR_BASE_REGISTER_FUNCTION("get_hash_lookup", 1, get_hash_lookup);
+  GENERATOR_BASE_REGISTER_FUNCTION("type_hash_to_c_definition", 2, type_hash_to_c_definition);
+
+  GENERATOR_BASE_REGISTER_FUNCTION("get_full_description_includes", 2, get_full_description_includes);
+
+  GENERATOR_BASE_REGISTER_FUNCTION("static_seq_n", 2, static_seq_n);
+  GENERATOR_BASE_REGISTER_FUNCTION("static_seq", 2, static_seq);
+  GENERATOR_BASE_REGISTER_FUNCTION("utf8_encode", 1, utf8_encode);
+  GENERATOR_BASE_REGISTER_FUNCTION("escape_tab", 1, escape_tab);
+  GENERATOR_BASE_REGISTER_FUNCTION("FIELD_TYPE_ID_TO_NAME", 1, field_type_id_to_name);
 }
 
 void GeneratorC::run() {
   // Load templates
-  inja::Template template_idl_description_c = m_env.parse_template("./idl__description.c.template");
-  inja::Template template_idl_functions_c = m_env.parse_template("./idl__functions.c.template");
-  inja::Template template_idl_functions_h = m_env.parse_template("./idl__functions.h.template");
-  inja::Template template_idl_struct_h = m_env.parse_template("./idl__struct.h.template");
-  inja::Template template_idl_type_support_c = m_env.parse_template("./idl__type_support.c.template");
-  inja::Template template_idl_type_support_h = m_env.parse_template("./idl__type_support.h.template");
-  inja::Template template_idl_h = m_env.parse_template("./idl.h.template");
+  auto template_idl_description_c = parse_template("./idl__description.c.template");
+  auto template_idl_functions_c = parse_template("./idl__functions.c.template");
+  auto template_idl_functions_h = parse_template("./idl__functions.h.template");
+  auto template_idl_struct_h = parse_template("./idl__struct.h.template");
+  auto template_idl_type_support_c = parse_template("./idl__type_support.c.template");
+  auto template_idl_type_support_h = parse_template("./idl__type_support.h.template");
+  auto template_idl_h = parse_template("./idl.h.template");
 
   // Combined ros_json
   nlohmann::json pkg_json;
@@ -764,7 +686,7 @@ void GeneratorC::run() {
     ros_json["disable_description_codegen"] = m_disable_description_codegen;
 
     // Raw source content
-    auto it = std::find_if(m_arguments.ros_interface_files.begin(), m_arguments.ros_interface_files.end(), [&](const auto& v) { return v.ends_with("/" + ros_json["type"]["name"].get<std::string>() + "." + ros_json["type"]["namespaces"].back().get<std::string>()); });
+    auto it = std::ranges::find_if(m_arguments.ros_interface_files, [&](const auto& v) { return v.ends_with("/" + ros_json["type"]["name"].get<std::string>() + "." + ros_json["type"]["namespaces"].back().get<std::string>()); });
     if (it != m_arguments.ros_interface_files.end()) {
       std::ifstream raw_source_file(*it);
       std::stringstream raw_source_stream;
@@ -785,18 +707,6 @@ void GeneratorC::run() {
     const auto msg_directory = ros_json["interface_path"]["filedir"].get<std::string>();
     const auto msg_type = ros_json["interface_path"]["filename"].get<std::string>();
 
-    auto write_template = [&](const inja::Template& template_object, const nlohmann::json& data, std::string_view output_file) {
-      std::string result = m_env.render(template_object, data);
-
-      if (rosidlcpp_parser::has_non_ascii(result)) {
-        result = "\ufeff// NOLINT: This file starts with a BOM since it contain non-ASCII characters\n" + result;
-      }
-
-      std::ofstream file(m_arguments.output_dir + "/" + std::string{output_file});
-      file << result;
-      file.close();
-    };
-
     std::filesystem::create_directories(m_arguments.output_dir + "/" + msg_directory + "/detail");
     write_template(template_idl_description_c, ros_json, std::format("{}/detail/{}__description.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
     write_template(template_idl_functions_c, ros_json, std::format("{}/detail/{}__functions.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
@@ -808,8 +718,31 @@ void GeneratorC::run() {
   }
 }
 
-int main(int argc, char** argv) {
-  GeneratorC generator(argc, argv);
+auto main(int argc, char** argv) -> int {
+  /**
+   * CLI Arguments
+   */
+  argparse::ArgumentParser argument_parser("rosidlcpp_generator_c");
+  argument_parser.add_argument("--generator-arguments-file").required().help("The location of the file containing the generator arguments");
+  argument_parser.add_argument("--disable-description-codegen").default_value(false);
+
+  try {
+    argument_parser.parse_args(argc, argv);
+  } catch (const std::exception& error) {
+    std::cerr << error.what() << '\n';
+    std::cerr << argument_parser;
+    return 1;
+  }
+
+  auto generator_arguments_file = argument_parser.get<std::string>("--generator-arguments-file");
+  auto generator_arguments = rosidlcpp_core::parse_arguments(generator_arguments_file);
+
+  auto disable_description_codegen = argument_parser.get<bool>("--disable-description-codegen");
+
+  /**
+   * Generation
+   */
+  GeneratorC generator(generator_arguments, disable_description_codegen);
   generator.run();
   return 0;
 }

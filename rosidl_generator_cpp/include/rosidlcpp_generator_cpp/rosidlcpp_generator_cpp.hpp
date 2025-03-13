@@ -4,8 +4,7 @@
 
 class GeneratorCpp : public rosidlcpp_core::GeneratorBase {
  public:
-  GeneratorCpp(int argc, char** argv);
-  virtual ~GeneratorCpp() = default;
+  GeneratorCpp(rosidlcpp_core::GeneratorArguments generator_arguments);
 
   void run();
 

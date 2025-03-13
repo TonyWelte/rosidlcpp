@@ -13,7 +13,7 @@ find_package(nlohmann_json REQUIRED)
 find_package(fmt REQUIRED)
 find_package(rosidlcpp_parser REQUIRED)
 
-add_library(${PROJECT_NAME} SHARED src/${PROJECT_NAME}/generator_base.cpp)
+add_library(${PROJECT_NAME} SHARED src/${PROJECT_NAME}/generator_base.cpp src/${PROJECT_NAME}/generator_utils.cpp)
 target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json fmt::fmt rosidlcpp_parser::rosidlcpp_parser)
 target_include_directories(${PROJECT_NAME} PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"

@@ -1,29 +1,50 @@
 #pragma once
 
+#include <filesystem>
+#include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 
-#include <cstddef>
-
-#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 #include <inja/inja.hpp>
 
+#define GENERATOR_BASE_REGISTER_FUNCTION_GET_ARGS_1 *args.at(0)
+#define GENERATOR_BASE_REGISTER_FUNCTION_GET_ARGS_2 *args.at(0), *args.at(1)
+#define GENERATOR_BASE_REGISTER_FUNCTION_GET_ARGS_3 *args.at(0), *args.at(1), *args.at(2)
+#define GENERATOR_BASE_REGISTER_FUNCTION_GET_ARGS_4 *args.at(0), *args.at(1), *args.at(2), *args.at(3)
+#define GENERATOR_BASE_REGISTER_FUNCTION_GET_ARGS_5 *args.at(0), *args.at(1), *args.at(2), *args.at(3), *args.at(4)
+
+// Dispatcher Macro
+#define GENERATOR_BASE_REGISTER_FUNCTION_GET_ARGS(count) GENERATOR_BASE_REGISTER_FUNCTION_GET_ARGS_##count
+
+#define GENERATOR_BASE_REGISTER_VOID_FUNCTION(name, arg_count, function_name)         \
+  register_void_callback(name, arg_count,                                             \
+                         [](inja::Arguments& args) {                                  \
+                           function_name(                                             \
+                               GENERATOR_BASE_REGISTER_FUNCTION_GET_ARGS(arg_count)); \
+                         })
+
+#define GENERATOR_BASE_REGISTER_FUNCTION(name, arg_count, function_name)         \
+  register_callback(name, arg_count,                                             \
+                    [](inja::Arguments& args) {                                  \
+                      return function_name(                                      \
+                          GENERATOR_BASE_REGISTER_FUNCTION_GET_ARGS(arg_count)); \
+                    })
+
+#define GENERATOR_BASE_REGISTER_CONSTANT(name, value) \
+  register_callback(name, 0,                          \
+                    [](inja::Arguments&) {            \
+                      return value;                   \
+                    })
+
 namespace rosidlcpp_core {
 
-using CallbackArgs = std::vector<const nlohmann::json*>;
-
-constexpr std::string_view SERVICE_EVENT_MESSAGE_SUFFIX = "_Event";
-constexpr std::string_view SERVICE_REQUEST_MESSAGE_SUFFIX = "_Request";
-constexpr std::string_view SERVICE_RESPONSE_MESSAGE_SUFFIX = "_Response";
-constexpr std::string_view ACTION_GOAL_SUFFIX = "_Goal";
-constexpr std::string_view ACTION_RESULT_SUFFIX = "_Result";
-constexpr std::string_view ACTION_FEEDBACK_SUFFIX = "_Feedback";
-constexpr std::string_view ACTION_GOAL_SERVICE_SUFFIX = "_SendGoal";
-constexpr std::string_view ACTION_RESULT_SERVICE_SUFFIX = "_GetResult";
-constexpr std::string_view ACTION_FEEDBACK_MESSAGE_SUFFIX = "_FeedbackMessage";
-
-constexpr std::string_view EMPTY_STRUCTURE_REQUIRED_MEMBER_NAME =
-    "structure_needs_at_least_one_member";
+using Template = inja::Template;
+using FunctionType = inja::CallbackFunction;
+using VoidFunctionType = inja::VoidCallbackFunction;
+using CallbackArgs = inja::Arguments;
 
 struct GeneratorArguments {
   std::string package_name;
@@ -37,46 +58,40 @@ struct GeneratorArguments {
   std::vector<std::pair<std::string, std::string>> include_paths;
 };
 
-std::string escape_string(const std::string& str);
-
-GeneratorArguments parse_arguments(const std::string& filepath);
-
-std::string camel_to_snake(const std::string& input);
+auto parse_arguments(const std::string& filepath) -> GeneratorArguments;
 
 class GeneratorEnvironment : public inja::Environment {
  public:
-  void set_input_path(const std::string& directory) { input_path = directory; }
-  void set_output_path(const std::string& directory) { output_path = directory; }
+  void set_input_path(std::string_view path) { input_path = path; }
+  void set_output_path(std::string_view path) {
+    m_output_directory = path;
+    output_path = path;
+  }
+
+  void write_template(const Template& template_object, const nlohmann::json& data, std::string_view output_file);
+
+ private:
+  std::filesystem::path m_output_directory;
 };
 
 class GeneratorBase {
  public:
   GeneratorBase();
-  virtual ~GeneratorBase() = default;
 
- protected:
-  void register_callback(
-      const std::string& name, std::size_t arg_count,
-      std::function<nlohmann::json(std::vector<const nlohmann::json*>&)>
-          callback);
+  void set_input_path(std::string_view path) { m_env.set_input_path(path); }
+  void set_output_path(std::string_view path) { m_env.set_output_path(path); }
 
- protected:
+  void register_callback(std::string_view name, int arg_count, const FunctionType& function);
+  void register_void_callback(std::string_view name, int arg_count, const VoidFunctionType& function);
+
+  void write_template(const Template& template_object, const nlohmann::json& data, std::string_view output_file);
+
+  auto parse_template(std::string_view template_path) -> Template;
+
+ private:
   GeneratorEnvironment m_env;
 
   nlohmann::json m_global_storage;
 };
-
-bool is_sequence(const nlohmann::json& type);
-bool is_array(const nlohmann::json& type);
-bool is_bounded(const nlohmann::json& type);
-bool is_nestedtype(const nlohmann::json& type);
-bool is_string(const nlohmann::json& type);
-bool is_primitive(const nlohmann::json& type);
-bool is_namespaced(const nlohmann::json& type);
-bool is_float(const nlohmann::json& type);
-bool is_character(const nlohmann::json& type);
-
-bool is_unsigned_integer(const nlohmann::json& type);
-bool is_signed_integer(const nlohmann::json& type);
 
 }  // namespace rosidlcpp_core

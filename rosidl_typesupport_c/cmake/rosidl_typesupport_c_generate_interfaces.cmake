@@ -76,7 +76,7 @@ add_custom_command(
   COMMAND ${rosidl_typesupport_c_BIN}
   ARGS
   --generator-arguments-file "${generator_arguments_file}"
-  --typesupports "${typesupports}"
+  --typesupport-impls "${typesupports}"
   DEPENDS ${target_dependencies}
   COMMENT "Generating C type support dispatch for ROS interfaces"
   VERBATIM
