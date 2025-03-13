@@ -1,4 +1,5 @@
 #include <fmt/format.h>
+#include <nlohmann/json_fwd.hpp>
 #include <rosidlcpp_typesupport_introspection_cpp/rosidlcpp_typesupport_introspection_cpp.hpp>
 
 #include <rosidlcpp_generator_core/generator_base.hpp>
@@ -95,8 +96,7 @@ std::string idl_structure_type_to_c_include_prefix(const nlohmann::json& type, c
   return include_prefix;
 }
 
-nlohmann::json get_includes(rosidlcpp_core::CallbackArgs& args) {
-  const auto& message = *args.at(0);
+nlohmann::json get_includes(const nlohmann::json& message) {
   nlohmann::json includes_json = nlohmann::json::array();
 
   // TODO: Use a custom map sorted by insertion order
@@ -149,32 +149,9 @@ nlohmann::json get_includes(rosidlcpp_core::CallbackArgs& args) {
   return includes_json;
 }
 
-// TODO: Share with rosidl_generator_cpp
-const std::unordered_map<std::string, std::string> MSG_TYPE_TO_CPP = {
-    {"boolean", "bool"},
-    {"octet", "unsigned char"},  // TODO change to std::byte with C++17
-    {"char", "unsigned char"},
-    {"wchar", "char16_t"},
-    {"float", "float"},
-    {"double", "double"},
-    {"long double", "long double"},
-    {"uint8", "uint8_t"},
-    {"int8", "int8_t"},
-    {"uint16", "uint16_t"},
-    {"int16", "int16_t"},
-    {"uint32", "uint32_t"},
-    {"int32", "int32_t"},
-    {"uint64", "uint64_t"},
-    {"int64", "int64_t"},
-    {"string",
-     "std::basic_string<char, std::char_traits<char>, typename "
-     "std::allocator_traits<ContainerAllocator>::template "
-     "rebind_alloc<char>>"},
-    {"wstring",
-     "std::basic_string<char16_t, std::char_traits<char16_t>, typename "
-     "std::allocator_traits<ContainerAllocator>::template "
-     "rebind_alloc<char16_t>>"},
-};
+auto is_vector_bool(const nlohmann::json& type) -> bool {
+  return type["name"] == "sequence" && type["value_type"]["name"] == "boolean";
+}
 
 GeneratorTypesupportIntrospectionCpp::GeneratorTypesupportIntrospectionCpp(int argc, char** argv) : GeneratorBase() {
   // Arguments
@@ -196,37 +173,17 @@ GeneratorTypesupportIntrospectionCpp::GeneratorTypesupportIntrospectionCpp(int a
 
   m_arguments = rosidlcpp_core::parse_arguments(generator_arguments_file);
 
-  m_env.set_input_path(m_arguments.template_dir + "/");
-  m_env.set_output_path(m_arguments.output_dir + "/");
+  set_input_path(m_arguments.template_dir + "/");
+  set_output_path(m_arguments.output_dir + "/");
 
-  m_env.add_callback("get_includes", 1, [](rosidlcpp_core::CallbackArgs& args) {
-    return get_includes(args);
-  });
-  m_env.add_callback("idl_type_to_c", 1, [](rosidlcpp_core::CallbackArgs& args) {
-    return idl_type_to_c(*args.at(0));
-  });
-  m_env.add_callback("basetype_to_c", 1, [](rosidlcpp_core::CallbackArgs& args) {
-    return basetype_to_c(*args.at(0));
-  });
-  m_env.add_callback("is_vector_bool", 1, [](rosidlcpp_core::CallbackArgs& args) {
-    auto type = *args.at(0);
-    return type["name"] == "sequence" && type["value_type"]["name"] == "boolean";
-  });
-  m_env.add_callback("MSG_TYPE_TO_CPP", 1, [](inja::Arguments& args) {
-    const auto type = args.at(0)->get<std::string>();
-    const auto v = MSG_TYPE_TO_CPP.find(type);
-    if (v != MSG_TYPE_TO_CPP.end()) {
-      return v->second;
-    } else {
-      return type;
-    }
-  });
+  GENERATOR_BASE_REGISTER_FUNCTION("get_includes", 1, get_includes);
+  GENERATOR_BASE_REGISTER_FUNCTION("is_vector_bool", 1, is_vector_bool);
 }
 
 void GeneratorTypesupportIntrospectionCpp::run() {
   // Load templates
-  inja::Template template_idl = m_env.parse_template("./idl__type_support.cpp.template");
-  inja::Template template_idl_rosidl = m_env.parse_template("./idl__rosidl_typesupport_introspection_cpp.hpp.template");
+  auto template_idl = parse_template("./idl__type_support.cpp.template");
+  auto template_idl_rosidl = parse_template("./idl__rosidl_typesupport_introspection_cpp.hpp.template");
 
   // Generate message specific files
   for (const auto& [path, file_path] : m_arguments.idl_tuples) {
@@ -245,12 +202,12 @@ void GeneratorTypesupportIntrospectionCpp::run() {
     const auto msg_directory = ros_json["interface_path"]["filedir"].get<std::string>();
     const auto msg_type = ros_json["interface_path"]["filename"].get<std::string>();
     std::filesystem::create_directories(m_arguments.output_dir + "/" + msg_directory + "/detail");
-    m_env.write(template_idl, ros_json,
-                std::format("{}/detail/{}__type_support.cpp", msg_directory,
-                            rosidlcpp_core::camel_to_snake(msg_type)));
-    m_env.write(template_idl_rosidl, ros_json,
-                std::format("{}/detail/{}__rosidl_typesupport_introspection_cpp.hpp", msg_directory,
-                            rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl, ros_json,
+                   std::format("{}/detail/{}__type_support.cpp", msg_directory,
+                               rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_rosidl, ros_json,
+                   std::format("{}/detail/{}__rosidl_typesupport_introspection_cpp.hpp", msg_directory,
+                               rosidlcpp_core::camel_to_snake(msg_type)));
   }
 }
 

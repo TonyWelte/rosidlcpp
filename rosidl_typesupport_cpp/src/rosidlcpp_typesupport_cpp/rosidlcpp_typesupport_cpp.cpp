@@ -41,13 +41,13 @@ GeneratorTypesupportCpp::GeneratorTypesupportCpp(int argc, char** argv) : Genera
 
   m_arguments = rosidlcpp_core::parse_arguments(generator_arguments_file);
 
-  m_env.set_input_path(m_arguments.template_dir + "/");
-  m_env.set_output_path(m_arguments.output_dir + "/");
+  set_input_path(m_arguments.template_dir + "/");
+  set_output_path(m_arguments.output_dir + "/");
 }
 
 void GeneratorTypesupportCpp::run() {
   // Load templates
-  inja::Template template_idl = m_env.parse_template("./idl__type_support.cpp.template");
+  auto template_idl = parse_template("./idl__type_support.cpp.template");
 
   // Generate message specific files
   for (const auto& [path, file_path] : m_arguments.idl_tuples) {
@@ -67,9 +67,9 @@ void GeneratorTypesupportCpp::run() {
     const auto msg_directory = ros_json["interface_path"]["filedir"].get<std::string>();
     const auto msg_type = ros_json["interface_path"]["filename"].get<std::string>();
     std::filesystem::create_directories(m_arguments.output_dir + "/" + msg_directory);
-    m_env.write(template_idl, ros_json,
-                std::format("{}/{}__type_support.cpp", msg_directory,
-                            rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl, ros_json,
+                   std::format("{}/{}__type_support.cpp", msg_directory,
+                               rosidlcpp_core::camel_to_snake(msg_type)));
   }
 }
 

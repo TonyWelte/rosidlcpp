@@ -176,10 +176,6 @@ auto custom_range(int start, int end, int step) -> std::vector<int> {
   return result;
 }
 
-auto type_to_c_typename(const nlohmann::json& type) -> std::string {
-  return fmt::format("{}__{}", fmt::join(type["namespaces"], "__"), type["name"].get<std::string>());
-}
-
 auto is_sequence(const nlohmann::json& type) -> bool {
   return type["name"] == "sequence";
 }
@@ -251,6 +247,105 @@ auto is_service_type(const nlohmann::json& type) -> bool {
   return type["name"].get<std::string>().ends_with(SERVICE_REQUEST_MESSAGE_SUFFIX) ||
          type["name"].get<std::string>().ends_with(SERVICE_RESPONSE_MESSAGE_SUFFIX) ||
          type["name"].get<std::string>().ends_with(SERVICE_EVENT_MESSAGE_SUFFIX);
+}
+
+/**
+ * C API
+ */
+
+auto type_to_c_typename(const nlohmann::json& type) -> std::string {
+  return fmt::format("{}__{}", fmt::join(type["namespaces"], "__"), type["name"].get<std::string>());
+}
+
+auto basetype_to_c(const nlohmann::json& type) -> std::string {
+  static const std::unordered_map<std::string, std::string> BASIC_IDL_TYPES_TO_C = {
+      {"float", "float"},
+      {"double", "double"},
+      {"long double", "long double"},
+      {"char", "signed char"},
+      {"wchar", "uint16_t"},
+      {"boolean", "bool"},
+      {"octet", "uint8_t"},
+      {"uint8", "uint8_t"},
+      {"int8", "int8_t"},
+      {"uint16", "uint16_t"},
+      {"int16", "int16_t"},
+      {"uint32", "uint32_t"},
+      {"int32", "int32_t"},
+      {"uint64", "uint64_t"},
+      {"int64", "int64_t"},
+  };
+  auto it = BASIC_IDL_TYPES_TO_C.find(type["name"].get<std::string>());
+  if (it != BASIC_IDL_TYPES_TO_C.end()) {
+    return it->second;
+  }
+  if (type["name"] == "string") {
+    return "rosidl_runtime_c__String";
+  }
+  if (type["name"] == "wstring") {
+    return "rosidl_runtime_c__U16String";
+  }
+  if (rosidlcpp_core::is_namespaced(type)) {
+    return rosidlcpp_core::type_to_c_typename(type);
+  }
+
+  throw std::runtime_error("Unknown basetype: " + type.dump());
+}
+
+auto idl_type_to_c(const nlohmann::json& type) -> std::string {
+  std::string c_type;
+  if (rosidlcpp_core::is_array(type)) {
+    throw std::runtime_error("The array size is part of the variable");
+  }
+  if (rosidlcpp_core::is_sequence(type)) {
+    if (rosidlcpp_core::is_primitive(type["value_type"])) {
+      c_type = "rosidl_runtime_c__" + type["value_type"]["name"].get<std::string>();
+    } else {
+      c_type = basetype_to_c(type["value_type"]);
+    }
+    c_type += "__Sequence";
+    return c_type;
+  }
+  return basetype_to_c(type);
+}
+
+/**
+ * C++ API
+ */
+
+auto cpp_typename(const std::string& idl_typename) -> std::string {
+  static const std::unordered_map<std::string, std::string> MSG_TYPE_TO_CPP = {
+      {"boolean", "bool"},
+      {"octet", "unsigned char"},  // TODO change to std::byte with C++17
+      {"char", "unsigned char"},
+      {"wchar", "char16_t"},
+      {"float", "float"},
+      {"double", "double"},
+      {"long double", "long double"},
+      {"uint8", "uint8_t"},
+      {"int8", "int8_t"},
+      {"uint16", "uint16_t"},
+      {"int16", "int16_t"},
+      {"uint32", "uint32_t"},
+      {"int32", "int32_t"},
+      {"uint64", "uint64_t"},
+      {"int64", "int64_t"},
+      {"string",
+       "std::basic_string<char, std::char_traits<char>, typename "
+       "std::allocator_traits<ContainerAllocator>::template "
+       "rebind_alloc<char>>"},
+      {"wstring",
+       "std::basic_string<char16_t, std::char_traits<char16_t>, typename "
+       "std::allocator_traits<ContainerAllocator>::template "
+       "rebind_alloc<char16_t>>"},
+  };
+
+  const auto v = MSG_TYPE_TO_CPP.find(idl_typename);
+  if (v != MSG_TYPE_TO_CPP.end()) {
+    return v->second;
+  } else {
+    return idl_typename;
+  }
 }
 
 }  // namespace rosidlcpp_core

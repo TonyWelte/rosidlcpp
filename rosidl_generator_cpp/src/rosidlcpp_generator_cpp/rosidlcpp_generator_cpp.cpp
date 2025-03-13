@@ -373,10 +373,10 @@ GeneratorCpp::GeneratorCpp(int argc, char **argv) : GeneratorBase() {
 
   m_arguments = rosidlcpp_core::parse_arguments(generator_arguments_file);
 
-  m_env.set_input_path(m_arguments.template_dir + "/");
+  set_input_path(m_arguments.template_dir + "/");
+  set_output_path(m_arguments.output_dir + "/");
 
-  // m_env.add_callback("is_python_builtin", 1, is_python_builtin);
-  m_env.add_callback("get_includes", 2, [](inja::Arguments &args) {
+  register_callback("get_includes", 2, [](inja::Arguments &args) {
     std::vector<std::pair<std::string, std::vector<std::string>>> includes;
 
     const auto message = *args.at(0);
@@ -433,23 +433,14 @@ GeneratorCpp::GeneratorCpp(int argc, char **argv) : GeneratorBase() {
 
     return result;
   });
-  m_env.add_callback("MSG_TYPE_TO_CPP", 1, [](inja::Arguments &args) {
-    const auto type = args.at(0)->get<std::string>();
-    const auto v = MSG_TYPE_TO_CPP.find(type);
-    if (v != MSG_TYPE_TO_CPP.end()) {
-      return v->second;
-    } else {
-      return type;
-    }
-  });
 
-  m_env.add_callback("msg_type_to_cpp", 1, [](inja::Arguments &args) {
+  register_callback("msg_type_to_cpp", 1, [](inja::Arguments &args) {
     return msg_type_to_cpp(*args.at(0));
   });
 
   GENERATOR_BASE_REGISTER_FUNCTION("create_init_alloc_and_member_lists", 1, create_init_alloc_and_member_lists);
 
-  m_env.add_callback("generate_zero_string", 2, [](inja::Arguments &args) {
+  register_callback("generate_zero_string", 2, [](inja::Arguments &args) {
     const auto membset = (*args.at(0));
     const std::string fill_args = *args.at(1);
 
@@ -489,7 +480,7 @@ GeneratorCpp::GeneratorCpp(int argc, char **argv) : GeneratorBase() {
     }
     return result;
   });
-  m_env.add_callback("generate_default_string", 2, [](inja::Arguments &args) {
+  register_callback("generate_default_string", 2, [](inja::Arguments &args) {
     const auto membset = (*args.at(0));
     const std::string fill_args = *args.at(1);
 
@@ -527,35 +518,35 @@ GeneratorCpp::GeneratorCpp(int argc, char **argv) : GeneratorBase() {
     }
     return result;
   });
-  m_env.add_callback("get_fixed_template_strings", 1,
-                     [](const inja::Arguments &args) -> nlohmann::json {
-                       const auto members = *args.at(0);
+  register_callback("get_fixed_template_strings", 1,
+                    [](const inja::Arguments &args) -> nlohmann::json {
+                      const auto members = *args.at(0);
 
-                       std::set<std::string> fixed_template_strings;
-                       for (const auto &member : members) {
-                         auto type = member["type"];
-                         if (rosidlcpp_core::is_sequence(type)) {
-                           return {"false"};
-                         }
-                         if (rosidlcpp_core::is_array(type)) {
-                           type = member["type"]["value_type"];
-                         }
-                         if (rosidlcpp_core::is_string(type)) {
-                           return {"false"};
-                         }
-                         if (rosidlcpp_core::is_namespaced(type)) {
-                           fixed_template_strings.insert(fmt::format(
-                               "has_fixed_size<{}::{}>::value", fmt::join(type["namespaces"], "::"),
-                               type["name"].get<std::string>()));
-                         }
-                       }
-                       if (fixed_template_strings.empty()) {
-                         return {"true"};
-                       } else {
-                         return fixed_template_strings;
-                       }
-                     });
-  m_env.add_callback(
+                      std::set<std::string> fixed_template_strings;
+                      for (const auto &member : members) {
+                        auto type = member["type"];
+                        if (rosidlcpp_core::is_sequence(type)) {
+                          return {"false"};
+                        }
+                        if (rosidlcpp_core::is_array(type)) {
+                          type = member["type"]["value_type"];
+                        }
+                        if (rosidlcpp_core::is_string(type)) {
+                          return {"false"};
+                        }
+                        if (rosidlcpp_core::is_namespaced(type)) {
+                          fixed_template_strings.insert(fmt::format(
+                              "has_fixed_size<{}::{}>::value", fmt::join(type["namespaces"], "::"),
+                              type["name"].get<std::string>()));
+                        }
+                      }
+                      if (fixed_template_strings.empty()) {
+                        return {"true"};
+                      } else {
+                        return fixed_template_strings;
+                      }
+                    });
+  register_callback(
       "get_bounded_template_strings", 1,
       [](const inja::Arguments &args) -> nlohmann::json {
         const auto members = *args.at(0);
@@ -589,11 +580,11 @@ GeneratorCpp::GeneratorCpp(int argc, char **argv) : GeneratorBase() {
 
 void GeneratorCpp::run() {
   // Load templates
-  inja::Template template_idl_builder = m_env.parse_template("./idl__builder.hpp.template");
-  inja::Template template_idl_struct = m_env.parse_template("./idl__struct.hpp.template");
-  inja::Template template_idl_traits = m_env.parse_template("./idl__traits.hpp.template");
-  inja::Template template_idl_type_support = m_env.parse_template("./idl__type_support.hpp.template");
-  inja::Template template_idl = m_env.parse_template("./idl.hpp.template");
+  auto template_idl_builder = parse_template("./idl__builder.hpp.template");
+  auto template_idl_struct = parse_template("./idl__struct.hpp.template");
+  auto template_idl_traits = parse_template("./idl__traits.hpp.template");
+  auto template_idl_type_support = parse_template("./idl__type_support.hpp.template");
+  auto template_idl = parse_template("./idl.hpp.template");
 
   // Combined ros_json
   nlohmann::json pkg_json;
@@ -616,18 +607,6 @@ void GeneratorCpp::run() {
 
     const auto msg_directory = ros_json["interface_path"]["filedir"].get<std::string>();
     const auto msg_type = ros_json["interface_path"]["filename"].get<std::string>();
-
-    auto write_template = [&](const inja::Template &template_object, const nlohmann::json &data, std::string_view output_file) {
-      std::string result = m_env.render(template_object, data);
-
-      if (rosidlcpp_parser::has_non_ascii(result)) {
-        result = "\ufeff// NOLINT: This file starts with a BOM since it contain non-ASCII characters\n" + result;
-      }
-
-      std::ofstream file(m_arguments.output_dir + "/" + std::string{output_file});
-      file << result;
-      file.close();
-    };
 
     std::filesystem::create_directories(m_arguments.output_dir + "/" + msg_directory + "/detail");
     write_template(template_idl_builder, ros_json, std::format("{}/detail/{}__builder.hpp", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));

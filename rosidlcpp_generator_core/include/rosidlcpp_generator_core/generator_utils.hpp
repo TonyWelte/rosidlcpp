@@ -59,12 +59,6 @@ auto get_unique(auto container) {
 }
 
 /**
- * C API
- */
-
-auto type_to_c_typename(const nlohmann::json& type) -> std::string;
-
-/**
  * Type checks
  */
 
@@ -84,5 +78,19 @@ auto is_signed_integer(const nlohmann::json& type) -> bool;
 
 auto is_action_type(const nlohmann::json& type) -> bool;
 auto is_service_type(const nlohmann::json& type) -> bool;
+
+/**
+ * C API
+ */
+
+auto type_to_c_typename(const nlohmann::json& type) -> std::string;
+auto basetype_to_c(const nlohmann::json& type) -> std::string;
+auto idl_type_to_c(const nlohmann::json& type) -> std::string;
+
+/**
+ * C++ API
+ */
+
+auto cpp_typename(const std::string& idl_typename) -> std::string;
 
 }  // namespace rosidlcpp_core

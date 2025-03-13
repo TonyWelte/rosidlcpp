@@ -651,7 +651,8 @@ GeneratorC::GeneratorC(int argc, char** argv) : GeneratorBase() {
 
   m_arguments = rosidlcpp_core::parse_arguments(generator_arguments_file);
 
-  m_env.set_input_path(m_arguments.template_dir + "/");
+  set_input_path(m_arguments.template_dir + "/");
+  set_output_path(m_arguments.output_dir + "/");
 
   GENERATOR_BASE_REGISTER_FUNCTION("get_includes", 2, get_includes);
   GENERATOR_BASE_REGISTER_FUNCTION("value_to_c", 2, value_to_c);
@@ -678,13 +679,13 @@ GeneratorC::GeneratorC(int argc, char** argv) : GeneratorBase() {
 
 void GeneratorC::run() {
   // Load templates
-  inja::Template template_idl_description_c = m_env.parse_template("./idl__description.c.template");
-  inja::Template template_idl_functions_c = m_env.parse_template("./idl__functions.c.template");
-  inja::Template template_idl_functions_h = m_env.parse_template("./idl__functions.h.template");
-  inja::Template template_idl_struct_h = m_env.parse_template("./idl__struct.h.template");
-  inja::Template template_idl_type_support_c = m_env.parse_template("./idl__type_support.c.template");
-  inja::Template template_idl_type_support_h = m_env.parse_template("./idl__type_support.h.template");
-  inja::Template template_idl_h = m_env.parse_template("./idl.h.template");
+  auto template_idl_description_c = parse_template("./idl__description.c.template");
+  auto template_idl_functions_c = parse_template("./idl__functions.c.template");
+  auto template_idl_functions_h = parse_template("./idl__functions.h.template");
+  auto template_idl_struct_h = parse_template("./idl__struct.h.template");
+  auto template_idl_type_support_c = parse_template("./idl__type_support.c.template");
+  auto template_idl_type_support_h = parse_template("./idl__type_support.h.template");
+  auto template_idl_h = parse_template("./idl.h.template");
 
   // Combined ros_json
   nlohmann::json pkg_json;
@@ -736,18 +737,6 @@ void GeneratorC::run() {
 
     const auto msg_directory = ros_json["interface_path"]["filedir"].get<std::string>();
     const auto msg_type = ros_json["interface_path"]["filename"].get<std::string>();
-
-    auto write_template = [&](const inja::Template& template_object, const nlohmann::json& data, std::string_view output_file) {
-      std::string result = m_env.render(template_object, data);
-
-      if (rosidlcpp_parser::has_non_ascii(result)) {
-        result = "\ufeff// NOLINT: This file starts with a BOM since it contain non-ASCII characters\n" + result;
-      }
-
-      std::ofstream file(m_arguments.output_dir + "/" + std::string{output_file});
-      file << result;
-      file.close();
-    };
 
     std::filesystem::create_directories(m_arguments.output_dir + "/" + msg_directory + "/detail");
     write_template(template_idl_description_c, ros_json, std::format("{}/detail/{}__description.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));

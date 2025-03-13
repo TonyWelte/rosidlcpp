@@ -1,3 +1,4 @@
+#include <filesystem>
 #include <rosidlcpp_generator_core/generator_base.hpp>
 
 #include <algorithm>
@@ -45,16 +46,16 @@ GeneratorBase::GeneratorBase() : m_env{} {
   GENERATOR_BASE_REGISTER_FUNCTION("replace", 3, replace_string);
 
   // Constants
-  register_variable("EMPTY_STRUCTURE_REQUIRED_MEMBER_NAME", EMPTY_STRUCTURE_REQUIRED_MEMBER_NAME);
-  register_variable("SERVICE_EVENT_MESSAGE_SUFFIX", SERVICE_EVENT_MESSAGE_SUFFIX);
-  register_variable("SERVICE_REQUEST_MESSAGE_SUFFIX", SERVICE_REQUEST_MESSAGE_SUFFIX);
-  register_variable("SERVICE_RESPONSE_MESSAGE_SUFFIX", SERVICE_RESPONSE_MESSAGE_SUFFIX);
-  register_variable("ACTION_GOAL_SUFFIX", ACTION_GOAL_SUFFIX);
-  register_variable("ACTION_RESULT_SUFFIX", ACTION_RESULT_SUFFIX);
-  register_variable("ACTION_FEEDBACK_SUFFIX", ACTION_FEEDBACK_SUFFIX);
-  register_variable("ACTION_GOAL_SERVICE_SUFFIX", ACTION_GOAL_SERVICE_SUFFIX);
-  register_variable("ACTION_RESULT_SERVICE_SUFFIX", ACTION_RESULT_SERVICE_SUFFIX);
-  register_variable("ACTION_FEEDBACK_MESSAGE_SUFFIX", ACTION_FEEDBACK_MESSAGE_SUFFIX);
+  GENERATOR_BASE_REGISTER_CONSTANT("EMPTY_STRUCTURE_REQUIRED_MEMBER_NAME", EMPTY_STRUCTURE_REQUIRED_MEMBER_NAME);
+  GENERATOR_BASE_REGISTER_CONSTANT("SERVICE_EVENT_MESSAGE_SUFFIX", SERVICE_EVENT_MESSAGE_SUFFIX);
+  GENERATOR_BASE_REGISTER_CONSTANT("SERVICE_REQUEST_MESSAGE_SUFFIX", SERVICE_REQUEST_MESSAGE_SUFFIX);
+  GENERATOR_BASE_REGISTER_CONSTANT("SERVICE_RESPONSE_MESSAGE_SUFFIX", SERVICE_RESPONSE_MESSAGE_SUFFIX);
+  GENERATOR_BASE_REGISTER_CONSTANT("ACTION_GOAL_SUFFIX", ACTION_GOAL_SUFFIX);
+  GENERATOR_BASE_REGISTER_CONSTANT("ACTION_RESULT_SUFFIX", ACTION_RESULT_SUFFIX);
+  GENERATOR_BASE_REGISTER_CONSTANT("ACTION_FEEDBACK_SUFFIX", ACTION_FEEDBACK_SUFFIX);
+  GENERATOR_BASE_REGISTER_CONSTANT("ACTION_GOAL_SERVICE_SUFFIX", ACTION_GOAL_SERVICE_SUFFIX);
+  GENERATOR_BASE_REGISTER_CONSTANT("ACTION_RESULT_SERVICE_SUFFIX", ACTION_RESULT_SERVICE_SUFFIX);
+  GENERATOR_BASE_REGISTER_CONSTANT("ACTION_FEEDBACK_MESSAGE_SUFFIX", ACTION_FEEDBACK_MESSAGE_SUFFIX);
 
   // Utility
   GENERATOR_BASE_REGISTER_FUNCTION("span", 3, span);
@@ -91,12 +92,45 @@ GeneratorBase::GeneratorBase() : m_env{} {
   GENERATOR_BASE_REGISTER_FUNCTION("is_service_type", 1, is_service_type);
 
   // C API
-  register_variable("GET_DESCRIPTION_FUNC", "get_type_description");
-  register_variable("GET_HASH_FUNC", "get_type_hash");
-  register_variable("GET_INDIVIDUAL_SOURCE_FUNC", "get_individual_type_description_source");
-  register_variable("GET_SOURCES_FUNC", "get_type_description_sources");
+  GENERATOR_BASE_REGISTER_CONSTANT("GET_DESCRIPTION_FUNC", "get_type_description");
+  GENERATOR_BASE_REGISTER_CONSTANT("GET_HASH_FUNC", "get_type_hash");
+  GENERATOR_BASE_REGISTER_CONSTANT("GET_INDIVIDUAL_SOURCE_FUNC", "get_individual_type_description_source");
+  GENERATOR_BASE_REGISTER_CONSTANT("GET_SOURCES_FUNC", "get_type_description_sources");
+
   GENERATOR_BASE_REGISTER_FUNCTION("idl_structure_type_to_c_typename", 1, type_to_c_typename);
+  GENERATOR_BASE_REGISTER_FUNCTION("basetype_to_c", 1, basetype_to_c);
+  GENERATOR_BASE_REGISTER_FUNCTION("idl_type_to_c", 1, idl_type_to_c);
+
+  // C++ API
+  GENERATOR_BASE_REGISTER_FUNCTION("MSG_TYPE_TO_CPP", 1, cpp_typename);
 }
+
+Template GeneratorBase::parse_template(std::string_view template_path) {
+  return m_env.parse_template(std::string{template_path});
+}
+
+void GeneratorBase::register_callback(std::string_view name, int arg_count, const FunctionType& function) {
+  m_env.add_callback(std::string{name}, arg_count, function);
+}
+void GeneratorBase::register_void_callback(std::string_view name, int arg_count, const VoidFunctionType& function) {
+  m_env.add_void_callback(std::string{name}, arg_count, function);
+}
+
+void GeneratorBase::write_template(const inja::Template& template_object, const nlohmann::json& data, std::string_view output_file) {
+  m_env.write_template(template_object, data, output_file);
+}
+
+void GeneratorEnvironment::write_template(const inja::Template& template_object, const nlohmann::json& data, std::string_view output_file) {
+  std::string result = render(template_object, data);
+
+  if (rosidlcpp_parser::has_non_ascii(result)) {
+    result = "\ufeff// NOLINT: This file starts with a BOM since it contain non-ASCII characters\n" + result;
+  }
+
+  std::ofstream file(std::filesystem::path{output_path} / output_file);
+  file << result;
+  file.close();
+};
 
 std::vector<std::pair<std::string, std::string>> parse_pairs(const std::vector<std::string> list) {
   std::vector<std::pair<std::string, std::string>> result;

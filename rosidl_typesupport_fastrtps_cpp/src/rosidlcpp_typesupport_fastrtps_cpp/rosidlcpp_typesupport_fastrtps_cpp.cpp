@@ -1,5 +1,6 @@
 #include <fmt/format.h>
 #include <inja/inja.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <rosidlcpp_typesupport_fastrtps_cpp/rosidlcpp_typesupport_fastrtps_cpp.hpp>
 
 #include <rosidlcpp_generator_core/generator_base.hpp>
@@ -96,8 +97,7 @@ std::string idl_structure_type_to_c_include_prefix(const nlohmann::json& type, c
   return include_prefix;
 }
 
-nlohmann::json get_includes(rosidlcpp_core::CallbackArgs& args) {
-  const auto& message = *args.at(0);
+nlohmann::json get_includes(const nlohmann::json& message) {
   nlohmann::json includes_json = nlohmann::json::array();
 
   // TODO: Use a custom map sorted by insertion order
@@ -197,32 +197,11 @@ GeneratorTypesupportFastrtpsCpp::GeneratorTypesupportFastrtpsCpp(int argc, char*
 
   m_arguments = rosidlcpp_core::parse_arguments(generator_arguments_file);
 
-  m_env.set_input_path(m_arguments.template_dir + "/");
-  m_env.set_output_path(m_arguments.output_dir + "/");
+  set_input_path(m_arguments.template_dir + "/");
+  set_output_path(m_arguments.output_dir + "/");
 
-  m_env.add_callback("get_includes", 1, [](rosidlcpp_core::CallbackArgs& args) {
-    return get_includes(args);
-  });
-  m_env.add_callback("idl_type_to_c", 1, [](rosidlcpp_core::CallbackArgs& args) {
-    return idl_type_to_c(*args.at(0));
-  });
-  m_env.add_callback("basetype_to_c", 1, [](rosidlcpp_core::CallbackArgs& args) {
-    return basetype_to_c(*args.at(0));
-  });
-  m_env.add_callback("is_vector_bool", 1, [](rosidlcpp_core::CallbackArgs& args) {
-    auto type = *args.at(0);
-    return type["name"] == "sequence" && type["value_type"]["name"] == "boolean";
-  });
-  m_env.add_callback("MSG_TYPE_TO_CPP", 1, [](inja::Arguments& args) {
-    const auto type = args.at(0)->get<std::string>();
-    const auto v = MSG_TYPE_TO_CPP.find(type);
-    if (v != MSG_TYPE_TO_CPP.end()) {
-      return v->second;
-    } else {
-      return type;
-    }
-  });
-  m_env.add_callback("generate_member_for_cdr_serialize", 2, [](rosidlcpp_core::CallbackArgs& args) {
+  GENERATOR_BASE_REGISTER_FUNCTION("get_includes", 1, get_includes);
+  register_callback("generate_member_for_cdr_serialize", 2, [](rosidlcpp_core::CallbackArgs& args) {
     const auto& member = *args.at(0);
     const auto& suffix = args.at(1)->get<std::string>();
     std::vector<std::string> strlist;
@@ -297,7 +276,7 @@ GeneratorTypesupportFastrtpsCpp::GeneratorTypesupportFastrtpsCpp(int argc, char*
     }
     return strlist;
   });
-  m_env.add_callback("generate_member_for_get_serialized_size", 2, [](rosidlcpp_core::CallbackArgs& args) {
+  register_callback("generate_member_for_get_serialized_size", 2, [](rosidlcpp_core::CallbackArgs& args) {
     const auto& member = *args.at(0);
     const auto& suffix = args.at(1)->get<std::string>();
 
@@ -362,7 +341,7 @@ GeneratorTypesupportFastrtpsCpp::GeneratorTypesupportFastrtpsCpp(int argc, char*
 
     return strlist;
   });
-  m_env.add_callback("generate_member_for_max_serialized_size", 2, [](rosidlcpp_core::CallbackArgs& args) {
+  register_callback("generate_member_for_max_serialized_size", 2, [](rosidlcpp_core::CallbackArgs& args) {
     const auto& member = *args.at(0);
     const auto& suffix = args.at(1)->get<std::string>();
 
@@ -452,8 +431,8 @@ GeneratorTypesupportFastrtpsCpp::GeneratorTypesupportFastrtpsCpp(int argc, char*
 
 void GeneratorTypesupportFastrtpsCpp::run() {
   // Load templates
-  inja::Template template_idl = m_env.parse_template("./idl__type_support.cpp.template");
-  inja::Template template_idl_rosidl = m_env.parse_template("./idl__rosidl_typesupport_fastrtps_cpp.hpp.template");
+  auto template_idl = parse_template("./idl__type_support.cpp.template");
+  auto template_idl_rosidl = parse_template("./idl__rosidl_typesupport_fastrtps_cpp.hpp.template");
 
   // Generate message specific files
   for (const auto& [path, file_path] : m_arguments.idl_tuples) {
@@ -472,12 +451,12 @@ void GeneratorTypesupportFastrtpsCpp::run() {
     const auto msg_directory = ros_json["interface_path"]["filedir"].get<std::string>();
     const auto msg_type = ros_json["interface_path"]["filename"].get<std::string>();
     std::filesystem::create_directories(m_arguments.output_dir + "/" + msg_directory + "/detail/dds_fastrtps");
-    m_env.write(template_idl, ros_json,
-                std::format("{}/detail/dds_fastrtps/{}__type_support.cpp", msg_directory,
-                            rosidlcpp_core::camel_to_snake(msg_type)));
-    m_env.write(template_idl_rosidl, ros_json,
-                std::format("{}/detail/{}__rosidl_typesupport_fastrtps_cpp.hpp", msg_directory,
-                            rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl, ros_json,
+                   std::format("{}/detail/dds_fastrtps/{}__type_support.cpp", msg_directory,
+                               rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_rosidl, ros_json,
+                   std::format("{}/detail/{}__rosidl_typesupport_fastrtps_cpp.hpp", msg_directory,
+                               rosidlcpp_core::camel_to_snake(msg_type)));
   }
 }
 

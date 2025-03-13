@@ -471,8 +471,8 @@ GeneratorPython::GeneratorPython(int argc, char** argv) : GeneratorBase() {
 
   m_arguments = rosidlcpp_core::parse_arguments(generator_arguments_file);
 
-  m_env.set_input_path(m_arguments.template_dir + "/");
-  m_env.set_output_path(m_arguments.output_dir + "/");
+  set_input_path(m_arguments.template_dir + "/");
+  set_output_path(m_arguments.output_dir + "/");
 
   GENERATOR_BASE_REGISTER_FUNCTION("get_imports", 1, get_imports);
   GENERATOR_BASE_REGISTER_FUNCTION("constant_value_to_py", 2, constant_value_to_py);
@@ -488,13 +488,10 @@ GeneratorPython::GeneratorPython(int argc, char** argv) : GeneratorBase() {
 
 void GeneratorPython::run() {
   // Load templates
-  inja::Template template_idl_py = m_env.parse_template("./_idl.py.template");
-  inja::Template template_idl_support_c =
-      m_env.parse_template("./_idl_support.c.template");
-  inja::Template template_idl_pkg_typesupport =
-      m_env.parse_template("./_idl_pkg_typesupport_entry_point.c.template");
-  inja::Template template_init =
-      m_env.parse("{% for import in imports %}{{ import }}\n{% endfor %}");
+  auto template_idl_py = parse_template("./_idl.py.template");
+  auto template_idl_support_c = parse_template("./_idl_support.c.template");
+  auto template_idl_pkg_typesupport = parse_template("./_idl_pkg_typesupport_entry_point.c.template");
+  auto template_init = parse_template("./__init__.py.template");
 
   // Combined ros_json
   nlohmann::json pkg_json;
@@ -524,12 +521,12 @@ void GeneratorPython::run() {
     const auto msg_type = ros_json["interface_path"]["filename"].get<std::string>();
 
     std::filesystem::create_directories(m_arguments.output_dir + "/" + msg_directory);
-    m_env.write(template_idl_py, ros_json,
-                std::format("{}/_{}.py", msg_directory,
-                            rosidlcpp_core::camel_to_snake(msg_type)));
-    m_env.write(template_idl_support_c, ros_json,
-                std::format("{}/_{}_s.c", msg_directory,
-                            rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_py, ros_json,
+                   std::format("{}/_{}.py", msg_directory,
+                               rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_support_c, ros_json,
+                   std::format("{}/_{}_s.c", msg_directory,
+                               rosidlcpp_core::camel_to_snake(msg_type)));
 
     // Add to the combined ros_json
     for (auto msg : ros_json.value("messages", nlohmann::json::array())) {
@@ -569,7 +566,7 @@ void GeneratorPython::run() {
   // Generate package files
   for (const auto& typesupport : m_typesupport_implementations) {
     pkg_json["typesupport_impl"] = typesupport;
-    m_env.write(
+    write_template(
         template_idl_pkg_typesupport, pkg_json,
         std::format("_{}_s.ep.{}.c", m_arguments.package_name, typesupport));
   }
@@ -578,8 +575,8 @@ void GeneratorPython::run() {
   for (const auto& [msg_directory, imports] : init_py) {
     nlohmann::json init_py_json;
     init_py_json["imports"] = imports;
-    m_env.write(template_init, init_py_json,
-                std::format("{}/__init__.py", msg_directory));
+    write_template(template_init, init_py_json,
+                   std::format("{}/__init__.py", msg_directory));
   }
 }
 

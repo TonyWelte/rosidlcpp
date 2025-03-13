@@ -2728,6 +2728,8 @@ public:
 
   Environment(const std::string& input_path, const std::string& output_path): input_path(input_path), output_path(output_path) {}
 
+  virtual ~Environment() = default;
+
   /// Sets the opener and closer for template statements
   void set_statement(const std::string& open, const std::string& close) {
     lexer_config.statement_open = open;
