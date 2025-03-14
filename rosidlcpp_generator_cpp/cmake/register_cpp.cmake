@@ -13,19 +13,22 @@
 # limitations under the License.
 
 macro(rosidlcpp_generator_cpp_extras BIN TEMPLATE_DIR)
-  find_package(ament_cmake_core QUIET REQUIRED)
-  find_package(rosidl_generator_type_description QUIET REQUIRED)
+  if(NOT USE_ROSIDL_GENERATORS)
+    find_package(ament_cmake_core QUIET REQUIRED)
+    find_package(rosidl_generator_type_description QUIET REQUIRED)
 
-  # Replace rosidl_generator_cpp with rosidlcpp_generator_cpp
-  list(
-    TRANSFORM AMENT_EXTENSIONS_rosidl_generate_idl_interfaces
-    REPLACE "rosidl_generator_cpp:rosidl_generator_cpp_generate_interfaces.cmake"
-    "rosidlcpp_generator_cpp:rosidlcpp_generator_cpp_generate_interfaces.cmake"
-  )
+    # Replace rosidl_generator_cpp with rosidlcpp_generator_cpp
+    find_package(rosidl_generator_cpp QUIET)  # Needs to be loaded for its generator can be replace
+    list(
+      TRANSFORM AMENT_EXTENSIONS_rosidl_generate_idl_interfaces
+      REPLACE "rosidl_generator_cpp:rosidl_generator_cpp_generate_interfaces.cmake"
+      "rosidlcpp_generator_cpp:rosidlcpp_generator_cpp_generate_interfaces.cmake"
+    )
 
-  normalize_path(BIN "${BIN}")
-  set(rosidlcpp_generator_cpp_BIN "${BIN}")
+    normalize_path(BIN "${BIN}")
+    set(rosidlcpp_generator_cpp_BIN "${BIN}")
 
-  normalize_path(TEMPLATE_DIR "${TEMPLATE_DIR}")
-  set(rosidlcpp_generator_cpp_TEMPLATE_DIR "${TEMPLATE_DIR}")
+    normalize_path(TEMPLATE_DIR "${TEMPLATE_DIR}")
+    set(rosidlcpp_generator_cpp_TEMPLATE_DIR "${TEMPLATE_DIR}")
+  endif()
 endmacro()
