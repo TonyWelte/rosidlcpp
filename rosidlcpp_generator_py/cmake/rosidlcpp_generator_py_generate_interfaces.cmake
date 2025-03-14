@@ -36,7 +36,7 @@ set(Python3_FIND_UNVERSIONED_NAMES FIRST)
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development NumPy)
 
 # Get a list of typesupport implementations from valid rmw implementations.
-rosidl_generator_py_get_typesupports(_typesupport_impls)
+rosidlcpp_generator_py_get_typesupports(_typesupport_impls)
 
 if(_typesupport_impls STREQUAL "")
   message(WARNING "No valid typesupport for Python generator. Python messages will not be generated.")
@@ -102,17 +102,17 @@ foreach(_pkg_name ${rosidl_generate_interfaces_DEPENDENCY_PACKAGE_NAMES})
 endforeach()
 
 set(target_dependencies
-  "${rosidl_generator_py_BIN}"
-  "${rosidl_generator_py_TEMPLATE_DIR}/_action_pkg_typesupport_entry_point.c.template"
-  "${rosidl_generator_py_TEMPLATE_DIR}/_action.py.template"
-  "${rosidl_generator_py_TEMPLATE_DIR}/_idl_pkg_typesupport_entry_point.c.template"
-  "${rosidl_generator_py_TEMPLATE_DIR}/_idl_support.c.template"
-  "${rosidl_generator_py_TEMPLATE_DIR}/_idl.py.template"
-  "${rosidl_generator_py_TEMPLATE_DIR}/_msg_pkg_typesupport_entry_point.c.template"
-  "${rosidl_generator_py_TEMPLATE_DIR}/_msg_support.c.template"
-  "${rosidl_generator_py_TEMPLATE_DIR}/_msg.py.template"
-  "${rosidl_generator_py_TEMPLATE_DIR}/_srv_pkg_typesupport_entry_point.c.template"
-  "${rosidl_generator_py_TEMPLATE_DIR}/_srv.py.template"
+  "${rosidlcpp_generator_py_BIN}"
+  "${rosidlcpp_generator_py_TEMPLATE_DIR}/_action_pkg_typesupport_entry_point.c.template"
+  "${rosidlcpp_generator_py_TEMPLATE_DIR}/_action.py.template"
+  "${rosidlcpp_generator_py_TEMPLATE_DIR}/_idl_pkg_typesupport_entry_point.c.template"
+  "${rosidlcpp_generator_py_TEMPLATE_DIR}/_idl_support.c.template"
+  "${rosidlcpp_generator_py_TEMPLATE_DIR}/_idl.py.template"
+  "${rosidlcpp_generator_py_TEMPLATE_DIR}/_msg_pkg_typesupport_entry_point.c.template"
+  "${rosidlcpp_generator_py_TEMPLATE_DIR}/_msg_support.c.template"
+  "${rosidlcpp_generator_py_TEMPLATE_DIR}/_msg.py.template"
+  "${rosidlcpp_generator_py_TEMPLATE_DIR}/_srv_pkg_typesupport_entry_point.c.template"
+  "${rosidlcpp_generator_py_TEMPLATE_DIR}/_srv.py.template"
   ${rosidl_generate_interfaces_ABS_IDL_FILES}
   ${_dependency_files})
 foreach(dep ${target_dependencies})
@@ -128,7 +128,7 @@ rosidl_write_generator_arguments(
   IDL_TUPLES "${rosidl_generate_interfaces_IDL_TUPLES}"
   ROS_INTERFACE_DEPENDENCIES "${_dependencies}"
   OUTPUT_DIR "${_output_path}"
-  TEMPLATE_DIR "${rosidl_generator_py_TEMPLATE_DIR}"
+  TEMPLATE_DIR "${rosidlcpp_generator_py_TEMPLATE_DIR}"
   TARGET_DEPENDENCIES ${target_dependencies}
 )
 
@@ -141,7 +141,7 @@ set(_target_suffix "__py")
 # move custom command into a subdirectory to avoid multiple invocations on Windows
 set(_subdir "${CMAKE_CURRENT_BINARY_DIR}/${rosidl_generate_interfaces_TARGET}${_target_suffix}")
 file(MAKE_DIRECTORY "${_subdir}")
-file(READ "${rosidl_generator_py_DIR}/custom_command.cmake" _custom_command)
+file(READ "${rosidlcpp_generator_py_DIR}/custom_command.cmake" _custom_command)
 file(WRITE "${_subdir}/CMakeLists.txt" "${_custom_command}")
 add_subdirectory("${_subdir}" ${rosidl_generate_interfaces_TARGET}${_target_suffix})
 set_property(

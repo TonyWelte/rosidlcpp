@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-macro(rosidl_generator_py_get_typesupports TYPESUPPORT_IMPLS)
+macro(rosidlcpp_generator_py_get_typesupports TYPESUPPORT_IMPLS)
   set(${TYPESUPPORT_IMPLS} "")
   ament_index_get_resources(${TYPESUPPORT_IMPLS} "rosidl_typesupport_c")
   list(APPEND ${TYPESUPPORT_IMPLS} "rosidl_typesupport_c")
