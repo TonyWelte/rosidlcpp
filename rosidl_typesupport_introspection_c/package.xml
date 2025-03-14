@@ -13,10 +13,10 @@
 
   <buildtool_depend>ament_cmake_ros</buildtool_depend>
 
-  <buildtool_export_depend>ament_cmake</buildtool_export_depend>
-  <buildtool_export_depend>python3</buildtool_export_depend>
-  <buildtool_export_depend>rosidl_generator_c</buildtool_export_depend>
-  <buildtool_export_depend>rosidl_pycommon</buildtool_export_depend>
+  <depend>nlohmann_json</depend>
+  <depend>fmt</depend>
+  <depend>rosidlcpp_parser</depend>
+  <depend>rosidlcpp_generator_core</depend>
 
   <build_export_depend>rosidl_cmake</build_export_depend>
   <build_export_depend>rosidl_runtime_c</build_export_depend>

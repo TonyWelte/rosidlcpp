@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(rosidl_generator_c)
+project(rosidlcpp_generator_c)
 
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -16,11 +16,11 @@ find_package(nlohmann_json REQUIRED)
 find_package(rosidlcpp_parser REQUIRED)
 find_package(rosidlcpp_generator_core REQUIRED)
 
-add_executable(rosidl_generator_c src/rosidlcpp_generator_c/rosidlcpp_generator_c.cpp)
+add_executable(rosidlcpp_generator_c src/rosidlcpp_generator_c/rosidlcpp_generator_c.cpp)
 
-target_include_directories(rosidl_generator_c PUBLIC include)
+target_include_directories(rosidlcpp_generator_c PUBLIC include)
 target_link_libraries(
-  rosidl_generator_c
+  rosidlcpp_generator_c
   PUBLIC
   fmt::fmt
   nlohmann_json::nlohmann_json
@@ -38,12 +38,12 @@ ament_export_dependencies(
 ament_index_register_resource("rosidl_generator_packages")
 
 ament_package(
-  CONFIG_EXTRAS "rosidl_generator_c-extras.cmake.in"
+  CONFIG_EXTRAS "rosidlcpp_generator_c-extras.cmake.in"
 )
 
 install(
-  TARGETS rosidl_generator_c
-  DESTINATION lib/rosidl_generator_c
+  TARGETS rosidlcpp_generator_c
+  DESTINATION lib/rosidlcpp_generator_c
 )
 
 install(

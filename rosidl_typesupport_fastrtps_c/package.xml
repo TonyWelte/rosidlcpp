@@ -35,10 +35,10 @@
   <depend>rosidl_runtime_c</depend>
   <depend>rosidl_typesupport_fastrtps_cpp</depend>
 
-  <!-- Needed for the python library it installs, which is also used to generate interfaces -->
-  <depend>ament_index_python</depend>
-  <depend>rosidl_cli</depend>
-  <exec_depend>rosidl_pycommon</exec_depend>
+  <depend>nlohmann_json</depend>
+  <depend>fmt</depend>
+  <depend>rosidlcpp_parser</depend>
+  <depend>rosidlcpp_generator_core</depend>
 
   <!-- Needed for tests in this package -->
   <test_depend>ament_cmake_gtest</test_depend>
