@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(rosidl_typesupport_introspection_c)
+project(rosidlcpp_typesupport_introspection_c)
 
 # TODO: Specify C vs C++ for library and executable
 # Default to C++23
@@ -36,28 +36,10 @@ target_link_libraries(
   rosidlcpp_generator_core::rosidlcpp_generator_core
 )
 
-add_library(${PROJECT_NAME} src/identifier.c)
-if(WIN32)
-  target_compile_definitions(${PROJECT_NAME}
-    PRIVATE "ROSIDL_TYPESUPPORT_INTROSPECTION_C_BUILDING_DLL")
-endif()
-target_include_directories(${PROJECT_NAME} PUBLIC
-  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
-  "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>")
-
-# Export old-style CMake variables
-ament_export_include_directories("include/${PROJECT_NAME}")
-ament_export_libraries(${PROJECT_NAME})
-
-# Export modern CMake targets
-ament_export_targets(${PROJECT_NAME})
-
 ament_index_register_resource("rosidl_typesupport_c")
-ament_index_register_resource("rosidl_runtime_packages")
 
 if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  ament_lint_auto_find_test_dependencies()
+  # TODO
 endif()
 
 if(BUILD_SHARED_LIBS)
@@ -67,7 +49,7 @@ else()
 endif()
 
 ament_package(
-  CONFIG_EXTRAS "rosidl_typesupport_introspection_c-extras.cmake.in"
+  CONFIG_EXTRAS "rosidlcpp_typesupport_introspection_c-extras.cmake.in"
 )
 
 install(

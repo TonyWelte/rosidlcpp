@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(rosidl_typesupport_introspection_cpp)
+project(rosidlcpp_typesupport_introspection_cpp)
 
 # Default to C++23
 if(NOT CMAKE_CXX_STANDARD)
@@ -37,28 +37,7 @@ target_link_libraries(
   rosidlcpp_generator_core::rosidlcpp_generator_core
 )
 
-add_library(${PROJECT_NAME} src/identifier.cpp)
-if(WIN32)
-  target_compile_definitions(${PROJECT_NAME}
-    PRIVATE "ROSIDL_TYPESUPPORT_INTROSPECTION_CPP_BUILDING_DLL")
-endif()
-target_include_directories(${PROJECT_NAME} PUBLIC
-  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
-  "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>")
-target_link_libraries(${PROJECT_NAME} PUBLIC
-  rosidl_runtime_cpp::rosidl_runtime_cpp
-  rosidl_typesupport_introspection_c::rosidl_typesupport_introspection_c
-)
-
-# Export old-style CMake variables
-ament_export_include_directories("include/${PROJECT_NAME}")
-ament_export_libraries(${PROJECT_NAME})
-
-# Export modern CMake targets
-ament_export_targets(${PROJECT_NAME})
-
 ament_index_register_resource("rosidl_typesupport_cpp")
-ament_index_register_resource("rosidl_runtime_packages")
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -72,7 +51,7 @@ else()
 endif()
 
 ament_package(
-  CONFIG_EXTRAS "rosidl_typesupport_introspection_cpp-extras.cmake.in"
+  CONFIG_EXTRAS "rosidlcpp_typesupport_introspection_cpp-extras.cmake.in"
 )
 
 install(
