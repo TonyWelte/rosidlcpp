@@ -59,7 +59,7 @@ set(${rosidl_generate_interfaces_TARGET}__DESCRIPTION_TUPLES ${_generated_tuples
 
 # Validate that all dependencies exist
 set(target_dependencies
-  "${rosidl_generator_type_description_BIN}"
+  "${rosidlcpp_generator_type_description_BIN}"
   ${rosidl_generate_interfaces_ABS_IDL_FILES}
   ${_dependency_files})
 foreach(dep ${target_dependencies})
@@ -79,7 +79,7 @@ rosidl_write_generator_arguments(
 
 # Create custom command and target to generate the hash output
 add_custom_command(
-  COMMAND ${rosidl_generator_type_description_BIN}
+  COMMAND ${rosidlcpp_generator_type_description_BIN}
   ARGS
   --generator-arguments-file "${_generator_arguments_file}"
   OUTPUT ${_generated_files}
