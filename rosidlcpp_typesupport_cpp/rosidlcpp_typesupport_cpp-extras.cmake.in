@@ -1,0 +1,34 @@
+# generated from
+# rosidl_typesupport_cpp/rosidl_typesupport_cpp-extras.cmake.in
+
+# use the same type of library
+set(rosidl_typesupport_cpp_LIBRARY_TYPE "@rosidl_typesupport_cpp_LIBRARY_TYPE@")
+
+find_package(rosidl_typesupport_c QUIET REQUIRED)
+get_used_typesupports(_typesupports "rosidl_typesupport_cpp")
+
+# Make sure extension points are registered in order
+find_package(rosidl_generator_cpp QUIET)
+foreach(_typesupport ${_typesupports})
+  find_package(${_typesupport} QUIET)
+endforeach()
+
+find_package(ament_cmake_core QUIET REQUIRED)
+
+if(NOT USE_ROSIDL_GENERATORS)
+
+  # Replace rosidl_typesupport_cpp with rosidlcpp_typesupport_cpp
+  find_package(rosidl_typesupport_cpp QUIET)  # Needs to be loaded for its generator can be replace
+  list(
+    TRANSFORM AMENT_EXTENSIONS_rosidl_generate_idl_interfaces
+    REPLACE "rosidl_typesupport_cpp:rosidl_typesupport_cpp_generate_interfaces.cmake"
+    "rosidlcpp_typesupport_cpp:rosidlcpp_typesupport_cpp_generate_interfaces.cmake"
+  )
+
+  set(rosidlcpp_typesupport_cpp_BIN "${rosidlcpp_typesupport_cpp_DIR}/../../../lib/rosidlcpp_typesupport_cpp/rosidlcpp_typesupport_cpp")
+  normalize_path(rosidlcpp_typesupport_cpp_BIN "${rosidlcpp_typesupport_cpp_BIN}")
+
+  set(rosidlcpp_typesupport_cpp_TEMPLATE_DIR "${rosidlcpp_typesupport_cpp_DIR}/../resource")
+  normalize_path(rosidlcpp_typesupport_cpp_TEMPLATE_DIR "${rosidlcpp_typesupport_cpp_TEMPLATE_DIR}")
+
+endif()

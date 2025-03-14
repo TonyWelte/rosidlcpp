@@ -1,0 +1,16 @@
+find_package(ament_cmake_core QUIET REQUIRED)
+  
+if(NOT USE_ROSIDL_GENERATORS)
+
+  # Replace rosidl_generator_cpp with rosidlcpp_generator_cpp
+  find_package(rosidl_generator_type_description QUIET)  # Needs to be loaded for its generator can be replace
+  list(
+    TRANSFORM AMENT_EXTENSIONS_rosidl_generate_idl_interfaces
+    REPLACE "rosidl_generator_type_description:rosidl_generator_type_description_generate_interfaces.cmake"
+    "rosidlcpp_generator_type_description:rosidlcpp_generator_type_description_generate_interfaces.cmake"
+  )
+
+  set(rosidlcpp_generator_type_description_BIN "${rosidlcpp_generator_type_description_DIR}/../../../lib/rosidlcpp_generator_type_description/rosidlcpp_generator_type_description")
+  normalize_path(rosidlcpp_generator_type_description_BIN "${rosidlcpp_generator_type_description_BIN}")
+
+endif()

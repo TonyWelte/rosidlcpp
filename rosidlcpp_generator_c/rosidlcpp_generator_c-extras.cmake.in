@@ -1,0 +1,10 @@
+# generated from rosidl_generator_c/rosidl_generator_c-extras.cmake
+
+# use the same type of library
+set(rosidl_generator_c_LIBRARY_TYPE "@rosidl_generator_c_LIBRARY_TYPE@")
+
+include("${CMAKE_CURRENT_LIST_DIR}/register_c.cmake")
+rosidlcpp_generator_c_extras(
+  "${rosidlcpp_generator_c_DIR}/../../../lib/rosidlcpp_generator_c/rosidlcpp_generator_c"
+  "${rosidlcpp_generator_c_DIR}/../resource"
+)
