@@ -38,7 +38,7 @@ set(_visibility_control_file
   "${_output_path}/msg/rosidl_generator_cpp__visibility_control.hpp")
 string(TOUPPER "${PROJECT_NAME}" PROJECT_NAME_UPPER)
 configure_file(
-  "${rosidl_generator_cpp_TEMPLATE_DIR}/rosidl_generator_cpp__visibility_control.hpp.in"
+  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/rosidl_generator_cpp__visibility_control.hpp.in"
   "${_visibility_control_file}"
   @ONLY
 )
@@ -55,24 +55,24 @@ foreach(_pkg_name ${rosidl_generate_interfaces_DEPENDENCY_PACKAGE_NAMES})
 endforeach()
 
 set(target_dependencies
-  "${rosidl_generator_cpp_BIN}"
-  "${rosidl_generator_cpp_TEMPLATE_DIR}/action__builder.hpp.template"
-  "${rosidl_generator_cpp_TEMPLATE_DIR}/action__struct.hpp.template"
-  "${rosidl_generator_cpp_TEMPLATE_DIR}/action__traits.hpp.template"
-  "${rosidl_generator_cpp_TEMPLATE_DIR}/action__type_support.hpp.template"
-  "${rosidl_generator_cpp_TEMPLATE_DIR}/idl.hpp.template"
-  "${rosidl_generator_cpp_TEMPLATE_DIR}/idl__builder.hpp.template"
-  "${rosidl_generator_cpp_TEMPLATE_DIR}/idl__struct.hpp.template"
-  "${rosidl_generator_cpp_TEMPLATE_DIR}/idl__traits.hpp.template"
-  "${rosidl_generator_cpp_TEMPLATE_DIR}/idl__type_support.hpp.template"
-  "${rosidl_generator_cpp_TEMPLATE_DIR}/msg__builder.hpp.template"
-  "${rosidl_generator_cpp_TEMPLATE_DIR}/msg__struct.hpp.template"
-  "${rosidl_generator_cpp_TEMPLATE_DIR}/msg__traits.hpp.template"
-  "${rosidl_generator_cpp_TEMPLATE_DIR}/msg__type_support.hpp.template"
-  "${rosidl_generator_cpp_TEMPLATE_DIR}/srv__builder.hpp.template"
-  "${rosidl_generator_cpp_TEMPLATE_DIR}/srv__struct.hpp.template"
-  "${rosidl_generator_cpp_TEMPLATE_DIR}/srv__traits.hpp.template"
-  "${rosidl_generator_cpp_TEMPLATE_DIR}/srv__type_support.hpp.template"
+  "${rosidlcpp_generator_cpp_BIN}"
+  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/action__builder.hpp.template"
+  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/action__struct.hpp.template"
+  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/action__traits.hpp.template"
+  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/action__type_support.hpp.template"
+  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/idl.hpp.template"
+  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/idl__builder.hpp.template"
+  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/idl__struct.hpp.template"
+  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/idl__traits.hpp.template"
+  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/idl__type_support.hpp.template"
+  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/msg__builder.hpp.template"
+  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/msg__struct.hpp.template"
+  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/msg__traits.hpp.template"
+  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/msg__type_support.hpp.template"
+  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/srv__builder.hpp.template"
+  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/srv__struct.hpp.template"
+  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/srv__traits.hpp.template"
+  "${rosidlcpp_generator_cpp_TEMPLATE_DIR}/srv__type_support.hpp.template"
   ${rosidl_generate_interfaces_ABS_IDL_FILES}
   ${_dependency_files})
 foreach(dep ${target_dependencies})
@@ -88,14 +88,14 @@ rosidl_write_generator_arguments(
   IDL_TUPLES "${rosidl_generate_interfaces_IDL_TUPLES}"
   ROS_INTERFACE_DEPENDENCIES "${_dependencies}"
   OUTPUT_DIR "${_output_path}"
-  TEMPLATE_DIR "${rosidl_generator_cpp_TEMPLATE_DIR}"
+  TEMPLATE_DIR "${rosidlcpp_generator_cpp_TEMPLATE_DIR}"
   TARGET_DEPENDENCIES ${target_dependencies}
   TYPE_DESCRIPTION_TUPLES "${${rosidl_generate_interfaces_TARGET}__DESCRIPTION_TUPLES}"
 )
 
 add_custom_command(
   OUTPUT ${_generated_headers}
-  COMMAND ${rosidl_generator_cpp_BIN}
+  COMMAND ${rosidlcpp_generator_cpp_BIN}
   --generator-arguments-file "${generator_arguments_file}"
   DEPENDS ${target_dependencies}
   COMMENT "Generating C++ code for ROS interfaces"

@@ -1,0 +1,8 @@
+# generated from rosidlcpp_generator_cpp/rosidlcpp_generator_cpp-extras.cmake
+
+
+include("${CMAKE_CURRENT_LIST_DIR}/register_cpp.cmake")
+rosidlcpp_generator_cpp_extras(
+  "${rosidlcpp_generator_cpp_DIR}/../../../lib/rosidlcpp_generator_cpp/rosidlcpp_generator_cpp"
+  "${rosidlcpp_generator_cpp_DIR}/../resource"
+)
