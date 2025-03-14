@@ -59,13 +59,13 @@ endforeach()
 
 # Create a list of templates and source files this generator uses, and check that they exist
 set(target_dependencies
-  "${rosidl_typesupport_fastrtps_cpp_BIN}"
-  "${rosidl_typesupport_fastrtps_cpp_TEMPLATE_DIR}/idl__rosidl_typesupport_fastrtps_cpp.hpp.template"
-  "${rosidl_typesupport_fastrtps_cpp_TEMPLATE_DIR}/idl__type_support.cpp.template"
-  "${rosidl_typesupport_fastrtps_cpp_TEMPLATE_DIR}/msg__rosidl_typesupport_fastrtps_cpp.hpp.template"
-  "${rosidl_typesupport_fastrtps_cpp_TEMPLATE_DIR}/msg__type_support.cpp.template"
-  "${rosidl_typesupport_fastrtps_cpp_TEMPLATE_DIR}/srv__rosidl_typesupport_fastrtps_cpp.hpp.template"
-  "${rosidl_typesupport_fastrtps_cpp_TEMPLATE_DIR}/srv__type_support.cpp.template"
+  "${rosidlcpp_typesupport_fastrtps_cpp_BIN}"
+  "${rosidlcpp_typesupport_fastrtps_cpp_TEMPLATE_DIR}/idl__rosidl_typesupport_fastrtps_cpp.hpp.template"
+  "${rosidlcpp_typesupport_fastrtps_cpp_TEMPLATE_DIR}/idl__type_support.cpp.template"
+  "${rosidlcpp_typesupport_fastrtps_cpp_TEMPLATE_DIR}/msg__rosidl_typesupport_fastrtps_cpp.hpp.template"
+  "${rosidlcpp_typesupport_fastrtps_cpp_TEMPLATE_DIR}/msg__type_support.cpp.template"
+  "${rosidlcpp_typesupport_fastrtps_cpp_TEMPLATE_DIR}/srv__rosidl_typesupport_fastrtps_cpp.hpp.template"
+  "${rosidlcpp_typesupport_fastrtps_cpp_TEMPLATE_DIR}/srv__type_support.cpp.template"
   ${rosidl_generate_interfaces_ABS_IDL_FILES}
   ${_dependency_files})
 foreach(dep ${target_dependencies})
@@ -82,14 +82,14 @@ rosidl_write_generator_arguments(
   IDL_TUPLES "${rosidl_generate_interfaces_IDL_TUPLES}"
   ROS_INTERFACE_DEPENDENCIES "${_dependencies}"
   OUTPUT_DIR "${_output_path}"
-  TEMPLATE_DIR "${rosidl_typesupport_fastrtps_cpp_TEMPLATE_DIR}"
+  TEMPLATE_DIR "${rosidlcpp_typesupport_fastrtps_cpp_TEMPLATE_DIR}"
   TARGET_DEPENDENCIES ${target_dependencies}
 )
 
 # Add a command that invokes generator at build time
 add_custom_command(
   OUTPUT ${_generated_files}
-  COMMAND ${rosidl_typesupport_fastrtps_cpp_BIN}
+  COMMAND ${rosidlcpp_typesupport_fastrtps_cpp_BIN}
   ARGS
   --generator-arguments-file "${generator_arguments_file}"
   DEPENDS ${target_dependencies}
@@ -102,7 +102,7 @@ set(_visibility_control_file
   "${_output_path}/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h")
 string(TOUPPER "${PROJECT_NAME}" PROJECT_NAME_UPPER)
 configure_file(
-  "${rosidl_typesupport_fastrtps_cpp_TEMPLATE_DIR}/rosidl_typesupport_fastrtps_cpp__visibility_control.h.in"
+  "${rosidlcpp_typesupport_fastrtps_cpp_TEMPLATE_DIR}/rosidl_typesupport_fastrtps_cpp__visibility_control.h.in"
   "${_visibility_control_file}"
   @ONLY
 )

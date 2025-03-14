@@ -14,8 +14,6 @@ macro(rosidlcpp_generator_py_extras BIN TEMPLATE_DIR)
     "rosidlcpp_generator_py:rosidlcpp_generator_py_generate_interfaces.cmake"
   )
 
-message("${AMENT_EXTENSIONS_rosidl_generate_idl_interfaces}")
-
   normalize_path(BIN "${BIN}")
   set(rosidlcpp_generator_py_BIN "${BIN}")
 

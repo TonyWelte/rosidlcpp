@@ -17,13 +17,12 @@ find_package(ament_cmake_core QUIET REQUIRED)
 
 # Replace rosidl_typesupport_cpp with rosidlcpp_typesupport_cpp
 find_package(rosidl_typesupport_cpp QUIET REQUIRED)
-message("${AMENT_EXTENSIONS_rosidl_generate_idl_interfaces}")
+
 list(
   TRANSFORM AMENT_EXTENSIONS_rosidl_generate_idl_interfaces
   REPLACE "rosidl_typesupport_cpp:rosidl_typesupport_cpp_generate_interfaces.cmake"
   "rosidlcpp_typesupport_cpp:rosidlcpp_typesupport_cpp_generate_interfaces.cmake"
 )
-message("${AMENT_EXTENSIONS_rosidl_generate_idl_interfaces}")
 
 set(rosidlcpp_typesupport_cpp_BIN "${rosidlcpp_typesupport_cpp_DIR}/../../../lib/rosidlcpp_typesupport_cpp/rosidlcpp_typesupport_cpp")
 normalize_path(rosidlcpp_typesupport_cpp_BIN "${rosidlcpp_typesupport_cpp_BIN}")

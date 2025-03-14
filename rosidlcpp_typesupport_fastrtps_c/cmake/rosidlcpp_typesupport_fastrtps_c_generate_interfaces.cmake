@@ -50,13 +50,13 @@ foreach(_pkg_name ${rosidl_generate_interfaces_DEPENDENCY_PACKAGE_NAMES})
 endforeach()
 
 set(target_dependencies
-  "${rosidl_typesupport_fastrtps_c_BIN}"
-  "${rosidl_typesupport_fastrtps_c_TEMPLATE_DIR}/idl__rosidl_typesupport_fastrtps_c.h.template"
-  "${rosidl_typesupport_fastrtps_c_TEMPLATE_DIR}/idl__type_support_c.cpp.template"
-  "${rosidl_typesupport_fastrtps_c_TEMPLATE_DIR}/msg__rosidl_typesupport_fastrtps_c.h.template"
-  "${rosidl_typesupport_fastrtps_c_TEMPLATE_DIR}/msg__type_support_c.cpp.template"
-  "${rosidl_typesupport_fastrtps_c_TEMPLATE_DIR}/srv__rosidl_typesupport_fastrtps_c.h.template"
-  "${rosidl_typesupport_fastrtps_c_TEMPLATE_DIR}/srv__type_support_c.cpp.template"
+  "${rosidlcpp_typesupport_fastrtps_c_BIN}"
+  "${rosidlcpp_typesupport_fastrtps_c_TEMPLATE_DIR}/idl__rosidl_typesupport_fastrtps_c.h.template"
+  "${rosidlcpp_typesupport_fastrtps_c_TEMPLATE_DIR}/idl__type_support_c.cpp.template"
+  "${rosidlcpp_typesupport_fastrtps_c_TEMPLATE_DIR}/msg__rosidl_typesupport_fastrtps_c.h.template"
+  "${rosidlcpp_typesupport_fastrtps_c_TEMPLATE_DIR}/msg__type_support_c.cpp.template"
+  "${rosidlcpp_typesupport_fastrtps_c_TEMPLATE_DIR}/srv__rosidl_typesupport_fastrtps_c.h.template"
+  "${rosidlcpp_typesupport_fastrtps_c_TEMPLATE_DIR}/srv__type_support_c.cpp.template"
   ${rosidl_generate_interfaces_ABS_IDL_FILES}
   ${_dependency_files})
 foreach(dep ${target_dependencies})
@@ -72,7 +72,7 @@ rosidl_write_generator_arguments(
   IDL_TUPLES "${rosidl_generate_interfaces_IDL_TUPLES}"
   ROS_INTERFACE_DEPENDENCIES "${_dependencies}"
   OUTPUT_DIR "${_output_path}"
-  TEMPLATE_DIR "${rosidl_typesupport_fastrtps_c_TEMPLATE_DIR}"
+  TEMPLATE_DIR "${rosidlcpp_typesupport_fastrtps_c_TEMPLATE_DIR}"
   TARGET_DEPENDENCIES ${target_dependencies}
 )
 
@@ -96,7 +96,7 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 add_custom_command(
   OUTPUT ${_generated_files}
-  COMMAND ${rosidl_typesupport_fastrtps_c_BIN}
+  COMMAND ${rosidlcpp_typesupport_fastrtps_c_BIN}
   ARGS
   --generator-arguments-file "${generator_arguments_file}"
   DEPENDS ${target_dependencies}
@@ -109,7 +109,7 @@ set(_visibility_control_file
   "${_output_path}/msg/rosidl_typesupport_fastrtps_c__visibility_control.h")
 string(TOUPPER "${PROJECT_NAME}" PROJECT_NAME_UPPER)
 configure_file(
-  "${rosidl_typesupport_fastrtps_c_TEMPLATE_DIR}/rosidl_typesupport_fastrtps_c__visibility_control.h.in"
+  "${rosidlcpp_typesupport_fastrtps_c_TEMPLATE_DIR}/rosidl_typesupport_fastrtps_c__visibility_control.h.in"
   "${_visibility_control_file}"
   @ONLY
 )
