@@ -14,6 +14,11 @@
   <depend>rcpputils</depend>
   <depend>rcutils</depend>
 
+  <depend>nlohmann_json</depend>
+  <depend>fmt</depend>
+  <depend>rosidlcpp_parser</depend>
+  <depend>rosidlcpp_generator_core</depend>
+
   <build_depend>rosidl_runtime_c</build_depend>
 
   <!-- Explicit group resolution - see ros-infrastructure/catkin_pkg#369 -->
@@ -27,11 +32,6 @@
   <exec_depend>rosidl_generator_c</exec_depend>
   <exec_depend>rosidl_pycommon</exec_depend>
   <exec_depend>rosidl_typesupport_interface</exec_depend>
-
-  <test_depend>ament_lint_auto</test_depend>
-  <test_depend>ament_lint_common</test_depend>
-  <test_depend>mimick_vendor</test_depend>
-  <test_depend>performance_test_fixture</test_depend>
 
   <group_depend>rosidl_typesupport_c_packages</group_depend>
 

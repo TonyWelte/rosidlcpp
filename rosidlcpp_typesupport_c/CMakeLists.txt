@@ -39,7 +39,7 @@ target_link_libraries(
   rosidlcpp_generator_core::rosidlcpp_generator_core
 )
 
-ament_index_register_resource("rosidl_runtime_packages")
+ament_index_register_resource("rosidl_generator_packages")
 
 if(BUILD_TESTING)
   # TODO
