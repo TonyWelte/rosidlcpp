@@ -497,7 +497,7 @@ void GeneratorPython::run() {
     const auto msg_type = ros_json["interface_path"]["filename"].get<std::string>();
 
     std::filesystem::create_directories(m_arguments.output_dir + "/" + msg_directory);
-    write_template(template_idl_py, ros_json, std::format("{}/_{}.py", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_py, ros_json, std::format("{}/_{}.py", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)), false);
     write_template(template_idl_support_c, ros_json, std::format("{}/_{}_s.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
 
     // Add to the combined ros_json
@@ -545,7 +545,7 @@ void GeneratorPython::run() {
   for (const auto& [msg_directory, imports] : init_py) {
     nlohmann::json init_py_json;
     init_py_json["imports"] = imports;
-    write_template(template_init, init_py_json, std::format("{}/__init__.py", msg_directory));
+    write_template(template_init, init_py_json, std::format("{}/__init__.py", msg_directory), false);
   }
 }
 
