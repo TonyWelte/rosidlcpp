@@ -171,9 +171,12 @@ auto constant_value_to_py(const nlohmann::json& type, const nlohmann::json& valu
       return value.get<bool>() ? "True" : "False";
     }
 
-    if (rosidlcpp_core::is_signed_integer(type) ||
-        rosidlcpp_core::is_unsigned_integer(type)) {
-      return std::to_string(value.get<int>());
+    if (rosidlcpp_core::is_signed_integer(type)) {
+      return std::to_string(value.get<int64_t>());
+    }
+
+    if (rosidlcpp_core::is_unsigned_integer(type)) {
+      return std::to_string(value.get<uint64_t>());
     }
 
     if (type["name"] == "char") {
