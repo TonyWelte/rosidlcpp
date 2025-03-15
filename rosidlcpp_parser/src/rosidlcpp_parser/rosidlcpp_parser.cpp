@@ -825,6 +825,19 @@ auto check_non_ascii(const nlohmann::json& data) -> bool {
   return recursive_check(data, has_non_ascii);
 }
 
+std::optional<json> get_constants(const json& current_node, const std::string& message_name) {
+    if (current_node.contains("modules")) {
+        for (const auto& module : current_node["modules"]) {
+            if (module.contains("name") && module["name"] == message_name + "_Constants") {
+                if (module.contains("constants")) {
+                    return module["constants"];
+                }
+            }
+        }
+    }
+    return std::nullopt;
+}
+
 auto convert_idljson_to_rosjson(const nlohmann::json& idl_json, std::string_view file_path) -> nlohmann::json {
   nlohmann::json result;
 
@@ -847,7 +860,7 @@ auto convert_idljson_to_rosjson(const nlohmann::json& idl_json, std::string_view
   if (current_node["structures"].size() == 1) {  // Message
     result["messages"][0]["interface_path"] = result["interface_path"];
     result["messages"][0]["message"] = current_node["structures"][0];
-    result["messages"][0]["message"]["constants"] = (current_node.contains("modules") && current_node["modules"][0].contains("constants")) ? current_node["modules"][0]["constants"] : json::array();
+    result["messages"][0]["message"]["constants"] = get_constants(current_node, result["messages"][0]["message"]["name"]).value_or(json::array());
     result["messages"][0]["message"]["type"] = {
         {"name", current_node["structures"][0]["name"]},
         {"namespaces", result["type"]["namespaces"]},
@@ -858,8 +871,8 @@ auto convert_idljson_to_rosjson(const nlohmann::json& idl_json, std::string_view
     int request_structure_index = current_node["structures"][0]["name"].get<std::string>().ends_with("_Request") ? 0 : 1;
     result["services"][0]["request_message"] = current_node["structures"][request_structure_index];
     result["services"][0]["response_message"] = current_node["structures"][1 - request_structure_index];
-    result["services"][0]["request_message"]["constants"] = json::array();   // TODO: Add constants support for services
-    result["services"][0]["response_message"]["constants"] = json::array();  // TODO: Add constants support for services
+    result["services"][0]["request_message"]["constants"] = get_constants(current_node, result["services"][0]["request_message"]["name"]).value_or(json::array());
+    result["services"][0]["response_message"]["constants"] = get_constants(current_node, result["services"][0]["response_message"]["name"]).value_or(json::array());
     result["services"][0]["request_message"]["type"] = {
         {"name", current_node["structures"][request_structure_index]["name"]},
         {"namespaces", result["type"]["namespaces"]},
@@ -881,21 +894,21 @@ auto convert_idljson_to_rosjson(const nlohmann::json& idl_json, std::string_view
     for (auto& structure : current_node["structures"]) {
       if (structure["name"].get<std::string>().ends_with("_Goal")) {
         result["actions"][0]["goal"] = structure;
-        result["actions"][0]["goal"]["constants"] = json::array();  // TODO: Add constants support for actions
+        result["actions"][0]["goal"]["constants"] = get_constants(current_node, result["actions"][0]["goal"]["name"]).value_or(json::array());
         result["actions"][0]["goal"]["type"] = {
             {"name", structure["name"]},
             {"namespaces", result["type"]["namespaces"]},
         };
       } else if (structure["name"].get<std::string>().ends_with("_Result")) {
         result["actions"][0]["result"] = structure;
-        result["actions"][0]["result"]["constants"] = json::array();  // TODO: Add constants support for actions
+        result["actions"][0]["result"]["constants"] = get_constants(current_node, result["actions"][0]["result"]["name"]).value_or(json::array());
         result["actions"][0]["result"]["type"] = {
             {"name", structure["name"]},
             {"namespaces", result["type"]["namespaces"]},
         };
       } else if (structure["name"].get<std::string>().ends_with("_Feedback")) {
         result["actions"][0]["feedback"] = structure;
-        result["actions"][0]["feedback"]["constants"] = json::array();  // TODO: Add constants support for actions
+        result["actions"][0]["feedback"]["constants"] = get_constants(current_node, result["actions"][0]["feedback"]["name"]).value_or(json::array());
         result["actions"][0]["feedback"]["type"] = {
             {"name", structure["name"]},
             {"namespaces", result["type"]["namespaces"]},

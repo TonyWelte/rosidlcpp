@@ -116,14 +116,14 @@ void GeneratorBase::register_void_callback(std::string_view name, int arg_count,
   m_env.add_void_callback(std::string{name}, arg_count, function);
 }
 
-void GeneratorBase::write_template(const inja::Template& template_object, const nlohmann::json& data, std::string_view output_file) {
-  m_env.write_template(template_object, data, output_file);
+void GeneratorBase::write_template(const inja::Template& template_object, const nlohmann::json& data, std::string_view output_file, bool add_bom_if_needed) {
+  m_env.write_template(template_object, data, output_file, add_bom_if_needed);
 }
 
-void GeneratorEnvironment::write_template(const inja::Template& template_object, const nlohmann::json& data, std::string_view output_file) {
+void GeneratorEnvironment::write_template(const inja::Template& template_object, const nlohmann::json& data, std::string_view output_file, bool add_bom_if_needed) {
   std::string result = render(template_object, data);
 
-  if (rosidlcpp_parser::has_non_ascii(result)) {
+  if (add_bom_if_needed && rosidlcpp_parser::has_non_ascii(result)) {
     result = "\ufeff// NOLINT: This file starts with a BOM since it contain non-ASCII characters\n" + result;
   }
 

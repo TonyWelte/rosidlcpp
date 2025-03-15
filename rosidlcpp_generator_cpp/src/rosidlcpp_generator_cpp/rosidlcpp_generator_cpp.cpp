@@ -513,7 +513,7 @@ auto get_bounded_template_strings(const nlohmann::json &members) -> nlohmann::js
     if (rosidlcpp_core::is_nestedtype(type) /* bounded sequence or array */) {
       type = member["type"]["value_type"];
     }
-    if (rosidlcpp_core::is_string(type)) {
+    if (rosidlcpp_core::is_string(type) && !type.contains("maximum_size")) {
       return {"false"};
     }
     if (rosidlcpp_core::is_namespaced(type)) {

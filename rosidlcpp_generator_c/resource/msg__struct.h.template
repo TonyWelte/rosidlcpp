@@ -7,7 +7,7 @@
 {% if existsIn(constant, "comments") %}
 /**
 {%   for line in constant.comments %}
-{%     if line %}
+{%     if length(line) != 0 %}
   * {{ line }}
 {%     else %}
   *
@@ -60,10 +60,10 @@ enum
 {% endif %}
 
 /// Struct defined in {{ interface_path.filedir }}/{{ interface_path.filename }} in the package {{ package_name }}.
-{% if message.comments and not is_action_type(message.type) %}
+{% if message.comments and not is_action_type(message.type) and not is_service_type(message.type) %}
 /**
 {%   for line in message.comments %}
-{%     if line %}
+{%     if length(line) != 0 %}
   * {{ line }}
 {%     else %}
   *
@@ -75,7 +75,7 @@ typedef struct {{ idl_structure_type_to_c_typename(message.type) }}
 {
 {% for member in message.members %}
 {%   for line in member.comments %}
-{%     if line %}
+{%     if length(line) != 0 %}
   /// {{ line }}
 {%     else %}
   ///

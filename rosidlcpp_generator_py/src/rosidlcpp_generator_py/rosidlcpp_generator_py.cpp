@@ -171,9 +171,12 @@ auto constant_value_to_py(const nlohmann::json& type, const nlohmann::json& valu
       return value.get<bool>() ? "True" : "False";
     }
 
-    if (rosidlcpp_core::is_signed_integer(type) ||
-        rosidlcpp_core::is_unsigned_integer(type)) {
-      return std::to_string(value.get<int>());
+    if (rosidlcpp_core::is_signed_integer(type)) {
+      return std::to_string(value.get<int64_t>());
+    }
+
+    if (rosidlcpp_core::is_unsigned_integer(type)) {
+      return std::to_string(value.get<uint64_t>());
     }
 
     if (type["name"] == "char") {
@@ -497,7 +500,7 @@ void GeneratorPython::run() {
     const auto msg_type = ros_json["interface_path"]["filename"].get<std::string>();
 
     std::filesystem::create_directories(m_arguments.output_dir + "/" + msg_directory);
-    write_template(template_idl_py, ros_json, std::format("{}/_{}.py", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_py, ros_json, std::format("{}/_{}.py", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)), false);
     write_template(template_idl_support_c, ros_json, std::format("{}/_{}_s.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
 
     // Add to the combined ros_json
@@ -542,10 +545,11 @@ void GeneratorPython::run() {
   }
 
   // Generate __init__.py
-  for (const auto& [msg_directory, imports] : init_py) {
+  for (auto [msg_directory, imports] : init_py) {
+    std::ranges::sort(imports);
     nlohmann::json init_py_json;
     init_py_json["imports"] = imports;
-    write_template(template_init, init_py_json, std::format("{}/__init__.py", msg_directory));
+    write_template(template_init, init_py_json, std::format("{}/__init__.py", msg_directory), false);
   }
 }
 
