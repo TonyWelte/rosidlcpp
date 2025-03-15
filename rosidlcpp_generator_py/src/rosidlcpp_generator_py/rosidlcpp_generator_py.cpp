@@ -542,7 +542,8 @@ void GeneratorPython::run() {
   }
 
   // Generate __init__.py
-  for (const auto& [msg_directory, imports] : init_py) {
+  for (auto [msg_directory, imports] : init_py) {
+    std::ranges::sort(imports);
     nlohmann::json init_py_json;
     init_py_json["imports"] = imports;
     write_template(template_init, init_py_json, std::format("{}/__init__.py", msg_directory), false);
