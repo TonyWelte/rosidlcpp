@@ -1,0 +1,10 @@
+CompileFlags:
+  CompilationDatabase: ../../build
+Diagnostics:
+  MissingIncludes: Strict
+  ClangTidy:
+    Add: 
+      - modernize*
+      - bugprone*
+      - cppcoreguidelines*
+      - performance*
