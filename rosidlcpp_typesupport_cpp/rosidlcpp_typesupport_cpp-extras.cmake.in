@@ -2,7 +2,7 @@
 # rosidl_typesupport_cpp/rosidl_typesupport_cpp-extras.cmake.in
 
 # use the same type of library
-set(rosidl_typesupport_cpp_LIBRARY_TYPE "@rosidl_typesupport_cpp_LIBRARY_TYPE@")
+set(rosidl_typesupport_cpp_LIBRARY_TYPE "@rosidlcpp_typesupport_cpp_LIBRARY_TYPE@")
 
 find_package(rosidl_typesupport_c QUIET REQUIRED)
 get_used_typesupports(_typesupports "rosidl_typesupport_cpp")

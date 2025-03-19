@@ -8,7 +8,7 @@ endif()
 
 set(CMAKE_CXX_STANDARD 23)
 
-find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_ros REQUIRED)
 
 find_package(fmt REQUIRED)
 find_package(nlohmann_json REQUIRED)
@@ -36,6 +36,17 @@ ament_export_dependencies(
 )
 
 ament_index_register_resource("rosidl_generator_packages")
+
+if(BUILD_SHARED_LIBS)
+  set(${PROJECT_NAME}_LIBRARY_TYPE "SHARED")
+else()
+  set(${PROJECT_NAME}_LIBRARY_TYPE "STATIC")
+endif()
+
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+endif()
 
 ament_package(
   CONFIG_EXTRAS "rosidlcpp_generator_c-extras.cmake.in"
