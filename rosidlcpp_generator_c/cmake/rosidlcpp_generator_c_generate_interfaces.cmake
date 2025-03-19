@@ -99,6 +99,7 @@ endif()
 add_custom_command(
   OUTPUT ${_generated_headers} ${_generated_sources}
   COMMAND ${rosidlcpp_generator_c_BIN}
+  ARGS
   --generator-arguments-file "${generator_arguments_file}"
   ${disable_description_codegen_arg}
   DEPENDS ${target_dependencies}

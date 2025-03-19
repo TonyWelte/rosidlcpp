@@ -106,10 +106,10 @@ Time measured from the `.ninja_log` logs (there is about 1-2 seconds of addition
 ### Build from Source
 
 ```sh
-# Clone
+# Clone into your workspace
 git clone https://github.com/TonyWelte/rosidlcpp.git src/rosidlcpp
 # Install dependencies
-rosdep install --from-paths src/rosidlcpp --ignore-src -r -y
+rosdep install --from-paths src/rosidlcpp --ignore-src
 # Build
 colcon build --base-paths src/rosidlcpp --cmake-args -DCMAKE_BUILD_TYPE=Release
 # Source

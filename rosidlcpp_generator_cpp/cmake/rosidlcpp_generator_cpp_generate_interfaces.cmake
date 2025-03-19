@@ -96,6 +96,7 @@ rosidl_write_generator_arguments(
 add_custom_command(
   OUTPUT ${_generated_headers}
   COMMAND ${rosidlcpp_generator_cpp_BIN}
+  ARGS
   --generator-arguments-file "${generator_arguments_file}"
   DEPENDS ${target_dependencies}
   COMMENT "Generating C++ code for ROS interfaces"

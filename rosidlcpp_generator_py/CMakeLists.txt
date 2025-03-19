@@ -26,6 +26,10 @@ target_link_libraries(rosidlcpp_generator_py PUBLIC fmt::fmt nlohmann_json::nloh
 
 ament_index_register_resource("rosidl_generator_packages")
 
+if(BUILD_TESTING)
+  # TODO
+endif()
+
 ament_package(
   CONFIG_EXTRAS "cmake/rosidlcpp_generator_py_get_typesupports.cmake"
     "cmake/register_py.cmake"
@@ -36,7 +40,6 @@ install(
   TARGETS rosidlcpp_generator_py
   DESTINATION lib/rosidlcpp_generator_py
 )
-
 install(
   DIRECTORY cmake resource
   DESTINATION share/${PROJECT_NAME}

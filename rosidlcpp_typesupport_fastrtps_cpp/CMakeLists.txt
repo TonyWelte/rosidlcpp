@@ -22,13 +22,7 @@ endif()
 
 find_package(ament_cmake_ros REQUIRED)
 
-find_package(fastrtps_cmake_module QUIET)
 find_package(fastcdr 2 REQUIRED CONFIG)
-if(FASTRTPS_STATIC_DISABLE)
-  ament_package()
-  message(STATUS "fastrtps static rmw implementation explicitly disabled - skipping '${PROJECT_NAME}'")
-  return()
-endif()
 
 find_package(ament_cmake_python REQUIRED)
 
@@ -37,7 +31,6 @@ find_package(rosidl_runtime_c REQUIRED)
 
 ament_export_dependencies(rmw)
 ament_export_dependencies(rosidl_runtime_c)
-ament_export_dependencies(fastrtps_cmake_module)
 ament_export_dependencies(fastcdr)
 
 find_package(fmt REQUIRED)
