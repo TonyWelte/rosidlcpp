@@ -232,10 +232,6 @@ foreach(_typesupport_impl ${_typesupport_impls})
     ${rosidl_generate_interfaces_TARGET}__${_typesupport_impl}
   )
 
-  ament_target_dependencies(${_target_name} PUBLIC
-    "rosidl_generator_py"
-  )
-
   if(NOT rosidl_generate_interfaces_SKIP_INSTALL)
     # PYTHON_INSTALL_DIR is defined by ament_cmake_python
     install(TARGETS ${_target_name}
