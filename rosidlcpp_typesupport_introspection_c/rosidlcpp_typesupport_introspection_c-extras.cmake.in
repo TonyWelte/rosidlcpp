@@ -3,8 +3,7 @@
 #   rosidl_typesupport_introspection_c-extras.cmake.in
 
 # use the same type of library
-set(rosidl_typesupport_introspection_c_LIBRARY_TYPE
-  "@rosidl_typesupport_introspection_c_LIBRARY_TYPE@")
+set(rosidl_typesupport_introspection_c_LIBRARY_TYPE "@rosidlcpp_typesupport_introspection_c_LIBRARY_TYPE@")
 
 # Make sure rosidl_generator_c extension point is registered first
 find_package(rosidl_generator_c QUIET)
