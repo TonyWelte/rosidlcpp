@@ -115,6 +115,16 @@ target_precompile_headers(${rosidl_generate_interfaces_TARGET}${_target_suffix}
     [["rosidl_runtime_c/message_type_support_struct.h"]]
     [["rosidl_typesupport_cpp/message_type_support.hpp"]]
     [["rosidl_typesupport_interface/macros.h"]]
+    [["rosidl_typesupport_introspection_cpp/field_types.hpp"]]
+    [["rosidl_typesupport_introspection_cpp/identifier.hpp"]]
+    [["rosidl_typesupport_introspection_cpp/message_introspection.hpp"]]
+    [["rosidl_typesupport_introspection_cpp/message_type_support_decl.hpp"]]
+    [["rosidl_typesupport_introspection_cpp/visibility_control.h"]]
+    # srv__type_support.cpp.em
+    [["rosidl_typesupport_cpp/message_type_support.hpp"]]
+    [["rosidl_typesupport_cpp/service_type_support.hpp"]]
+    [["rosidl_typesupport_interface/macros.h"]]
+    [["rosidl_typesupport_introspection_cpp/visibility_control.h"]]
     # rosidl_generator_c/ressource/idl__functions.h.em
     <stdbool.h>
     <stdlib.h>
@@ -133,12 +143,6 @@ target_precompile_headers(${rosidl_generate_interfaces_TARGET}${_target_suffix}
     <vector>
     [["rosidl_runtime_cpp/bounded_vector.hpp"]]
     [["rosidl_runtime_cpp/message_initialization.hpp"]]
-    # msg__type_support.cpp.em (2)
-    [["rosidl_typesupport_introspection_cpp/field_types.hpp"]]
-    [["rosidl_typesupport_introspection_cpp/identifier.hpp"]]
-    [["rosidl_typesupport_introspection_cpp/message_introspection.hpp"]]
-    [["rosidl_typesupport_introspection_cpp/message_type_support_decl.hpp"]]
-    [["rosidl_typesupport_introspection_cpp/visibility_control.h"]]
 )
 
 target_include_directories(${rosidl_generate_interfaces_TARGET}${_target_suffix}

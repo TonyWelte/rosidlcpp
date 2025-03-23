@@ -133,7 +133,7 @@ target_precompile_headers(${rosidl_generate_interfaces_TARGET}${_target_suffix}
     <stdbool.h>
     <stdlib.h>
     [["rosidl_runtime_c/action_type_support_struct.h"]]
-    # [["rosidl_runtime_c/message_type_support_struct.h"]]  # already included
+    [["rosidl_runtime_c/message_type_support_struct.h"]]
     [["rosidl_runtime_c/service_type_support_struct.h"]]
     [["rosidl_runtime_c/type_description/type_description__struct.h"]]
     [["rosidl_runtime_c/type_description/type_source__struct.h"]]
@@ -143,7 +143,7 @@ target_precompile_headers(${rosidl_generate_interfaces_TARGET}${_target_suffix}
     <algorithm>
     <array>
     <memory>
-    # <string>  # already included
+    <string>
     <vector>
     [["rosidl_runtime_cpp/bounded_vector.hpp"]]
     [["rosidl_runtime_cpp/message_initialization.hpp"]]
