@@ -120,12 +120,16 @@ target_precompile_headers(${rosidl_generate_interfaces_TARGET}${_target_suffix}
     [["rosidl_typesupport_fastrtps_c/wstring_conversion.hpp"]]
     [["rosidl_typesupport_fastrtps_cpp/message_type_support.h"]]
     [["fastcdr/Cdr.h"]]
+    # srv__type_support_c.cpp.em
+    [["rosidl_typesupport_fastrtps_cpp/service_type_support.h"]]
+    [["rosidl_typesupport_cpp/service_type_support.hpp"]]
+    [["rosidl_typesupport_fastrtps_c/identifier.h"]]
     # rosidl_generator_c/resource/idl_struct.h.em
     <stdbool.h>
     <stddef.h>
     <stdint.h>
     # rosidl_generator_c/resource/idl__functions.h.em
-    # <stdbool.h>  # already included
+    <stdbool.h>
     <stdlib.h>
     [["rosidl_runtime_c/action_type_support_struct.h"]]
     [["rosidl_runtime_c/message_type_support_struct.h"]]
