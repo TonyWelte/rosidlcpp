@@ -319,7 +319,7 @@ nlohmann::json extract_subinterface(const nlohmann::json& type_description_msg, 
 
 auto get_implicit_type_description(const nlohmann::json& services, const nlohmann::json& actions, const nlohmann::json& type_description_info) -> nlohmann::json {
   nlohmann::json implicit_type_description = nlohmann::json::array();
-  for (const auto& service : services) {  // TODO: Check if the service variable is required for something
+  std::ranges::for_each(services, [&](const auto&) {
     implicit_type_description.push_back({
         {"msg", extract_subinterface(type_description_info["type_description_msg"], "request_message")},
         {"type", "message"},
@@ -332,8 +332,8 @@ auto get_implicit_type_description(const nlohmann::json& services, const nlohman
         {"msg", extract_subinterface(type_description_info["type_description_msg"], "event_message")},
         {"type", "message"},
     });
-  }
-  for (const auto& action : actions) {  // TODO: Check if the action variable is required for something
+  });
+  std::ranges::for_each(actions, [&](const auto&) {
     const auto send_goal_service = extract_subinterface(type_description_info["type_description_msg"], "send_goal_service");
     const auto get_result_service = extract_subinterface(type_description_info["type_description_msg"], "get_result_service");
     implicit_type_description.push_back({
@@ -384,7 +384,7 @@ auto get_implicit_type_description(const nlohmann::json& services, const nlohman
         {"msg", extract_subinterface(type_description_info["type_description_msg"], "feedback_message")},
         {"type", "message"},
     });
-  }
+  });
 
   return implicit_type_description;
 }

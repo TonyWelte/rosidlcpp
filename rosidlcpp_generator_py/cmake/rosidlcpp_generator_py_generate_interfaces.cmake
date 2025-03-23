@@ -178,7 +178,7 @@ target_precompile_headers(${_target_name_lib}
     # rosidl_generator_py/ressource/_msg_support.c.em
     [["Python.h"]]
     [["stdbool.h"]]
-    [["numpy/ndarrayobject.h"]]
+    # [["numpy/ndarrayobject.h"]]  # TODO(TonyWelte): Fix warning
     [["rosidl_runtime_c/visibility_control.h"]]
 )
 
