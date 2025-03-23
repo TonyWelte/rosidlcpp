@@ -317,7 +317,7 @@ auto generate_member_for_max_serialized_size(const nlohmann::json& member, const
 }
 auto sort_forward_declared_types(std::vector<nlohmann::json> types) -> std::vector<nlohmann::json> {
   std::sort(types.begin(), types.end(), [](const nlohmann::json& a, const nlohmann::json& b) {
-    for (int i = 0; i < a["namespaces"].size(); i++) {
+    for (size_t i = 0; i < a["namespaces"].size(); i++) {
       if (a["namespaces"][i].get<std::string>() != b["namespaces"][i].get<std::string>()) {
         return a["namespaces"][i].get<std::string>() < b["namespaces"][i].get<std::string>();
       }
