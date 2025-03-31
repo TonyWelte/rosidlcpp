@@ -31,6 +31,7 @@ void GeneratorTypesupportCpp::run() {
   for (const auto& [path, file_path] : m_arguments.idl_tuples) {
     const auto full_path = path + "/" + file_path;
 
+    const auto idl_write_time = std::filesystem::last_write_time(full_path);
     const auto idl_json = rosidlcpp_parser::parse_idl_file(full_path);
     // TODO: Save the result to an output file for debugging
 
@@ -43,7 +44,7 @@ void GeneratorTypesupportCpp::run() {
     const auto msg_directory = ros_json["interface_path"]["filedir"].get<std::string>();
     const auto msg_type = ros_json["interface_path"]["filename"].get<std::string>();
     std::filesystem::create_directories(m_arguments.output_dir + "/" + msg_directory);
-    write_template(template_idl, ros_json, std::format("{}/{}__type_support.cpp", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl, ros_json, std::format("{}/{}__type_support.cpp", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)), true, idl_write_time);
   }
 }
 

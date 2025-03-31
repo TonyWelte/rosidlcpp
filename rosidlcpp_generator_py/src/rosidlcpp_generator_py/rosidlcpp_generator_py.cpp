@@ -488,6 +488,7 @@ void GeneratorPython::run() {
   for (const auto& [path, file_path] : m_arguments.idl_tuples) {
     const auto full_path = path + "/" + file_path;
 
+    const auto idl_write_time = std::filesystem::last_write_time(full_path);
     const auto idl_json = rosidlcpp_parser::parse_idl_file(full_path);
     // TODO: Save the result to an output file for debugging
 
@@ -500,8 +501,8 @@ void GeneratorPython::run() {
     const auto msg_type = ros_json["interface_path"]["filename"].get<std::string>();
 
     std::filesystem::create_directories(m_arguments.output_dir + "/" + msg_directory);
-    write_template(template_idl_py, ros_json, std::format("{}/_{}.py", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)), false);
-    write_template(template_idl_support_c, ros_json, std::format("{}/_{}_s.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_py, ros_json, std::format("{}/_{}.py", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)), false, idl_write_time);
+    write_template(template_idl_support_c, ros_json, std::format("{}/_{}_s.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)), true, idl_write_time);
 
     // Add to the combined ros_json
     for (const auto& msg : ros_json.value("messages", nlohmann::json::array())) {
@@ -541,7 +542,7 @@ void GeneratorPython::run() {
   // Generate package files
   for (const auto& typesupport : m_typesupport_implementations) {
     pkg_json["typesupport_impl"] = typesupport;
-    write_template(template_idl_pkg_typesupport, pkg_json, std::format("_{}_s.ep.{}.c", m_arguments.package_name, typesupport));
+    write_template(template_idl_pkg_typesupport, pkg_json, std::format("_{}_s.ep.{}.c", m_arguments.package_name, typesupport), true);
   }
 
   // Generate __init__.py

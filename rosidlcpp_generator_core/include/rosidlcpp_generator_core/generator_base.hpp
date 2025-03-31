@@ -5,6 +5,7 @@
 #include <string_view>
 #include <utility>
 #include <vector>
+#include <optional>
 
 #include <nlohmann/json_fwd.hpp>
 
@@ -68,7 +69,7 @@ class GeneratorEnvironment : public inja::Environment {
     output_path = path;
   }
 
-  void write_template(const Template& template_object, const nlohmann::json& data, std::string_view output_file, bool add_bom_if_needed);
+  void write_template(const Template& template_object, const nlohmann::json& data, std::string_view output_file, bool add_bom_if_needed, std::optional<std::filesystem::file_time_type> last_write_time = std::nullopt);
 
  private:
   std::filesystem::path m_output_directory;
@@ -84,7 +85,7 @@ class GeneratorBase {
   void register_callback(std::string_view name, int arg_count, const FunctionType& function);
   void register_void_callback(std::string_view name, int arg_count, const VoidFunctionType& function);
 
-  void write_template(const Template& template_object, const nlohmann::json& data, std::string_view output_file, bool add_bom_if_needed = true);
+  void write_template(const Template& template_object, const nlohmann::json& data, std::string_view output_file, bool add_bom_if_needed = true, std::optional<std::filesystem::file_time_type> last_write_time = std::nullopt);
 
   auto parse_template(std::string_view template_path) -> Template;
 

@@ -116,11 +116,11 @@ void GeneratorBase::register_void_callback(std::string_view name, int arg_count,
   m_env.add_void_callback(std::string{name}, arg_count, function);
 }
 
-void GeneratorBase::write_template(const inja::Template& template_object, const nlohmann::json& data, std::string_view output_file, bool add_bom_if_needed) {
-  m_env.write_template(template_object, data, output_file, add_bom_if_needed);
+void GeneratorBase::write_template(const inja::Template& template_object, const nlohmann::json& data, std::string_view output_file, bool add_bom_if_needed, std::optional<std::filesystem::file_time_type> last_write_time) {
+  m_env.write_template(template_object, data, output_file, add_bom_if_needed, last_write_time);
 }
 
-void GeneratorEnvironment::write_template(const inja::Template& template_object, const nlohmann::json& data, std::string_view output_file, bool add_bom_if_needed) {
+void GeneratorEnvironment::write_template(const inja::Template& template_object, const nlohmann::json& data, std::string_view output_file, bool add_bom_if_needed, std::optional<std::filesystem::file_time_type> last_write_time) {
   std::string result = render(template_object, data);
 
   if (add_bom_if_needed && rosidlcpp_parser::has_non_ascii(result)) {
@@ -130,6 +130,10 @@ void GeneratorEnvironment::write_template(const inja::Template& template_object,
   std::ofstream file(std::filesystem::path{output_path} / output_file);
   file << result;
   file.close();
+  
+  if (last_write_time) {
+    std::filesystem::last_write_time(std::filesystem::path{output_path} / output_file, *last_write_time);
+  }
 };
 
 std::vector<std::pair<std::string, std::string>> parse_pairs(const std::vector<std::string> list) {
