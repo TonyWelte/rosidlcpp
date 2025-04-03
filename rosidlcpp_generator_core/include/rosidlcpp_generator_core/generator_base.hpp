@@ -1,8 +1,11 @@
 #pragma once
 
 #include <filesystem>
+#include <mutex>
+#include <optional>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -91,7 +94,8 @@ class GeneratorBase {
  private:
   GeneratorEnvironment m_env;
 
-  nlohmann::json m_global_storage;
+  std::map<std::thread::id, nlohmann::json> m_global_storage;
+  std::mutex m_global_storage_mutex;
 };
 
 }  // namespace rosidlcpp_core

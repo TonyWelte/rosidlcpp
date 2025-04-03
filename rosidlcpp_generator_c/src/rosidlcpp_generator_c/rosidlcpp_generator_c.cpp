@@ -13,6 +13,8 @@
 
 #include <nlohmann/json_fwd.hpp>
 
+#include <thread_pool/thread_pool.h>
+
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
@@ -663,8 +665,9 @@ void GeneratorC::run() {
   pkg_json["services"] = nlohmann::json::array();
   pkg_json["actions"] = nlohmann::json::array();
 
-  // Generate message specific files
-  for (const auto& [path, file_path] : m_arguments.idl_tuples) {
+  dp::thread_pool pool;
+
+  auto generate_file = [=](const std::string& path, const std::string& file_path) {
     const auto full_path = path + "/" + file_path;
 
     const auto idl_json = rosidlcpp_parser::parse_idl_file(full_path);
@@ -708,14 +711,21 @@ void GeneratorC::run() {
     const auto msg_type = ros_json["interface_path"]["filename"].get<std::string>();
 
     std::filesystem::create_directories(m_arguments.output_dir + "/" + msg_directory + "/detail");
-    write_template(template_idl_description_c, ros_json, std::format("{}/detail/{}__description.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
-    write_template(template_idl_functions_c, ros_json, std::format("{}/detail/{}__functions.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
-    write_template(template_idl_functions_h, ros_json, std::format("{}/detail/{}__functions.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
-    write_template(template_idl_struct_h, ros_json, std::format("{}/detail/{}__struct.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
-    write_template(template_idl_type_support_c, ros_json, std::format("{}/detail/{}__type_support.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
-    write_template(template_idl_type_support_h, ros_json, std::format("{}/detail/{}__type_support.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
-    write_template(template_idl_h, ros_json, std::format("{}/{}.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_description_c, ros_json, std::format("{}/detail/{}__description.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)), idl_write_time);
+    write_template(template_idl_functions_c, ros_json, std::format("{}/detail/{}__functions.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)), idl_write_time);
+    write_template(template_idl_functions_h, ros_json, std::format("{}/detail/{}__functions.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)), idl_write_time);
+    write_template(template_idl_struct_h, ros_json, std::format("{}/detail/{}__struct.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)), idl_write_time);
+    write_template(template_idl_type_support_c, ros_json, std::format("{}/detail/{}__type_support.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)), idl_write_time);
+    write_template(template_idl_type_support_h, ros_json, std::format("{}/detail/{}__type_support.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)), idl_write_time);
+    write_template(template_idl_h, ros_json, std::format("{}/{}.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)), idl_write_time);
+  };
+
+  // Generate message specific files
+  for (const auto& [path, file_path] : m_arguments.idl_tuples) {
+    pool.enqueue_detach(generate_file, path, file_path);
   }
+
+  pool.wait_for_tasks();
 }
 
 auto main(int argc, char** argv) -> int {
