@@ -1,17 +1,20 @@
-#include <filesystem>
 #include <rosidlcpp_generator_core/generator_base.hpp>
 
 #include <algorithm>
 #include <cctype>
 #include <cmath>
 #include <cstddef>
+#include <filesystem>
+#include <format>
 #include <fstream>
 #include <iostream>
+#include <mutex>
 #include <ostream>
 #include <set>
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -20,6 +23,7 @@
 
 #include <fmt/core.h>
 #include <fmt/ranges.h>
+#include <threads.h>
 
 #include <inja/inja.hpp>
 
@@ -28,7 +32,7 @@
 
 namespace rosidlcpp_core {
 
-GeneratorBase::GeneratorBase() : m_env{} {
+GeneratorBase::GeneratorBase() : m_env{}, m_global_storage{}, m_pool{} {
   m_env.set_trim_blocks(true);
   m_env.set_lstrip_blocks(true);
 
@@ -66,12 +70,18 @@ GeneratorBase::GeneratorBase() : m_env{} {
   m_env.add_callback("set_global_variable", 2, [&](inja::Arguments& args) {
     auto name = args.at(0)->get<std::string>();
     auto value = *args.at(1);
-    m_global_storage[name] = value;
-    return m_global_storage[name];
+
+    std::lock_guard lock(m_global_storage_mutex);
+    const auto thread_id = std::this_thread::get_id();
+    m_global_storage[thread_id][name] = value;
+    return m_global_storage[thread_id][name];
   });
   m_env.add_callback("get_global_variable", 1, [&](inja::Arguments& args) {
     auto name = args.at(0)->get<std::string>();
-    return m_global_storage[name];
+
+    std::lock_guard lock(m_global_storage_mutex);
+
+    return m_global_storage[std::this_thread::get_id()][name];
   });
 
   GENERATOR_BASE_REGISTER_FUNCTION("unique", 1, get_unique);
@@ -120,28 +130,32 @@ void GeneratorBase::write_template(const inja::Template& template_object, const 
   m_env.write_template(template_object, data, output_file, add_bom_if_needed);
 }
 
+auto GeneratorBase::wait_for_tasks() -> void {
+  m_pool.wait_for_tasks();
+}
+
 /**
  * @brief Update the file if the contents are different from the new content.
  */
 bool compare_and_write(const std::filesystem::path& file_path, const std::string& new_content) {
-    std::ifstream in_file(file_path);
-    std::string file_content((std::istreambuf_iterator<char>(in_file)), std::istreambuf_iterator<char>());
+  std::ifstream in_file(file_path);
+  std::string file_content((std::istreambuf_iterator<char>(in_file)), std::istreambuf_iterator<char>());
 
-    if (file_content == new_content) {
-        // Contents are the same, no need to update the file
-        return false;
+  if (file_content == new_content) {
+    // Contents are the same, no need to update the file
+    return false;
+  } else {
+    // Contents are different, update the file
+    std::ofstream out_file(file_path);
+    if (out_file.is_open()) {
+      out_file << new_content;
+      out_file.close();
+      return true;
     } else {
-        // Contents are different, update the file
-        std::ofstream out_file(file_path);
-        if (out_file.is_open()) {
-            out_file << new_content;
-            out_file.close();
-            return true;
-        } else {
-            std::cerr << "Unable to open file for writing: " << file_path << std::endl;
-            return false;
-        }
+      std::cerr << "Unable to open file for writing: " << file_path << std::endl;
+      return false;
     }
+  }
 }
 
 void GeneratorEnvironment::write_template(const inja::Template& template_object, const nlohmann::json& data, std::string_view output_file, bool add_bom_if_needed) {

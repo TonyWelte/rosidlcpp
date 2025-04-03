@@ -1,3 +1,5 @@
+#include <future>
+#include <mutex>
 #include <rosidlcpp_generator_py/rosidlcpp_generator_py.hpp>
 
 #include <rosidlcpp_generator_core/generator_base.hpp>
@@ -483,9 +485,10 @@ void GeneratorPython::run() {
 
   // __init__.py file
   std::unordered_map<std::string, std::vector<std::string>> init_py;
+  std::mutex init_py_mutex;
 
   // Generate message specific files
-  for (const auto& [path, file_path] : m_arguments.idl_tuples) {
+  auto generate_file = [this, template_idl_py, template_idl_support_c, &init_py, &init_py_mutex](const std::string& path, const std::string& file_path) -> nlohmann::json {
     const auto full_path = path + "/" + file_path;
 
     const auto idl_json = rosidlcpp_parser::parse_idl_file(full_path);
@@ -504,15 +507,15 @@ void GeneratorPython::run() {
     write_template(template_idl_support_c, ros_json, std::format("{}/_{}_s.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
 
     // Add to the combined ros_json
-    for (const auto& msg : ros_json.value("messages", nlohmann::json::array())) {
-      pkg_json["messages"].push_back(msg);
-    }
-    for (const auto& srv : ros_json.value("services", nlohmann::json::array())) {
-      pkg_json["services"].push_back(srv);
-    }
-    for (const auto& action : ros_json.value("actions", nlohmann::json::array())) {
-      pkg_json["actions"].push_back(action);
-    }
+    // for (const auto& msg : ros_json.value("messages", nlohmann::json::array())) {
+    //   pkg_json["messages"].push_back(msg);
+    // }
+    // for (const auto& srv : ros_json.value("services", nlohmann::json::array())) {
+    //   pkg_json["services"].push_back(srv);
+    // }
+    // for (const auto& action : ros_json.value("actions", nlohmann::json::array())) {
+    //   pkg_json["actions"].push_back(action);
+    // }
 
     // Add to __init__.py
     std::vector<std::string> type_suffixes{{""}};
@@ -530,19 +533,45 @@ void GeneratorPython::run() {
       type_suffixes.emplace_back(std::string{"_SendGoal"} + std::string{SERVICE_RESPONSE_MESSAGE_SUFFIX});
     }
 
+    std::lock_guard guard(init_py_mutex);
     for (const auto& type_suffix : type_suffixes) {
       init_py[msg_directory].push_back(std::format(
           "from {}.{}._{} import {}{}  # noqa: F401", m_arguments.package_name,
           msg_directory, rosidlcpp_core::camel_to_snake(msg_type), msg_type,
           type_suffix));
     }
+
+    return ros_json;
+  };
+
+  std::vector<std::future<nlohmann::json>> futures;
+  for (const auto& [path, file_path] : m_arguments.idl_tuples) {
+    futures.push_back(queue_task_with_result(generate_file, path, file_path));
+  }
+
+  for (auto& future : futures) {
+    auto ros_json = future.get();
+    for (const auto& msg : ros_json.value("messages", nlohmann::json::array())) {
+      pkg_json["messages"].push_back(msg);
+    }
+    for (const auto& srv : ros_json.value("services", nlohmann::json::array())) {
+      pkg_json["services"].push_back(srv);
+    }
+    for (const auto& action : ros_json.value("actions", nlohmann::json::array())) {
+      pkg_json["actions"].push_back(action);
+    }
   }
 
   // Generate package files
-  for (const auto& typesupport : m_typesupport_implementations) {
+  auto generate_package_typesupport = [this, template_idl_pkg_typesupport](nlohmann::json pkg_json, const std::string& typesupport) {
     pkg_json["typesupport_impl"] = typesupport;
     write_template(template_idl_pkg_typesupport, pkg_json, std::format("_{}_s.ep.{}.c", m_arguments.package_name, typesupport));
+  };
+
+  for (const auto& typesupport : m_typesupport_implementations) {
+    queue_task(generate_package_typesupport, pkg_json, typesupport);
   }
+  wait_for_tasks();
 
   // Generate __init__.py
   for (auto [msg_directory, imports] : init_py) {

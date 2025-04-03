@@ -560,7 +560,7 @@ void GeneratorCpp::run() {
   pkg_json["actions"] = nlohmann::json::array();
 
   // Generate message specific files
-  for (const auto &[path, file_path] : m_arguments.idl_tuples) {
+  auto generate_file = [this, template_idl_builder, template_idl_struct, template_idl_traits, template_idl_type_support, template_idl](const std::string &path, const std::string &file_path) {
     const auto full_path = path + "/" + file_path;
 
     const auto idl_json = rosidlcpp_parser::parse_idl_file(full_path);
@@ -580,7 +580,13 @@ void GeneratorCpp::run() {
     write_template(template_idl_traits, ros_json, std::format("{}/detail/{}__traits.hpp", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
     write_template(template_idl_type_support, ros_json, std::format("{}/detail/{}__type_support.hpp", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
     write_template(template_idl, ros_json, std::format("{}/{}.hpp", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+  };
+
+  for (const auto &[path, file_path] : m_arguments.idl_tuples) {
+    queue_task(generate_file, path, file_path);
   }
+
+  wait_for_tasks();
 }
 
 int main(int argc, char **argv) {

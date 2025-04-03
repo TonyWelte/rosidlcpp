@@ -341,7 +341,7 @@ void GeneratorTypesupportFastrtpsCpp::run() {
   auto template_idl_rosidl = parse_template("./idl__rosidl_typesupport_fastrtps_cpp.hpp.template");
 
   // Generate message specific files
-  for (const auto& [path, file_path] : m_arguments.idl_tuples) {
+  auto generate_file = [this, template_idl, template_idl_rosidl](const std::string &path, const std::string &file_path) {
     const auto full_path = path + "/" + file_path;
 
     const auto idl_json = rosidlcpp_parser::parse_idl_file(full_path);
@@ -361,7 +361,13 @@ void GeneratorTypesupportFastrtpsCpp::run() {
     write_template(template_idl_rosidl, ros_json,
                    std::format("{}/detail/{}__rosidl_typesupport_fastrtps_cpp.hpp", msg_directory,
                                rosidlcpp_core::camel_to_snake(msg_type)));
+  };
+
+  for (const auto& [path, file_path] : m_arguments.idl_tuples) {
+    queue_task(generate_file, path, file_path);
   }
+
+  wait_for_tasks();
 }
 
 auto main(int argc, char** argv) -> int {

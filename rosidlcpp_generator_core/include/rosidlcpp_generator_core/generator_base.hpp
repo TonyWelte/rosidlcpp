@@ -1,14 +1,19 @@
 #pragma once
 
 #include <filesystem>
+#include <mutex>
+#include <optional>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <utility>
 #include <vector>
 
 #include <nlohmann/json_fwd.hpp>
 
 #include <inja/inja.hpp>
+
+#include <thread_pool/thread_pool.h>
 
 #define GENERATOR_BASE_REGISTER_FUNCTION_GET_ARGS_1 *args.at(0)
 #define GENERATOR_BASE_REGISTER_FUNCTION_GET_ARGS_2 *args.at(0), *args.at(1)
@@ -88,10 +93,23 @@ class GeneratorBase {
 
   auto parse_template(std::string_view template_path) -> Template;
 
+  auto queue_task(auto task, auto... args) -> void {
+    m_pool.enqueue_detach(std::move(task), args...);
+  }
+
+  auto queue_task_with_result(auto task, auto... args) -> std::future<decltype(task(args...))> {
+    return m_pool.enqueue(std::move(task), args...);
+  }
+
+  auto wait_for_tasks() -> void;
+
  private:
   GeneratorEnvironment m_env;
 
-  nlohmann::json m_global_storage;
+  dp::thread_pool<> m_pool;
+
+  std::map<std::thread::id, nlohmann::json> m_global_storage;
+  std::mutex m_global_storage_mutex;
 };
 
 }  // namespace rosidlcpp_core
