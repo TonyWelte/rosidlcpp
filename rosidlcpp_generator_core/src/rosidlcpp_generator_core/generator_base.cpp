@@ -1,17 +1,20 @@
-#include <filesystem>
 #include <rosidlcpp_generator_core/generator_base.hpp>
 
 #include <algorithm>
 #include <cctype>
 #include <cmath>
 #include <cstddef>
+#include <filesystem>
+#include <format>
 #include <fstream>
 #include <iostream>
+#include <mutex>
 #include <ostream>
 #include <set>
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -20,6 +23,7 @@
 
 #include <fmt/core.h>
 #include <fmt/ranges.h>
+#include <threads.h>
 
 #include <inja/inja.hpp>
 
@@ -28,7 +32,7 @@
 
 namespace rosidlcpp_core {
 
-GeneratorBase::GeneratorBase() : m_env{} {
+GeneratorBase::GeneratorBase() : m_env{}, m_global_storage{} {
   m_env.set_trim_blocks(true);
   m_env.set_lstrip_blocks(true);
 
@@ -66,12 +70,18 @@ GeneratorBase::GeneratorBase() : m_env{} {
   m_env.add_callback("set_global_variable", 2, [&](inja::Arguments& args) {
     auto name = args.at(0)->get<std::string>();
     auto value = *args.at(1);
-    m_global_storage[name] = value;
-    return m_global_storage[name];
+
+    std::lock_guard lock(m_global_storage_mutex);
+    const auto thread_id = std::this_thread::get_id();
+    m_global_storage[thread_id][name] = value;
+    return m_global_storage[thread_id][name];
   });
   m_env.add_callback("get_global_variable", 1, [&](inja::Arguments& args) {
     auto name = args.at(0)->get<std::string>();
-    return m_global_storage[name];
+
+    std::lock_guard lock(m_global_storage_mutex);
+
+    return m_global_storage[std::this_thread::get_id()][name];
   });
 
   GENERATOR_BASE_REGISTER_FUNCTION("unique", 1, get_unique);

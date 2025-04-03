@@ -8,6 +8,7 @@ endif()
 
 set(CMAKE_CXX_STANDARD 23)
 
+
 find_package(ament_cmake_ros REQUIRED)
 
 find_package(fmt REQUIRED)
@@ -15,6 +16,17 @@ find_package(nlohmann_json REQUIRED)
 
 find_package(rosidlcpp_parser REQUIRED)
 find_package(rosidlcpp_generator_core REQUIRED)
+
+include(cmake/CPM.cmake)
+CPMAddPackage(
+  NAME thread-pool
+  GITHUB_REPOSITORY DeveloperPaul123/thread-pool
+  GIT_TAG 0.7.0
+  OPTIONS
+    "TP_BUILD_TESTS OFF"
+    "TP_BUILD_BENCHMARKS OFF"
+    "TP_BUILD_EXAMPLES OFF"  
+)
 
 add_executable(rosidlcpp_generator_c src/rosidlcpp_generator_c/rosidlcpp_generator_c.cpp)
 
@@ -26,6 +38,7 @@ target_link_libraries(
   nlohmann_json::nlohmann_json
   rosidlcpp_parser::rosidlcpp_parser
   rosidlcpp_generator_core::rosidlcpp_generator_core
+  dp::thread-pool
 )
 
 ament_export_dependencies(
