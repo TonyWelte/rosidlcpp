@@ -120,6 +120,30 @@ void GeneratorBase::write_template(const inja::Template& template_object, const 
   m_env.write_template(template_object, data, output_file, add_bom_if_needed);
 }
 
+/**
+ * @brief Update the file if the contents are different from the new content.
+ */
+bool compare_and_write(const std::filesystem::path& file_path, const std::string& new_content) {
+    std::ifstream in_file(file_path);
+    std::string file_content((std::istreambuf_iterator<char>(in_file)), std::istreambuf_iterator<char>());
+
+    if (file_content == new_content) {
+        // Contents are the same, no need to update the file
+        return false;
+    } else {
+        // Contents are different, update the file
+        std::ofstream out_file(file_path);
+        if (out_file.is_open()) {
+            out_file << new_content;
+            out_file.close();
+            return true;
+        } else {
+            std::cerr << "Unable to open file for writing: " << file_path << std::endl;
+            return false;
+        }
+    }
+}
+
 void GeneratorEnvironment::write_template(const inja::Template& template_object, const nlohmann::json& data, std::string_view output_file, bool add_bom_if_needed) {
   std::string result = render(template_object, data);
 
@@ -127,9 +151,12 @@ void GeneratorEnvironment::write_template(const inja::Template& template_object,
     result = "\ufeff// NOLINT: This file starts with a BOM since it contain non-ASCII characters\n" + result;
   }
 
-  std::ofstream file(std::filesystem::path{output_path} / output_file);
-  file << result;
-  file.close();
+  // Check if the new content is different from the existing content
+  // If it is different, write the new content to the file
+  // If it is the same, do not write to the file
+  // There is no measurable performance difference between this and updating the
+  // file update date. This solution is safer.
+  compare_and_write(std::filesystem::path{output_path} / output_file, result);
 };
 
 std::vector<std::pair<std::string, std::string>> parse_pairs(const std::vector<std::string> list) {
