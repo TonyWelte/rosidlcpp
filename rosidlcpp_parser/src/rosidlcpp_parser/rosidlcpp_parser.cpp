@@ -631,16 +631,8 @@ auto parse_default_list(std::string_view default_value) -> json {
   return result;
 }
 
-auto parse_idl_file(const std::string& filename) -> json {
+auto parse_idl(std::string_view content_view) -> nlohmann::json {
   json result;
-
-  std::ifstream file(filename);
-
-  std::stringstream ss;
-  ss << file.rdbuf();
-  std::string content = ss.str();
-
-  std::string_view content_view(content);
 
   consume_white_space_and_comment(content_view);
 
@@ -666,6 +658,16 @@ auto parse_idl_file(const std::string& filename) -> json {
   }
 
   return result;
+}
+
+auto parse_idl_file(const std::string& filename) -> json {
+  std::ifstream file(filename);
+
+  std::stringstream ss;
+  ss << file.rdbuf();
+  std::string content = ss.str();
+
+  return parse_idl(content);
 }
 
 template <typename Container>

@@ -39,6 +39,8 @@ auto parse_default_list(std::string_view default_value) -> nlohmann::json;
 
 auto has_non_ascii(const std::string& str) -> bool;
 
+auto parse_idl(std::string_view content_view) -> nlohmann::json;
+
 auto parse_idl_file(const std::string& filename) -> nlohmann::json;
 auto parse_ros_idl_file(const std::string& filename) -> nlohmann::json;
 
