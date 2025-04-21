@@ -8,7 +8,7 @@ SHELL [ "/bin/bash" , "-c" ]
 RUN sudo apt update && sudo apt upgrade -y
 
 # Install essential packages
-RUN sudo apt install -y wget ninja-build clangd-19 ssh nano neovim less
+RUN sudo apt install -y wget ninja-build clangd clang ssh nano neovim less
 
 # Create overlay workspace
 WORKDIR /root/ros_ws/src

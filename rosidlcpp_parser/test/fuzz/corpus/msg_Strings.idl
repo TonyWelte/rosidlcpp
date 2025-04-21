@@ -1,0 +1,47 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from test_msgs/msg/Strings.msg
+// generated code does not contain a copyright notice
+
+
+module test_msgs {
+  module msg {
+    module Strings_Constants {
+      const string STRING_CONST = "Hello world!";
+    };
+    struct Strings {
+      string string_value;
+
+      @default (value="Hello world!")
+      string string_value_default1;
+
+      @default (value="Hello'world!")
+      string string_value_default2;
+
+      @default (value="Hello\"world!")
+      string string_value_default3;
+
+      @default (value="Hello'world!")
+      string string_value_default4;
+
+      @default (value="Hello\"world!")
+      string string_value_default5;
+
+      string<22> bounded_string_value;
+
+      @default (value="Hello world!")
+      string<22> bounded_string_value_default1;
+
+      @default (value="Hello'world!")
+      string<22> bounded_string_value_default2;
+
+      @default (value="Hello\"world!")
+      string<22> bounded_string_value_default3;
+
+      @default (value="Hello'world!")
+      string<22> bounded_string_value_default4;
+
+      @default (value="Hello\"world!")
+      string<22> bounded_string_value_default5;
+    };
+  };
+};

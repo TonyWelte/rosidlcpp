@@ -1,0 +1,95 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from test_msgs/msg/UnboundedSequences.msg
+// generated code does not contain a copyright notice
+
+#include "test_msgs/msg/BasicTypes.idl"
+#include "test_msgs/msg/Constants.idl"
+#include "test_msgs/msg/Defaults.idl"
+
+module test_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "Unbounded sequences of different types")
+    struct UnboundedSequences {
+      sequence<boolean> bool_values;
+
+      sequence<octet> byte_values;
+
+      sequence<uint8> char_values;
+
+      sequence<float> float32_values;
+
+      sequence<double> float64_values;
+
+      sequence<int8> int8_values;
+
+      sequence<uint8> uint8_values;
+
+      sequence<int16> int16_values;
+
+      sequence<uint16> uint16_values;
+
+      sequence<int32> int32_values;
+
+      sequence<uint32> uint32_values;
+
+      sequence<int64> int64_values;
+
+      sequence<uint64> uint64_values;
+
+      sequence<string> string_values;
+
+      sequence<test_msgs::msg::BasicTypes> basic_types_values;
+
+      sequence<test_msgs::msg::Constants> constants_values;
+
+      sequence<test_msgs::msg::Defaults> defaults_values;
+
+      @default (value="(False, True, False)")
+      sequence<boolean> bool_values_default;
+
+      @default (value="(0, 1, 255)")
+      sequence<octet> byte_values_default;
+
+      @default (value="(0, 1, 127)")
+      sequence<uint8> char_values_default;
+
+      @default (value="(1.125, 0.0, -1.125)")
+      sequence<float> float32_values_default;
+
+      @default (value="(3.1415, 0.0, -3.1415)")
+      sequence<double> float64_values_default;
+
+      @default (value="(0, 127, -128)")
+      sequence<int8> int8_values_default;
+
+      @default (value="(0, 1, 255)")
+      sequence<uint8> uint8_values_default;
+
+      @default (value="(0, 32767, -32768)")
+      sequence<int16> int16_values_default;
+
+      @default (value="(0, 1, 65535)")
+      sequence<uint16> uint16_values_default;
+
+      @default (value="(0, 2147483647, -2147483648)")
+      sequence<int32> int32_values_default;
+
+      @default (value="(0, 1, 4294967295)")
+      sequence<uint32> uint32_values_default;
+
+      @default (value="(0, 9223372036854775807, -9223372036854775808)")
+      sequence<int64> int64_values_default;
+
+      @default (value="(0, 1, 18446744073709551615)")
+      sequence<uint64> uint64_values_default;
+
+      @default (value="('', 'max value', 'min value')")
+      sequence<string> string_values_default;
+
+      @verbatim (language="comment", text=
+        "Regression test: check alignment of basic field after a sequence field is correct")
+      int32 alignment_check;
+    };
+  };
+};

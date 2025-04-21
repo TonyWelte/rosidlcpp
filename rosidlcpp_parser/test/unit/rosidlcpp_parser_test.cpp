@@ -19,6 +19,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -74,6 +75,22 @@ TEST(RosIdlParserTest, RemoveWhiteSpaceAndComment) {
   EXPECT_EQ(test_string_3, "This is not a comment");
 }
 
+TEST(RosIdlParserTest, ParseInclude) {
+  std::string_view test_string_1 = "#include \"test_include.h\"";
+  std::string_view test_string_2 = "#include \"test_include.h\"  // This is a comment";
+  std::string_view test_string_3 = "#include\"test_include.h\"";
+  std::string_view test_string_4 = "#include";
+
+  EXPECT_EQ(parse_include(test_string_1), "test_include.h");
+  EXPECT_EQ(test_string_1, "");
+
+  EXPECT_EQ(parse_include(test_string_2), "test_include.h");
+  EXPECT_EQ(test_string_2, "");
+
+  EXPECT_THROW(parse_include(test_string_3), std::runtime_error);
+  EXPECT_THROW(parse_include(test_string_4), std::runtime_error);
+}
+
 TEST(RosIdlParserTest, ParseName) {
   std::string_view test_string_1 = "";
   std::string_view test_string_2 = "abcABC123_";
@@ -123,80 +140,6 @@ TEST(RosIdlParserTest, ParseTypedef) {
   EXPECT_EQ(parse_typedef(test_string_2), result_2);
 }
 
-TEST(RosIdlParserTest, ParseType) {
-  std::string_view test_string_1 = "uint8 member_name;";
-  std::string_view test_string_2 = "sequence<uint8> member_name;";
-  std::string_view test_string_3 = "sequence<uint8, 6> member_name;";
-  std::string_view test_string_4 = "string<6> member_name;";
-  std::string_view test_string_5 = "sequence<string> member_name;";
-  std::string_view test_string_6 = "sequence<string<6>> member_name;";
-  std::string_view test_string_7 = "sequence<string<6>, 10> member_name;";
-  std::string_view test_string_8 = "sequence<  string< 6 > > member_name;";
-  std::string_view test_string_9 = "string<4> member_name;";
-  std::string_view test_string_10 = "wstring<5> member_name;";
-  std::string_view test_string_11 = "sequence <  string< 6 > > member_name;";
-
-  std::string_view result_1 = "uint8";
-  std::string_view result_2 = "sequence<uint8>";
-  std::string_view result_3 = "sequence<uint8, 6>";
-  std::string_view result_4 = "string<6>";
-  std::string_view result_5 = "sequence<string>";
-  std::string_view result_6 = "sequence<string<6>>";
-  std::string_view result_7 = "sequence<string<6>, 10>";
-  std::string_view result_8 = "sequence<  string< 6 > >";
-  std::string_view result_9 = "string<4>";
-  std::string_view result_10 = "wstring<5>";
-  std::string_view result_11 = "sequence<  string< 6 > >";
-
-  EXPECT_EQ(parse_type(test_string_1), result_1);
-  EXPECT_EQ(parse_type(test_string_2), result_2);
-  EXPECT_EQ(parse_type(test_string_3), result_3);
-  EXPECT_EQ(parse_type(test_string_4), result_4);
-  EXPECT_EQ(parse_type(test_string_5), result_5);
-  EXPECT_EQ(parse_type(test_string_6), result_6);
-  EXPECT_EQ(parse_type(test_string_7), result_7);
-  EXPECT_EQ(parse_type(test_string_8), result_8);
-  EXPECT_EQ(parse_type(test_string_9), result_9);
-  EXPECT_EQ(parse_type(test_string_10), result_10);
-  EXPECT_EQ(parse_type(test_string_11), result_11);
-}
-
-TEST(RosIdlParserTest, InterpretType) {
-  std::string_view test_string_1 = "uint8";
-  std::string_view test_string_2 = "sequence<uint8>";
-  std::string_view test_string_3 = "sequence<uint8, 6>";
-  std::string_view test_string_4 = "string<6>";
-  std::string_view test_string_5 = "sequence<string>";
-  std::string_view test_string_6 = "sequence<string<6>>";
-  std::string_view test_string_7 = "sequence<string<6>, 10> member_name;";
-  std::string_view test_string_8 = "sequence<  string< 6 > > member_name;";
-  std::string_view test_string_9 = "string<4>";
-  std::string_view test_string_10 = "wstring<5>";
-
-  nlohmann::json result_1 = {{"name", "uint8"}};
-  nlohmann::json result_2 = {{"name", "sequence"}, {"value_type", {{"name", "uint8"}}}};
-  nlohmann::json result_3 = {{"name", "sequence"}, {"value_type", {{"name", "uint8"}}}, {"maximum_size", 6}};
-  nlohmann::json result_4 = {{"name", "string"}, {"maximum_size", 6}};
-  nlohmann::json result_5 = {{"name", "sequence"}, {"value_type", {{"name", "string"}}}};
-  nlohmann::json result_6 = {{"name", "sequence"}, {"value_type", {{"name", "string"}, {"maximum_size", 6}}}};
-  nlohmann::json result_7 = {{"name", "sequence"}, {"value_type", {{"name", "string"}, {"maximum_size", 6}}}, {"maximum_size", 10}};
-  nlohmann::json result_8 = {{"name", "sequence"}, {"value_type", {{"name", "string"}, {"maximum_size", 6}}}};
-  nlohmann::json result_9 = {{"name", "string"}, {"maximum_size", 4}};
-  nlohmann::json result_10 = {{"name", "wstring"}, {"maximum_size", 5}};
-  nlohmann::json result_11 = {{"name", "sequence"}, {"value_type", {{"name", "string"}, {"maximum_size", 6}}}};
-
-  EXPECT_EQ(interpret_type(test_string_1), result_1);
-  EXPECT_EQ(interpret_type(test_string_2), result_2);
-  EXPECT_EQ(interpret_type(test_string_3), result_3);
-  EXPECT_EQ(interpret_type(test_string_4), result_4);
-  EXPECT_EQ(interpret_type(test_string_5), result_5);
-  EXPECT_EQ(interpret_type(test_string_6), result_6);
-  EXPECT_EQ(interpret_type(test_string_7), result_7);
-  EXPECT_EQ(interpret_type(test_string_8), result_8);
-  EXPECT_EQ(interpret_type(test_string_9), result_9);
-  EXPECT_EQ(interpret_type(test_string_10), result_10);
-}
-
 TEST(RosIdlParserTest, ParseAttribute) {
   std::string_view test_string_1 = "@key long key;";
   std::string_view test_string_2 = "@default (value=1.23)\n";
@@ -211,40 +154,18 @@ TEST(RosIdlParserTest, ParseAttribute) {
   EXPECT_EQ(parse_attribute(test_string_3), result_3);
 }
 
-TEST(RosIdlParserTest, ParseMember) {
-  std::string_view test_string_1 = "uint8 member_name;";
-  std::string_view test_string_2 = "sequence<uint8> member_name;";
-  std::string_view test_string_3 = "sequence<uint8, 6> member_name;";
-  std::string_view test_string_4 = "string<6> member_name;";
-  std::string_view test_string_5 = "sequence<string> member_name;";
-  std::string_view test_string_6 = "sequence<string<6>> member_name;";
-  std::string_view test_string_7 = "sequence<string<6>, 10> member_name;";
-  std::string_view test_string_8 = "sequence<  string< 6 > > member_name;";
-  std::string_view test_string_9 = "string<4> member_name;";
-  std::string_view test_string_10 = "wstring<5> member_name;";
-  std::string_view test_string_11 = "uint8 member_name[123];";
+TEST(RosIdlParserTest, ParseModule) {
+  std::string_view test_string_1 = "module my_module { }";
+  std::string_view test_string_2 = "module my_module { typedef uint8 other_name; }";
+  std::string_view test_string_3 = "modulemy_module { typedef uint8 other_name; }";
+  std::string_view test_string_4 = "module {  }";
 
-  nlohmann::json result_1 = {{"comments", nlohmann::json::array()}, {"type", {{"name", "uint8"}}}, {"name", "member_name"}};
-  nlohmann::json result_2 = {{"comments", nlohmann::json::array()}, {"type", {{"name", "sequence"}, {"value_type", {{"name", "uint8"}}}}}, {"name", "member_name"}};
-  nlohmann::json result_3 = {{"comments", nlohmann::json::array()}, {"type", {{"name", "sequence"}, {"value_type", {{"name", "uint8"}}}, {"maximum_size", 6}}}, {"name", "member_name"}};
-  nlohmann::json result_4 = {{"comments", nlohmann::json::array()}, {"type", {{"name", "string"}, {"maximum_size", 6}}}, {"name", "member_name"}};
-  nlohmann::json result_5 = {{"comments", nlohmann::json::array()}, {"type", {{"name", "sequence"}, {"value_type", {{"name", "string"}}}}}, {"name", "member_name"}};
-  nlohmann::json result_6 = {{"comments", nlohmann::json::array()}, {"type", {{"name", "sequence"}, {"value_type", {{"name", "string"}, {"maximum_size", 6}}}}}, {"name", "member_name"}};
-  nlohmann::json result_7 = {{"comments", nlohmann::json::array()}, {"type", {{"name", "sequence"}, {"value_type", {{"name", "string"}, {"maximum_size", 6}}}, {"maximum_size", 10}}}, {"name", "member_name"}};
-  nlohmann::json result_8 = {{"comments", nlohmann::json::array()}, {"type", {{"name", "sequence"}, {"value_type", {{"name", "string"}, {"maximum_size", 6}}}}}, {"name", "member_name"}};
-  nlohmann::json result_9 = {{"comments", nlohmann::json::array()}, {"type", {{"name", "string"}, {"maximum_size", 4}}}, {"name", "member_name"}};
-  nlohmann::json result_10 = {{"comments", nlohmann::json::array()}, {"type", {{"name", "wstring"}, {"maximum_size", 5}}}, {"name", "member_name"}};
-  nlohmann::json result_11 = {{"comments", nlohmann::json::array()}, {"type", {{"name", "array"}, {"value_type", {{"name", "uint8"}}}, {"size", 123}}}, {"name", "member_name"}};
+  nlohmann::json result_1 = {{"name", "my_module"}};
+  nlohmann::json result_2 = {{"name", "my_module"}};
 
-  EXPECT_EQ(parse_member(test_string_1), result_1);
-  EXPECT_EQ(parse_member(test_string_2), result_2);
-  EXPECT_EQ(parse_member(test_string_3), result_3);
-  EXPECT_EQ(parse_member(test_string_4), result_4);
-  EXPECT_EQ(parse_member(test_string_5), result_5);
-  EXPECT_EQ(parse_member(test_string_6), result_6);
-  EXPECT_EQ(parse_member(test_string_7), result_7);
-  EXPECT_EQ(parse_member(test_string_8), result_8);
-  EXPECT_EQ(parse_member(test_string_9), result_9);
-  EXPECT_EQ(parse_member(test_string_10), result_10);
-  EXPECT_EQ(parse_member(test_string_11), result_11);
+  EXPECT_EQ(parse_module(test_string_1), result_1);
+  EXPECT_EQ(parse_module(test_string_2), result_2);
+
+  EXPECT_THROW(parse_module(test_string_3), std::runtime_error);
+  EXPECT_THROW(parse_module(test_string_4), std::runtime_error);
 }

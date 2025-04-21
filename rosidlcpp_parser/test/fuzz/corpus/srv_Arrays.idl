@@ -1,0 +1,204 @@
+// generated from rosidl_adapter/resource/srv.idl.em
+// with input from test_msgs/srv/Arrays.srv
+// generated code does not contain a copyright notice
+
+#include "test_msgs/msg/BasicTypes.idl"
+#include "test_msgs/msg/Constants.idl"
+#include "test_msgs/msg/Defaults.idl"
+
+module test_msgs {
+  module srv {
+    typedef boolean boolean__3[3];
+    typedef octet octet__3[3];
+    typedef uint8 uint8__3[3];
+    typedef float float__3[3];
+    typedef double double__3[3];
+    typedef int8 int8__3[3];
+    typedef int16 int16__3[3];
+    typedef uint16 uint16__3[3];
+    typedef int32 int32__3[3];
+    typedef uint32 uint32__3[3];
+    typedef int64 int64__3[3];
+    typedef uint64 uint64__3[3];
+    typedef string string__3[3];
+    typedef test_msgs::msg::BasicTypes test_msgs__msg__BasicTypes;
+    typedef test_msgs__msg__BasicTypes test_msgs__msg__BasicTypes__3[3];
+    typedef test_msgs::msg::Constants test_msgs__msg__Constants;
+    typedef test_msgs__msg__Constants test_msgs__msg__Constants__3[3];
+    typedef test_msgs::msg::Defaults test_msgs__msg__Defaults;
+    typedef test_msgs__msg__Defaults test_msgs__msg__Defaults__3[3];
+    struct Arrays_Request {
+      boolean__3 bool_values;
+
+      octet__3 byte_values;
+
+      uint8__3 char_values;
+
+      float__3 float32_values;
+
+      double__3 float64_values;
+
+      int8__3 int8_values;
+
+      uint8__3 uint8_values;
+
+      int16__3 int16_values;
+
+      uint16__3 uint16_values;
+
+      int32__3 int32_values;
+
+      uint32__3 uint32_values;
+
+      int64__3 int64_values;
+
+      uint64__3 uint64_values;
+
+      string__3 string_values;
+
+      test_msgs__msg__BasicTypes__3 basic_types_values;
+
+      test_msgs__msg__Constants__3 constants_values;
+
+      test_msgs__msg__Defaults__3 defaults_values;
+
+      @default (value="(False, True, False)")
+      boolean__3 bool_values_default;
+
+      @default (value="(0, 1, 255)")
+      octet__3 byte_values_default;
+
+      @default (value="(0, 1, 127)")
+      uint8__3 char_values_default;
+
+      @default (value="(1.125, 0.0, -1.125)")
+      float__3 float32_values_default;
+
+      @default (value="(3.1415, 0.0, -3.1415)")
+      double__3 float64_values_default;
+
+      @default (value="(0, 127, -128)")
+      int8__3 int8_values_default;
+
+      @default (value="(0, 1, 255)")
+      uint8__3 uint8_values_default;
+
+      @default (value="(0, 32767, -32768)")
+      int16__3 int16_values_default;
+
+      @default (value="(0, 1, 65535)")
+      uint16__3 uint16_values_default;
+
+      @default (value="(0, 2147483647, -2147483648)")
+      int32__3 int32_values_default;
+
+      @default (value="(0, 1, 4294967295)")
+      uint32__3 uint32_values_default;
+
+      @default (value="(0, 9223372036854775807, -9223372036854775808)")
+      int64__3 int64_values_default;
+
+      @default (value="(0, 1, 18446744073709551615)")
+      uint64__3 uint64_values_default;
+
+      @default (value="('', 'max value', 'min value')")
+      string__3 string_values_default;
+    };
+    typedef boolean boolean__3[3];
+    typedef octet octet__3[3];
+    typedef uint8 uint8__3[3];
+    typedef float float__3[3];
+    typedef double double__3[3];
+    typedef int8 int8__3[3];
+    typedef int16 int16__3[3];
+    typedef uint16 uint16__3[3];
+    typedef int32 int32__3[3];
+    typedef uint32 uint32__3[3];
+    typedef int64 int64__3[3];
+    typedef uint64 uint64__3[3];
+    typedef string string__3[3];
+    typedef test_msgs::msg::BasicTypes test_msgs__msg__BasicTypes;
+    typedef test_msgs__msg__BasicTypes test_msgs__msg__BasicTypes__3[3];
+    typedef test_msgs::msg::Constants test_msgs__msg__Constants;
+    typedef test_msgs__msg__Constants test_msgs__msg__Constants__3[3];
+    typedef test_msgs::msg::Defaults test_msgs__msg__Defaults;
+    typedef test_msgs__msg__Defaults test_msgs__msg__Defaults__3[3];
+    struct Arrays_Response {
+      boolean__3 bool_values;
+
+      octet__3 byte_values;
+
+      uint8__3 char_values;
+
+      float__3 float32_values;
+
+      double__3 float64_values;
+
+      int8__3 int8_values;
+
+      uint8__3 uint8_values;
+
+      int16__3 int16_values;
+
+      uint16__3 uint16_values;
+
+      int32__3 int32_values;
+
+      uint32__3 uint32_values;
+
+      int64__3 int64_values;
+
+      uint64__3 uint64_values;
+
+      string__3 string_values;
+
+      test_msgs__msg__BasicTypes__3 basic_types_values;
+
+      test_msgs__msg__Constants__3 constants_values;
+
+      test_msgs__msg__Defaults__3 defaults_values;
+
+      @default (value="(False, True, False)")
+      boolean__3 bool_values_default;
+
+      @default (value="(0, 1, 255)")
+      octet__3 byte_values_default;
+
+      @default (value="(0, 1, 127)")
+      uint8__3 char_values_default;
+
+      @default (value="(1.125, 0.0, -1.125)")
+      float__3 float32_values_default;
+
+      @default (value="(3.1415, 0.0, -3.1415)")
+      double__3 float64_values_default;
+
+      @default (value="(0, 127, -128)")
+      int8__3 int8_values_default;
+
+      @default (value="(0, 1, 255)")
+      uint8__3 uint8_values_default;
+
+      @default (value="(0, 32767, -32768)")
+      int16__3 int16_values_default;
+
+      @default (value="(0, 1, 65535)")
+      uint16__3 uint16_values_default;
+
+      @default (value="(0, 2147483647, -2147483648)")
+      int32__3 int32_values_default;
+
+      @default (value="(0, 1, 4294967295)")
+      uint32__3 uint32_values_default;
+
+      @default (value="(0, 9223372036854775807, -9223372036854775808)")
+      int64__3 int64_values_default;
+
+      @default (value="(0, 1, 18446744073709551615)")
+      uint64__3 uint64_values_default;
+
+      @default (value="('', 'max value', 'min value')")
+      string__3 string_values_default;
+    };
+  };
+};

@@ -66,7 +66,8 @@ auto insert(nlohmann::json list, int index, const nlohmann::json& value) -> nloh
 auto custom_range(int start, int end, int step) -> std::vector<int>;
 
 // TODO: Restrain to containers with concept
-auto get_unique(auto container) {
+template <typename Container>
+auto get_unique(Container container) {
   std::sort(container.begin(), container.end());
   container.erase(std::unique(container.begin(), container.end()), container.end());
   return container;
