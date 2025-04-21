@@ -74,13 +74,29 @@ TEST(RosIdlParserTest, RemoveWhiteSpaceAndComment) {
   EXPECT_EQ(test_string_3, "This is not a comment");
 }
 
+TEST(RosIdlParserTest, ParseInclude) {
+  std::string_view test_string_1 = "#include \"test_include.h\"";
+  std::string_view test_string_2 = "#include \"test_include.h\"  // This is a comment";
+  std::string_view test_string_3 = "#include\"test_include.h\"";
+  std::string_view test_string_4 = "#include";
+
+  EXPECT_EQ(parse_include(test_string_1), "test_include.h");
+  EXPECT_EQ(test_string_1, "");
+
+  EXPECT_EQ(parse_include(test_string_2), "test_include.h");
+  EXPECT_EQ(test_string_2, "");
+
+  EXPECT_THROW(parse_include(test_string_3), std::runtime_error);
+  EXPECT_THROW(parse_include(test_string_4), std::runtime_error);
+}
+
 TEST(RosIdlParserTest, ParseName) {
   std::string_view test_string_1 = "";
   std::string_view test_string_2 = "abcABC123_";
   std::string_view test_string_3 = "abcABC123_   ";
   std::string_view test_string_4 = "abcAB-C123_";
 
-  EXPECT_EQ(parse_name(test_string_1), "");
+  EXPECT_THROW(parse_name(test_string_1), std::runtime_error);
   EXPECT_EQ(parse_name(test_string_2), "abcABC123_");
   EXPECT_EQ(parse_name(test_string_3), "abcABC123_");
   EXPECT_EQ(parse_name(test_string_4), "abcAB");
@@ -247,4 +263,20 @@ TEST(RosIdlParserTest, ParseMember) {
   EXPECT_EQ(parse_member(test_string_9), result_9);
   EXPECT_EQ(parse_member(test_string_10), result_10);
   EXPECT_EQ(parse_member(test_string_11), result_11);
+}
+
+TEST(RosIdlParserTest, ParseModule) {
+  std::string_view test_string_1 = "module my_module { };";
+  std::string_view test_string_2 = "module my_module { typedef uint8 other_name; };";
+  std::string_view test_string_3 = "modulemy_module { typedef uint8 other_name; };";
+  std::string_view test_string_4 = "module {  };";
+
+  nlohmann::json result_1 = {{"name", "my_module"}};
+  nlohmann::json result_2 = {{"name", "my_module"}};
+
+  EXPECT_EQ(parse_module(test_string_1), result_1);
+  EXPECT_EQ(parse_module(test_string_2), result_2);
+
+  EXPECT_THROW(parse_module(test_string_3), std::runtime_error);
+  EXPECT_THROW(parse_module(test_string_4), std::runtime_error);
 }

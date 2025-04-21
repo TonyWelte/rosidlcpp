@@ -1,0 +1,32 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from test_msgs/msg/WStrings.msg
+// generated code does not contain a copyright notice
+
+
+module test_msgs {
+  module msg {
+    typedef wstring wstring__3[3];
+    struct WStrings {
+      wstring wstring_value;
+
+      @default (value="Hello world!")
+      wstring wstring_value_default1;
+
+      @default (value="Hellö wörld!")
+      wstring wstring_value_default2;
+
+      @default (value="ハローワールド")
+      wstring wstring_value_default3;
+
+      @verbatim (language="comment", text=
+        "wstring WSTRING_CONST=\"Hello world!\"" "\n"
+        "wstring<=22 bounded_wstring_value" "\n"
+        "wstring<=22 bounded_wstring_value_default1 \"Hello world!\"")
+      wstring__3 array_of_wstrings;
+
+      sequence<wstring, 3> bounded_sequence_of_wstrings;
+
+      sequence<wstring> unbounded_sequence_of_wstrings;
+    };
+  };
+};

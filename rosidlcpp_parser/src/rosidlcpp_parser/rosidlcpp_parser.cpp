@@ -71,39 +71,50 @@ auto split_string(const std::string& value, const std::string& sep) -> std::vect
   return split_string_view(value, sep);
 }
 
-auto consume_white_space(std::string_view& content_view) -> void {
+auto consume_white_space(std::string_view& content_view) -> size_t {
+  size_t consumed = 0;
   auto new_start = content_view.find_first_not_of(" \t\n");
   if (new_start != std::string_view::npos) {
+    consumed += new_start;
     content_view.remove_prefix(new_start);
   } else {
+    consumed += content_view.size();
     content_view.remove_prefix(content_view.size());
   }
+  return consumed;
 }
 
-auto consume_comment(std::string_view& content_view) -> void {
-  if (content_view.substr(0, 2) == "//") {
+auto consume_comment(std::string_view& content_view) -> size_t {
+  size_t consumed = 0;
+  if (content_view.size() > 1 && content_view.substr(0, 2) == "//") {
     auto end_of_line = content_view.find_first_of('\n');
     if (end_of_line == std::string_view::npos) {
+      consumed += content_view.size();
       content_view.remove_prefix(content_view.size());
     } else {
+      consumed += end_of_line + 1;  // Include the newline character
       content_view.remove_prefix(end_of_line + 1);
     }
-  } else if (content_view.substr(0, 2) == "/*") {
+  } else if (content_view.size() > 1 && content_view.substr(0, 2) == "/*") {  // Added size check
     auto end_of_comment = content_view.find("*/");
     if (end_of_comment == std::string_view::npos) {
       throw std::runtime_error("Unterminated comment in content view");
     }
+    consumed += end_of_comment + 2;
     content_view.remove_prefix(end_of_comment + 2);
   }
+  return consumed;
 }
 
-auto consume_white_space_and_comment(std::string_view& content_view) -> void {
-  size_t old_size{};
+auto consume_white_space_and_comment(std::string_view& content_view) -> size_t {
+  size_t consumed = 0;
+  size_t old_consumed = 0;
   do {
-    old_size = content_view.size();
-    consume_white_space(content_view);
-    consume_comment(content_view);
-  } while (old_size != content_view.size());
+    old_consumed = consumed;
+    consumed += consume_white_space(content_view);
+    consumed += consume_comment(content_view);
+  } while (old_consumed != consumed);  // Keep consuming until no more white space or comments
+  return consumed;
 }
 
 auto remove_white_space(std::string_view content_view) -> std::string_view {
@@ -118,10 +129,21 @@ auto remove_white_space(std::string_view content_view) -> std::string_view {
 }
 
 auto parse_name(std::string_view& content_view) -> std::string_view {
+  if (content_view.empty()) {  // Added bounds check
+    throw std::runtime_error("Malformed name: content_view is empty");
+  }
+
   auto end_of_name = content_view.find_first_not_of(VALID_NAME_CHAR);
+
+  if (end_of_name == 0) {
+    throw std::runtime_error("Malformed name: no valid characters found");
+  }
+
   auto name = content_view.substr(0, end_of_name);
 
   content_view.remove_prefix(end_of_name);
+
+  consume_white_space_and_comment(content_view);
 
   return name;
 }
@@ -131,13 +153,31 @@ auto interpret_type(std::string_view type_string, TypedefMap typedefs) -> json {
   if (type_string.starts_with("string<")) {  // string<bounds>
     result["name"] = "string";
     type_string.remove_prefix(std::string_view{"string<"}.size());
+    if (type_string.empty() || type_string.back() != '>') {
+      throw std::runtime_error("Malformed string type: no bounds specified");
+    }
     type_string.remove_suffix(1);  // Remove last '>'
-    result["maximum_size"] = std::stoi(std::string{remove_white_space(type_string)});
+    try {
+      result["maximum_size"] = std::stoi(std::string{remove_white_space(type_string)});
+    } catch (const std::invalid_argument& e) {
+      throw std::runtime_error("Malformed string type: bounds is not a valid integer");
+    } catch (const std::out_of_range& e) {
+      throw std::runtime_error("Malformed string type: bounds is out of range");
+    }
   } else if (type_string.starts_with("wstring<")) {  // wstring<bounds>
     result["name"] = "wstring";
     type_string.remove_prefix(std::string_view{"wstring<"}.size());
+    if (type_string.empty() || type_string.back() != '>') {
+      throw std::runtime_error("Malformed string type: no bounds specified");
+    }
     type_string.remove_suffix(1);  // Remove last '>'
-    result["maximum_size"] = std::stoi(std::string{remove_white_space(type_string)});
+    try {
+      result["maximum_size"] = std::stoi(std::string{remove_white_space(type_string)});
+    } catch (const std::invalid_argument& e) {
+      throw std::runtime_error("Malformed wstring type: bounds is not a valid integer");
+    } catch (const std::out_of_range& e) {
+      throw std::runtime_error("Malformed wstring type: bounds is out of range");
+    }
   } else if (type_string.starts_with("sequence<")) {  // sequence<type> or sequence<type, bounds>
     result["name"] = "sequence";
 
@@ -146,15 +186,20 @@ auto interpret_type(std::string_view type_string, TypedefMap typedefs) -> json {
 
     auto comma_pos = type_string.find_first_of(',');  // Deal with bounded sequences
     if (comma_pos != std::string_view::npos) {
-      result["maximum_size"] = std::stoi(std::string{remove_white_space(type_string.substr(comma_pos + 1))});
-    } else {
+      if (remove_white_space(type_string.substr(comma_pos + 1)).empty()) {
+        throw std::runtime_error("Malformed sequence type: no bounds specified");
+      }
+      result["maximum_size"] = parse_integer(remove_white_space(type_string.substr(comma_pos + 1)));
+    }
+    if (type_string.empty()) {
+      throw std::runtime_error("Malformed string type: no bounds specified");
     }
     type_string = remove_white_space(type_string.substr(0, comma_pos));
     result["value_type"] = interpret_type(type_string, typedefs);
   } else if (type_string.ends_with("]")) {  // array
     // Parse array type
     auto open_bracket_pos = type_string.find_first_of('[');
-    result["size"] = std::stoi(std::string{type_string.substr(open_bracket_pos + 1, type_string.size() - 2)});
+    result["size"] = parse_integer(type_string.substr(open_bracket_pos + 1, type_string.size() - 2));
     result["name"] = "array";
     type_string = type_string.substr(0, open_bracket_pos);
     result["value_type"] = interpret_type(type_string, typedefs);
@@ -175,6 +220,10 @@ auto interpret_type(std::string_view type_string, TypedefMap typedefs) -> json {
 }
 
 auto parse_type(std::string_view& content_view) -> std::string {
+  if (content_view.empty()) {  // Added bounds check
+    throw std::runtime_error("Malformed type: content_view is empty");
+  }
+
   auto end_of_type = content_view.find_first_not_of(VALID_TYPE_CHAR);
   if (end_of_type == std::string_view::npos) {
     throw std::runtime_error("Malformed type");
@@ -186,7 +235,7 @@ auto parse_type(std::string_view& content_view) -> std::string {
 
   consume_white_space_and_comment(content_view);
 
-  if (content_view[0] == '<') {
+  if (!content_view.empty() && content_view[0] == '<') {  // Added bounds check
     auto tmp_end_of_type = content_view.find_first_of('>') + 1;
 
     if (tmp_end_of_type == std::string_view::npos) {
@@ -222,24 +271,32 @@ auto parse_type(std::string_view& content_view) -> std::string {
   type_name += content_view.substr(0, end_of_type);
   content_view.remove_prefix(end_of_type);
 
+  consume_white_space_and_comment(content_view);
+
   return type_name;
 }
 
 auto parse_value_list(std::string_view& content_view) -> json {
-  assert(content_view[0] == '[' && "Value list should start with '['");
+  if (content_view.empty() || content_view[0] != '[') {  // Added bounds check
+    throw std::runtime_error("Value list should start with '['");
+  }
 
   content_view.remove_prefix(1);  // Remove [
   consume_white_space_and_comment(content_view);
 
   json result = json::array();
-  while (content_view[0] != ']') {
+  while (!content_view.empty() && content_view[0] != ']') {  // Added bounds check
     result.push_back(parse_value(content_view));
     consume_white_space(content_view);
 
-    if (content_view[0] == ',') {
+    if (!content_view.empty() && content_view[0] == ',') {  // Added bounds check
       content_view.remove_prefix(1);
       consume_white_space(content_view);
     }
+  }
+
+  if (content_view.empty() || content_view[0] != ']') {  // Added bounds check
+    throw std::runtime_error("Malformed value list: missing closing ']'");
   }
 
   content_view.remove_prefix(1);  // Remove ]
@@ -250,10 +307,15 @@ auto parse_value_list(std::string_view& content_view) -> json {
 }
 
 auto parse_string_part(std::string_view& content_view) -> std::string {
-  assert(content_view[0] == '"' && "Value string should start with '\"'");
+  if (content_view.empty() || content_view[0] != '"') {  // Added bounds check
+    throw std::runtime_error("Value string should start with '\"'");
+  }
 
   content_view.remove_prefix(1);
   auto string_limit = content_view.find_first_of('"');
+  if (string_limit == std::string_view::npos) {
+    throw std::runtime_error("Failed to parse string: no closing '\"' found");
+  }
   if (string_limit == 0) {
     content_view.remove_prefix(1);
     return "";
@@ -262,7 +324,13 @@ auto parse_string_part(std::string_view& content_view) -> std::string {
   auto result = std::string{content_view.substr(0, string_limit - 1 /* last character added at the end */)};
   while (content_view[string_limit - 1] == '\\') {  // '"' is escaped
     auto old_limit = string_limit;
-    string_limit += content_view.substr(string_limit + 1).find_first_of('"') + 1;
+    auto new_character_count = content_view.substr(string_limit + 1).find_first_of('"') + 1;
+
+    if (new_character_count == std::string_view::npos || new_character_count == 0) {
+      throw std::runtime_error("Failed to parse string: no closing '\"' found for escaped quote");
+    }
+
+    string_limit += new_character_count;
 
     result += content_view.substr(old_limit, string_limit - old_limit - 1);
   }
@@ -298,6 +366,9 @@ auto parse_string_part_python(std::string_view& content_view) -> std::string {
 
   content_view.remove_prefix(1);
   auto string_limit = content_view.find_first_of('\'');
+  if (string_limit == std::string_view::npos) {
+    throw std::runtime_error("Failed to parse string: no closing \"'\" found");
+  }
   if (string_limit == 0) {
     content_view.remove_prefix(1);
     return "";
@@ -338,12 +409,20 @@ auto parse_string_python(std::string_view& content_view) -> std::string /* not s
 }
 
 auto parse_numeric(std::string_view& content_view) -> json {
+  if (content_view.empty()) {  // Added bounds check
+    throw std::runtime_error("Malformed numeric value: content_view is empty");
+  }
+
   bool is_negative = content_view[0] == '-';
 
   // if (is_negative)
   //     content_view.remove_prefix(1);
 
   auto end_of_numeric = content_view.find_first_not_of(VALID_NUMERIC);
+
+  if (end_of_numeric == std::string_view::npos) {  // Added bounds check
+    throw std::runtime_error("Malformed numeric value: no valid characters found");
+  }
 
   if (content_view[end_of_numeric] == 'e' || content_view[end_of_numeric] == '.') {  // is float
     double result{};
@@ -363,8 +442,7 @@ auto parse_numeric(std::string_view& content_view) -> json {
     content_view.remove_prefix(std::distance(content_view.data(), ptr));
     consume_white_space_and_comment(content_view);
     return result;
-  }
-  {  // assume is unsigned integer (even if it's signed, it will fit in unsigned)
+  } else {  // assume is unsigned integer
     unsigned long long result{};
     auto [ptr, ec] = std::from_chars(content_view.data(), content_view.data() + content_view.size(), result);
     if (ec != std::errc()) {
@@ -377,6 +455,10 @@ auto parse_numeric(std::string_view& content_view) -> json {
 }
 
 auto parse_value(std::string_view& content_view) -> json {
+  if (content_view.empty()) {  // Added bounds check
+    throw std::runtime_error("Malformed value: content_view is empty");
+  }
+
   if (content_view[0] == '[') {
     return parse_value_list(content_view);
   } else if (content_view[0] == '"') {
@@ -399,28 +481,33 @@ auto parse_value(std::string_view& content_view) -> json {
 }
 
 auto parse_constant(std::string_view& content_view, TypedefMap typedefs) -> json {
-  assert(content_view.substr(0, STRING_CONST.size()) == STRING_CONST && "Bad constant parsing call");
+  if (content_view.empty() || content_view.substr(0, STRING_CONST.size()) != STRING_CONST) {  // Added bounds check
+    throw std::runtime_error("Bad constant parsing call");
+  }
 
   content_view.remove_prefix(STRING_CONST.size());
-  consume_white_space_and_comment(content_view);
+  if (consume_white_space_and_comment(content_view) == 0) {
+    throw std::runtime_error("Constant keyword should be followed by a space");
+  }
 
   json result;
 
   result["type"] = interpret_type(parse_type(content_view), typedefs);
-  consume_white_space_and_comment(content_view);
 
   result["name"] = parse_name(content_view);
-  consume_white_space_and_comment(content_view);
 
   auto equal_sign_pos = content_view.find_first_of('=');
+  if (equal_sign_pos == std::string_view::npos) {
+    throw std::runtime_error("Failed to parse constant: no '=' found");
+  }
   content_view.remove_prefix(equal_sign_pos + 1);
   consume_white_space_and_comment(content_view);
 
   result["value"] = parse_value(content_view);
   consume_white_space_and_comment(content_view);
 
-  if (content_view[0] != ';') {
-    throw std::runtime_error("Failed to parse contant");
+  if (content_view.empty() || content_view[0] != ';') {  // Added bounds check
+    throw std::runtime_error("Failed to parse constant: missing ';'");
   }
 
   content_view.remove_prefix(1);
@@ -430,29 +517,39 @@ auto parse_constant(std::string_view& content_view, TypedefMap typedefs) -> json
 }
 
 auto parse_member(std::string_view& content_view, TypedefMap typedefs) -> json {
-  json result;
+  if (content_view.empty()) {  // Added bounds check
+    throw std::runtime_error("Malformed member: content_view is empty");
+  }
 
+  json result;
   result["comments"] = json::array();
 
   result["type"] = interpret_type(parse_type(content_view), typedefs);
 
-  consume_white_space_and_comment(content_view);
-
   result["name"] = parse_name(content_view);
 
-  consume_white_space_and_comment(content_view);
-
-  if (content_view[0] == '[') {  // Array definition
-    auto end_of_array_definition = content_view.find_first_of(']') + 1;
+  if (!content_view.empty() && content_view[0] == '[') {  // Added bounds check
+    auto end_of_array_definition = content_view.find_first_of(']');
+    if (end_of_array_definition == std::string_view::npos) {
+      throw std::runtime_error("Malformed member: missing closing ']'");
+    }
     result["type"]["value_type"] = result["type"];
     result["type"]["name"] = "array";
-    result["type"]["size"] = std::stoi(std::string{remove_white_space(content_view.substr(1, end_of_array_definition - 2))});
-    content_view.remove_prefix(end_of_array_definition);
+    try {
+      result["type"]["size"] = std::stoi(std::string{remove_white_space(content_view.substr(1, end_of_array_definition - 1))});
+    } catch (const std::invalid_argument& e) {
+      throw std::runtime_error("Malformed member: array size is not a valid integer");
+    } catch (const std::out_of_range& e) {
+      throw std::runtime_error("Malformed member: array size is out of range");
+    }
+    content_view.remove_prefix(end_of_array_definition + 1);
   }
 
   consume_white_space_and_comment(content_view);
 
-  assert(content_view[0] == ';' && "Malformed member definition!?");
+  if (content_view.empty() || content_view[0] != ';') {  // Added bounds check
+    throw std::runtime_error("Malformed member: missing ';'");
+  }
 
   content_view.remove_prefix(1);
 
@@ -460,16 +557,16 @@ auto parse_member(std::string_view& content_view, TypedefMap typedefs) -> json {
 }
 
 auto parse_attribute(std::string_view& content_view) -> json {
-  assert(content_view[0] == '@' && "Not an attribute!?");
+  if (content_view.empty() || content_view[0] != '@') {  // Added bounds check
+    throw std::runtime_error("Not an attribute");
+  }
 
   json result;
 
   content_view.remove_prefix(1);
   result["name"] = parse_name(content_view);
 
-  consume_white_space_and_comment(content_view);
-
-  if (content_view[0] != '(') {
+  if (content_view.empty() || content_view[0] != '(') {  // Added bounds check
     return result;
   }
 
@@ -477,15 +574,17 @@ auto parse_attribute(std::string_view& content_view) -> json {
   consume_white_space_and_comment(content_view);
 
   size_t old_size = content_view.size();
-  while (content_view[0] != ')') {
+  while (!content_view.empty() && content_view[0] != ')') {  // Added bounds check
     auto name = parse_name(content_view);
-    consume_white_space_and_comment(content_view);
+    if (content_view.empty() || content_view[0] != '=') {  // Added bounds check
+      throw std::runtime_error("Malformed attribute: expected '=' after attribute name");
+    }
     content_view.remove_prefix(1);  // Skip "=" sign
     consume_white_space_and_comment(content_view);
     auto value = parse_value(content_view);
     result["content"][name] = value;
 
-    if (content_view[0] == ',') {
+    if (!content_view.empty() && content_view[0] == ',') {  // Added bounds check
       content_view.remove_prefix(1);
       consume_white_space_and_comment(content_view);
     }
@@ -496,33 +595,43 @@ auto parse_attribute(std::string_view& content_view) -> json {
     old_size = content_view.size();
   }
 
-  content_view.remove_prefix(1);  // Remove ")"
+  if (content_view.empty() || content_view[0] != ')') {  // Added bounds check
+    throw std::runtime_error("Malformed attribute: missing closing ')'");
+  }
 
+  content_view.remove_prefix(1);  // Remove ")"
   consume_white_space_and_comment(content_view);
 
   return result;
 }
 
 auto parse_typedef(std::string_view& content_view) -> std::pair<std::string, std::string> {
-  assert(content_view.substr(0, STRING_TYPEDEF.size()) == STRING_TYPEDEF && "Not a typedef!?");
+  if (content_view.empty() || content_view.substr(0, STRING_TYPEDEF.size()) != STRING_TYPEDEF) {  // Added bounds check
+    throw std::runtime_error("Not a typedef");
+  }
 
-  content_view.remove_prefix(STRING_TYPEDEF.size() + 1);
+  content_view.remove_prefix(STRING_TYPEDEF.size());
 
-  consume_white_space_and_comment(content_view);
+  if (consume_white_space_and_comment(content_view) == 0) {
+    throw std::runtime_error("Typedef keyword should be followed by a space");
+  }
+
   std::string type{parse_type(content_view)};
-
-  consume_white_space_and_comment(content_view);
   std::string name{parse_name(content_view)};
 
-  if (content_view[0] == '[') {
-    auto end_of_array_definition = content_view.find_first_of(']') + 1;
-    type += content_view.substr(0, end_of_array_definition);
-    content_view.remove_prefix(end_of_array_definition);
+  if (!content_view.empty() && content_view[0] == '[') {  // Added bounds check
+    auto end_of_array_definition = content_view.find_first_of(']');
+    if (end_of_array_definition == std::string_view::npos) {
+      throw std::runtime_error("Malformed typedef: no closing ']' found");
+    }
+    type += content_view.substr(0, end_of_array_definition + 1);
+    content_view.remove_prefix(end_of_array_definition + 1);
   }
 
   consume_white_space_and_comment(content_view);
-  if (content_view.empty() || content_view.front() != ';') {
-    throw std::runtime_error("Malformed typedef");
+
+  if (content_view.empty() || content_view[0] != ';') {  // Added bounds check
+    throw std::runtime_error("Malformed typedef: missing ';'");
   }
 
   content_view.remove_prefix(1);
@@ -532,17 +641,25 @@ auto parse_typedef(std::string_view& content_view) -> std::pair<std::string, std
 }
 
 auto parse_structure(std::string_view& content_view, TypedefMap typedefs) -> json {
-  assert(content_view.substr(0, STRING_STRUCT.size()) == STRING_STRUCT && "Not a struct!?");
+  if (content_view.empty() || content_view.substr(0, STRING_STRUCT.size()) != STRING_STRUCT) {  // Added bounds check
+    throw std::runtime_error("Not a struct");
+  }
 
-  content_view.remove_prefix(STRING_STRUCT.size() + 1);
+  content_view.remove_prefix(STRING_STRUCT.size());
 
-  consume_white_space_and_comment(content_view);
+  if (consume_white_space_and_comment(content_view) == 0) {
+    throw std::runtime_error("Struct keyword should be followed by a space");
+  }
+
   auto name = parse_name(content_view);
 
-  auto module_bloc_start = content_view.find_first_of('{');
+  consume_white_space_and_comment(content_view);
 
-  // Move to the first module element
-  content_view.remove_prefix(module_bloc_start + 1);
+  if (content_view.empty() || content_view[0] != '{') {  // Added bounds check
+    throw std::runtime_error("Malformed struct: missing opening '{'");
+  }
+
+  content_view.remove_prefix(1);  // Remove '{'
   consume_white_space_and_comment(content_view);
 
   json module_json = json::object();
@@ -552,7 +669,7 @@ auto parse_structure(std::string_view& content_view, TypedefMap typedefs) -> jso
   nlohmann::json annotations = json::object();
 
   size_t old_size = content_view.size();
-  while (content_view.front() != '}') {
+  while (!content_view.empty() && content_view[0] != '}') {  // Added bounds check
     if (content_view[0] == '@') {
       auto annotation = parse_attribute(content_view);
       annotations[annotation["name"]].push_back(annotation["content"]);
@@ -564,15 +681,27 @@ auto parse_structure(std::string_view& content_view, TypedefMap typedefs) -> jso
 
       // Process annotations
       if (annotations.contains("default")) {
+        if (annotations["default"].size() != 1) {
+          throw std::runtime_error("Malformed struct: default annotation should have exactly one value");
+        }
+        if (!annotations["default"][0].contains("value")) {
+          throw std::runtime_error("Malformed struct: default annotation should not have 'value' key");
+        }
         if (module_json["members"].back()["type"].contains("value_type")) {
+          if (!annotations["default"][0]["value"].is_string()) {
+            throw std::runtime_error("Malformed struct: default annotation should not have 'value' of type 'string' for sequence or array types");
+          }
           module_json["members"].back()["default"] = parse_default_list(annotations["default"][0]["value"].get<std::string>());
         } else {
           module_json["members"].back()["default"] = annotations["default"][0]["value"];
         }
       }
       for (const auto& verbatim : annotations.value("verbatim", json::array())) {
+        if (!verbatim.contains("language") || !verbatim.contains("text")) {
+          throw std::runtime_error("Malformed verbatim annotation: missing 'language' or 'text'");
+        }
         if (verbatim["language"] == "comment") {
-          for (const auto& line : rosidlcpp_parser::split_string_view(verbatim["text"].get<std::string>(), "\\n")) {
+          for (const auto& line : split_string_view(verbatim["text"].get<std::string>(), "\\n")) {
             module_json["members"].back()["comments"].push_back(line);
           }
         }
@@ -583,16 +712,26 @@ auto parse_structure(std::string_view& content_view, TypedefMap typedefs) -> jso
       // TODO: Do something with other annotations
       annotations.clear();
     }
+
     consume_white_space_and_comment(content_view);
 
     if (old_size == content_view.size()) {
-      throw std::runtime_error("Malformed struct");
+      throw std::runtime_error("Malformed struct: no progress made while parsing");
     }
     old_size = content_view.size();
   }
 
+  if (content_view.empty() || content_view[0] != '}') {  // Added bounds check
+    throw std::runtime_error("Malformed struct: missing closing '}'");
+  }
+
   content_view.remove_prefix(1);  // Remove '}'
   consume_white_space_and_comment(content_view);
+
+  if (content_view.empty() || content_view[0] != ';') {  // Added bounds check
+    throw std::runtime_error("Malformed struct: missing ';'");
+  }
+
   content_view.remove_prefix(1);  // Remove ';'
   consume_white_space_and_comment(content_view);
 
@@ -600,17 +739,23 @@ auto parse_structure(std::string_view& content_view, TypedefMap typedefs) -> jso
 }
 
 auto parse_module(std::string_view& content_view, TypedefMap typedefs) -> json {
-  assert(content_view.substr(0, STRING_MODULE.size()) == STRING_MODULE && "Not a module!?");
+  if (content_view.empty() || content_view.substr(0, STRING_MODULE.size()) != STRING_MODULE) {  // Added bounds check
+    throw std::runtime_error("Not a module");
+  }
 
-  content_view.remove_prefix(STRING_MODULE.size() + 1);
+  content_view.remove_prefix(STRING_MODULE.size());
 
-  consume_white_space_and_comment(content_view);
+  if (consume_white_space_and_comment(content_view) == 0) {
+    throw std::runtime_error("Module keyword should be followed by a space");
+  }
+
   auto name = parse_name(content_view);
 
-  auto module_bloc_start = content_view.find_first_of('{');
+  if (content_view.empty() || content_view[0] != '{') {  // Added bounds check
+    throw std::runtime_error("Malformed module: missing opening '{'");
+  }
 
-  // Move to the first module element
-  content_view.remove_prefix(module_bloc_start + 1);
+  content_view.remove_prefix(1);  // Remove '{'
   consume_white_space_and_comment(content_view);
 
   json module_json = json::object();
@@ -619,15 +764,17 @@ auto parse_module(std::string_view& content_view, TypedefMap typedefs) -> json {
   nlohmann::json annotations = json::object();
 
   size_t old_size = content_view.size();
-  while (content_view.front() != '}') {
-    // Parse module content
+  while (!content_view.empty() && content_view[0] != '}') {  // Added bounds check
     if (content_view.substr(0, STRING_MODULE.size()) == STRING_MODULE) {
       module_json["modules"].push_back(parse_module(content_view, typedefs));
     } else if (content_view.substr(0, STRING_STRUCT.size()) == STRING_STRUCT) {
       module_json["structures"].push_back(parse_structure(content_view, typedefs));
       for (const auto& verbatim : annotations.value("verbatim", json::array())) {
+        if (!verbatim.contains("language") || !verbatim["language"].is_string() || !verbatim.contains("text") || !verbatim["text"].is_string()) {
+          throw std::runtime_error("Malformed verbatim annotation: missing 'language' or 'text' or they are not strings");
+        }
         if (verbatim["language"] == "comment") {
-          for (const auto& line : rosidlcpp_parser::split_string_view(verbatim["text"].get<std::string>(), "\\n")) {
+          for (const auto& line : split_string_view(verbatim["text"].get<std::string>(), "\\n")) {
             module_json["structures"].back()["comments"].push_back(line);
           }
         }
@@ -640,47 +787,85 @@ auto parse_module(std::string_view& content_view, TypedefMap typedefs) -> json {
     } else if (content_view.substr(0, STRING_CONST.size()) == STRING_CONST) {
       module_json["constants"].push_back(parse_constant(content_view, typedefs));
       for (const auto& verbatim : annotations.value("verbatim", json::array())) {
+        if (!verbatim.contains("language") || !verbatim["language"].is_string() || !verbatim.contains("text") || !verbatim["text"].is_string()) {
+          throw std::runtime_error("Malformed verbatim annotation: missing 'language' or 'text' or they are not strings");
+        }
         if (verbatim["language"] == "comment") {
-          for (const auto& line : rosidlcpp_parser::split_string_view(verbatim["text"].get<std::string>(), "\\n")) {
+          for (const auto& line : split_string_view(verbatim["text"].get<std::string>(), "\\n")) {
             module_json["constants"].back()["comments"].push_back(line);
           }
         }
       }
-      // TODO: Do something with other annotations
       annotations.clear();
     } else if (content_view.substr(0, STRING_TYPEDEF.size()) == STRING_TYPEDEF) {
       const auto [name, type] = parse_typedef(content_view);
-      typedefs.insert_or_assign(name, type);  // insert_or_assign doesn't support std::pair
+      if (name == type.substr(0, type.find_first_not_of(VALID_TYPE_CHAR))) {
+        throw std::runtime_error("Malformed typedef: typedef name and type are the same");
+      }
+      typedefs.insert_or_assign(name, type);
     }
 
     consume_white_space_and_comment(content_view);
 
     if (old_size == content_view.size()) {
-      throw std::runtime_error("Failed to parse module");
+      throw std::runtime_error("Malformed module: no progress made while parsing");
     }
     old_size = content_view.size();
   }
 
+  if (content_view.empty() || content_view[0] != '}') {  // Added bounds check
+    throw std::runtime_error("Malformed module: missing closing '}'");
+  }
+
   content_view.remove_prefix(1);  // Remove '}'
   consume_white_space_and_comment(content_view);
+
+  if (content_view.empty() || content_view[0] != ';') {  // Added bounds check
+    throw std::runtime_error("Malformed module: missing ';'");
+  }
+
   content_view.remove_prefix(1);  // Remove ';'
   consume_white_space_and_comment(content_view);
 
   return module_json;
 }
 
+auto parse_integer(std::string_view content_view) -> int {
+  if (content_view.empty()) {
+    throw std::runtime_error("Empty content view for integer parsing");
+  }
+  try {
+    return std::stoi(std::string{content_view});
+  } catch (const std::invalid_argument& e) {
+    throw std::runtime_error(fmt::format("Invalid integer value: {}", content_view));
+  } catch (const std::out_of_range& e) {
+    throw std::runtime_error(fmt::format("Integer value out of range: {}", content_view));
+  }
+}
+
 auto parse_include(std::string_view& content_view) -> std::string {
   assert(content_view.substr(0, STRING_INCLUDE.size()) == STRING_INCLUDE && "Not an include!?");
 
   content_view.remove_prefix(STRING_INCLUDE.size());
-  consume_white_space(content_view);
+
+  if (consume_white_space(content_view) == 0) {
+    throw std::runtime_error("Include keyword should be followed by a space");
+  }
+
+  if (content_view.empty() || content_view[0] != '"') {  // Added bounds check
+    throw std::runtime_error("Include should start with '\"'");
+  }
 
   return parse_string_part(content_view);
 }
 
 auto parse_default_list(std::string_view default_value) -> json {
-  assert(default_value.front() == '(' && "Default value should start with '('");
-  assert(default_value.back() == ')' && "Default value should end with ')'");
+  if (default_value.empty() || default_value.front() != '(') {  // Added bounds check
+    throw std::runtime_error("Default value should start with '('");
+  }
+  if (default_value.back() != ')') {  // Added bounds check
+    throw std::runtime_error("Default value should end with ')'");
+  }
 
   default_value.remove_prefix(1);  // Remove '('
 
@@ -689,7 +874,7 @@ auto parse_default_list(std::string_view default_value) -> json {
   while (!default_value.empty()) {
     result.push_back(parse_value(default_value));
 
-    if (default_value.front() != ',' && default_value.front() != ')') {
+    if (default_value.empty() || (default_value.front() != ',' && default_value.front() != ')')) {  // Added bounds check
       throw std::runtime_error(fmt::format("{}: {}", "Failed to parse default list", default_value));
     }
 
@@ -700,7 +885,7 @@ auto parse_default_list(std::string_view default_value) -> json {
   return result;
 }
 
-auto parse_idl_file(const std::string& filename) -> json {
+auto parse_idl(std::string_view content_view) -> nlohmann::json {
   json result;
 
   TypedefMap typedefs;
@@ -710,24 +895,20 @@ auto parse_idl_file(const std::string& filename) -> json {
   typedefs["unsigned long"] = "uint32";
   typedefs["long long"] = "int64";
   typedefs["unsigned long long"] = "uint64";
-  typedefs["long double"] = "long double";  // TODO: Check
-
-  std::ifstream file(filename);
-  std::stringstream ss;
-  ss << file.rdbuf();
-  std::string content = ss.str();
-
-  std::string_view content_view(content);
-
-  consume_white_space_and_comment(content_view);
 
   try {
+    consume_white_space_and_comment(content_view);
+
     size_t old_size = content_view.size();
     while (!content_view.empty()) {
-      if (content_view.substr(0, STRING_INCLUDE.size()) == STRING_INCLUDE) {
-        result["includes"].push_back(parse_include(content_view));
-      } else if (content_view.substr(0, STRING_MODULE.size()) == STRING_MODULE) {
-        result["modules"].push_back(parse_module(content_view, typedefs));
+      try {
+        if (content_view.substr(0, STRING_INCLUDE.size()) == STRING_INCLUDE) {
+          result["includes"].push_back(parse_include(content_view));
+        } else if (content_view.substr(0, STRING_MODULE.size()) == STRING_MODULE) {
+          result["modules"].push_back(parse_module(content_view, typedefs));
+        }
+      } catch (const std::out_of_range& e) {
+        throw std::runtime_error(fmt::format("Out of range error while parsing: {}", e.what()));
       }
 
       if (old_size == content_view.size()) {
@@ -737,12 +918,24 @@ auto parse_idl_file(const std::string& filename) -> json {
     }
 
   } catch (const std::runtime_error& error) {
-    std::cerr << error.what() << '\n'
-              << "Remaining unparsed content: \n"
-              << content_view << '\n';
+    std::cerr << error.what() << '\n';
+    if (!content_view.empty()) {  // Added check to avoid accessing empty content_view
+      std::cerr << "Remaining unparsed content: \n"
+                << content_view << '\n';
+    }
   }
 
   return result;
+}
+
+auto parse_idl_file(const std::string& filename) -> json {
+  std::ifstream file(filename);
+
+  std::stringstream ss;
+  ss << file.rdbuf();
+  std::string content = ss.str();
+
+  return parse_idl(content);
 }
 
 template <typename Container>

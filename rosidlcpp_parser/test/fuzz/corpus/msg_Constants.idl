@@ -1,0 +1,27 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from test_msgs/msg/Constants.msg
+// generated code does not contain a copyright notice
+
+
+module test_msgs {
+  module msg {
+    module Constants_Constants {
+      const boolean BOOL_CONST = TRUE;
+      const octet BYTE_CONST = 50;
+      const uint8 CHAR_CONST = 100;
+      const float FLOAT32_CONST = 1.125;
+      const double FLOAT64_CONST = 1.125;
+      const int8 INT8_CONST = -50;
+      const uint8 UINT8_CONST = 200;
+      const int16 INT16_CONST = -1000;
+      const uint16 UINT16_CONST = 2000;
+      const int32 INT32_CONST = -30000;
+      const uint32 UINT32_CONST = 60000;
+      const int64 INT64_CONST = -40000000;
+      const uint64 UINT64_CONST = 50000000;
+    };
+    struct Constants {
+      uint8 structure_needs_at_least_one_member;
+    };
+  };
+};
