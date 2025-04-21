@@ -34,11 +34,22 @@ install(TARGETS ${PROJECT_NAME} main
 install(DIRECTORY include/ DESTINATION include)
 
 if(BUILD_TESTING)
+  # gtest
   find_package(ament_cmake_gtest REQUIRED)
 
   ament_add_gtest(rosidlcpp_parser_test test/unit/rosidlcpp_parser_test.cpp)
   target_link_libraries(rosidlcpp_parser_test rosidlcpp_parser)
   target_include_directories(rosidlcpp_parser_test PUBLIC include)
+
+  # Fuzzing
+  add_executable(fuzz_target test/fuzz/parse_idl_fuzz.cpp)
+
+  set_target_properties(fuzz_target PROPERTIES
+      COMPILE_OPTIONS "-fsanitize=fuzzer,address,undefined"
+      LINK_OPTIONS "-fsanitize=fuzzer,address,undefined"
+  )
+
+  target_link_libraries(fuzz_target rosidlcpp_parser)
 endif()
 
 ament_export_include_directories("include/${PROJECT_NAME}")

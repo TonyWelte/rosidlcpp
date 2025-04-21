@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -30,9 +31,9 @@ using TypedefMap = std::unordered_map<std::string, std::string>;
 auto split_string_view(std::string_view value, std::string_view sep) -> std::vector<std::string>;
 auto split_string(const std::string& value, const std::string& sep) -> std::vector<std::string>;
 
-auto consume_white_space(std::string_view& content_view) -> void;
-auto consume_comment(std::string_view& content_view) -> void;
-auto consume_white_space_and_comment(std::string_view& content_view) -> void;
+auto consume_white_space(std::string_view& content_view) -> size_t;
+auto consume_comment(std::string_view& content_view) -> size_t;
+auto consume_white_space_and_comment(std::string_view& content_view) -> size_t;
 
 auto parse_include(std::string_view& content_view) -> std::string;
 auto parse_string(std::string_view& content_view) -> std::string;
@@ -49,9 +50,13 @@ auto parse_typedef(std::string_view& content_view) -> std::pair<std::string, std
 auto parse_structure(std::string_view& content_view, TypedefMap typedefs = {}) -> nlohmann::json;
 auto parse_module(std::string_view& content_view, TypedefMap tyepdefs = {}) -> nlohmann::json;
 
+auto parse_integer(std::string_view content_view) -> int;
+
 auto parse_default_list(std::string_view default_value) -> nlohmann::json;
 
 auto has_non_ascii(const std::string& str) -> bool;
+
+auto parse_idl(std::string_view content_view) -> nlohmann::json;
 
 auto parse_idl_file(const std::string& filename) -> nlohmann::json;
 auto parse_ros_idl_file(const std::string& filename) -> nlohmann::json;

@@ -1,0 +1,39 @@
+// generated from rosidl_adapter/resource/action.idl.em
+// with input from test_msgs/action/NestedMessage.action
+// generated code does not contain a copyright notice
+
+#include "builtin_interfaces/msg/Time.idl"
+#include "test_msgs/msg/BasicTypes.idl"
+#include "test_msgs/msg/Builtins.idl"
+
+module test_msgs {
+  module action {
+    @verbatim (language="comment", text=
+      "goal definition")
+    struct NestedMessage_Goal {
+      test_msgs::msg::Builtins nested_field_no_pkg;
+
+      test_msgs::msg::BasicTypes nested_field;
+
+      builtin_interfaces::msg::Time nested_different_pkg;
+    };
+    @verbatim (language="comment", text=
+      "result definition")
+    struct NestedMessage_Result {
+      test_msgs::msg::Builtins nested_field_no_pkg;
+
+      test_msgs::msg::BasicTypes nested_field;
+
+      builtin_interfaces::msg::Time nested_different_pkg;
+    };
+    @verbatim (language="comment", text=
+      "feedback")
+    struct NestedMessage_Feedback {
+      test_msgs::msg::Builtins nested_field_no_pkg;
+
+      test_msgs::msg::BasicTypes nested_field;
+
+      builtin_interfaces::msg::Time nested_different_pkg;
+    };
+  };
+};
