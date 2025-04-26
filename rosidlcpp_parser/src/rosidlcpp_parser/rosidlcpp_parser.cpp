@@ -158,6 +158,24 @@ auto parse_type(std::string_view& content_view) -> std::string_view {
     end_of_type = content_view.find_first_of('>') + 1;
   }
 
+  // Handle multi word types
+  // unsigned short
+  // unsigned long
+  // long long
+  // unsigned long long
+  // long double
+  if (content_view.starts_with("unsigned long long")) {
+    end_of_type = std::string_view("unsigned long long").size();
+  } else if (content_view.starts_with("long long")) {
+    end_of_type = std::string_view("long long").size();
+  } else if (content_view.starts_with("unsigned long")) {
+    end_of_type = std::string_view("unsigned long").size();
+  } else if (content_view.starts_with("unsigned short")) {
+    end_of_type = std::string_view("unsigned short").size();
+  } else if (content_view.starts_with("long double")) {
+    end_of_type = std::string_view("long double").size();
+  }
+
   auto type_string = content_view.substr(0, end_of_type);
   content_view.remove_prefix(end_of_type);
 
@@ -406,7 +424,10 @@ auto parse_attribute(std::string_view& content_view) -> json {
 
   consume_white_space_and_comment(content_view);
 
-  assert(content_view[0] == '(' && "Not an attribute!?");
+  if (content_view[0] != '(') {
+    return result;
+  }
+
   content_view.remove_prefix(1);
   consume_white_space_and_comment(content_view);
 
@@ -510,6 +531,9 @@ auto parse_structure(std::string_view& content_view, TypedefMap typedefs) -> jso
             module_json["members"].back()["comments"].push_back(line);
           }
         }
+      }
+      if (annotations.contains("key")) {
+        module_json["members"].back()["key"] = true;
       }
       // TODO: Do something with other annotations
       annotations.clear();
@@ -634,8 +658,16 @@ auto parse_default_list(std::string_view default_value) -> json {
 auto parse_idl_file(const std::string& filename) -> json {
   json result;
 
-  std::ifstream file(filename);
+  TypedefMap typedefs;
+  typedefs["short"] = "int16";
+  typedefs["unsigned short"] = "uint16";
+  typedefs["long"] = "int32";
+  typedefs["unsigned long"] = "uint32";
+  typedefs["long long"] = "int64";
+  typedefs["unsigned long long"] = "uint64";
+  typedefs["long double"] = "long double";  // TODO: Check
 
+  std::ifstream file(filename);
   std::stringstream ss;
   ss << file.rdbuf();
   std::string content = ss.str();
@@ -650,7 +682,7 @@ auto parse_idl_file(const std::string& filename) -> json {
       if (content_view.substr(0, STRING_INCLUDE.size()) == STRING_INCLUDE) {
         result["includes"].push_back(parse_include(content_view));
       } else if (content_view.substr(0, STRING_MODULE.size()) == STRING_MODULE) {
-        result["modules"].push_back(parse_module(content_view));
+        result["modules"].push_back(parse_module(content_view, typedefs));
       }
 
       if (old_size == content_view.size()) {
@@ -826,16 +858,16 @@ auto check_non_ascii(const nlohmann::json& data) -> bool {
 }
 
 std::optional<json> get_constants(const json& current_node, const std::string& message_name) {
-    if (current_node.contains("modules")) {
-        for (const auto& module : current_node["modules"]) {
-            if (module.contains("name") && module["name"] == message_name + "_Constants") {
-                if (module.contains("constants")) {
-                    return module["constants"];
-                }
-            }
+  if (current_node.contains("modules")) {
+    for (const auto& module : current_node["modules"]) {
+      if (module.contains("name") && module["name"] == message_name + "_Constants") {
+        if (module.contains("constants")) {
+          return module["constants"];
         }
+      }
     }
-    return std::nullopt;
+  }
+  return std::nullopt;
 }
 
 auto convert_idljson_to_rosjson(const nlohmann::json& idl_json, std::string_view file_path) -> nlohmann::json {

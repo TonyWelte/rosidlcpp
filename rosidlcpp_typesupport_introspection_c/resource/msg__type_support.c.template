@@ -167,7 +167,11 @@ static rosidl_typesupport_introspection_c__MessageMember {{ function_prefix }}__
     0,  // upper bound of string
     NULL,  // members of sub message (initialized later)
 {%   endif %}
-    {{ false }},  // is key
+{%   if existsIn(member, "key") %}
+    true,  // is key
+{%   else %}
+    false,  // is key
+{%   endif %}
     {{ is_nestedtype(member.type) }},  // is array
 {%   if member.type.name == "array" %}
     {{ member.type.size }},  // array size
@@ -216,7 +220,11 @@ static const rosidl_typesupport_introspection_c__MessageMembers {{ function_pref
   "{{ message.type.name }}",  // message name
   {{ length(message.members) }},  // number of fields
   sizeof({{ package_name }}__{{ join(split_string(interface_path.filedir, "/"), "__") }}__{{ message.type.name }}),
+{% if has_any_key(message) %}
+  true,  // has_any_key_member_
+{% else %}
   false,  // has_any_key_member_
+{% endif %}
   {{ function_prefix }}__{{ message.type.name }}_message_member_array,  // message members
   {{ function_prefix }}__{{ message.type.name }}_init_function,  // function to initialize message memory (memory has to be allocated)
   {{ function_prefix }}__{{ message.type.name }}_fini_function  // function to terminate message instance (will not free memory)

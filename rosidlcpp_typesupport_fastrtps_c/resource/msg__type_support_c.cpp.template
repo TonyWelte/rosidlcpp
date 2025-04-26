@@ -357,10 +357,12 @@ bool cdr_serialize_key_{{ package_name + "__" + join(split_string(interface_path
   eprosima::fastcdr::Cdr & cdr)
 {
 {% for member in message.members %}
-{%   for line in generate_member_for_cdr_serialize(member, "_key") %}
+{%   if not has_any_key(message) or existsIn(member, "key") %}
+{%     for line in generate_member_for_cdr_serialize(member, "_key") %}
   {{ line }}
-{%   endfor %}
+{%     endfor %}
 
+{%   endif %}
 {% endfor %}
   return true;
 }
@@ -381,10 +383,12 @@ size_t get_serialized_size_key_{{ package_name + "__" + join(split_string(interf
   (void)wchar_size;
 
 {% for member in message.members %}
-{%   for line in generate_member_for_get_serialized_size(member, "_key") %}
+{%   if not has_any_key(message) or existsIn(member, "key") %}
+{%     for line in generate_member_for_get_serialized_size(member, "_key") %}
   {{ line }}
-{%   endfor %}
+{%     endfor %}
 
+{%   endif %}
 {% endfor %}
   return current_alignment - initial_alignment;
 }
@@ -407,10 +411,12 @@ size_t max_serialized_size_key_{{ package_name + "__" + join(split_string(interf
   full_bounded = true;
   is_plain = true;
 {% for member in message.members %}
-{%   for line in generate_member_for_max_serialized_size(member, "_key") %}
+{%   if not has_any_key(message) or existsIn(member, "key") %}
+{%     for line in generate_member_for_max_serialized_size(member, "_key") %}
   {{ line }}
-{%   endfor %}
+{%     endfor %}
 
+{%   endif %}
 {% endfor %}
   size_t ret_val = current_alignment - initial_alignment;
 {% if length(message.members) != 0 %}
@@ -429,7 +435,49 @@ size_t max_serialized_size_key_{{ package_name + "__" + join(split_string(interf
   return ret_val;
 }
 
-{# TODO: Add key things #}
+{% if has_any_key(message) %}
+static bool _{{ message.type.name }}__cdr_serialize_key(
+  const void * untyped_ros_message,
+  eprosima::fastcdr::Cdr & cdr)
+{
+  if (!untyped_ros_message) {
+    fprintf(stderr, "ros message handle is null\n");
+    return false;
+  }
+  const {{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }} * ros_message = static_cast<const {{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }} *>(untyped_ros_message);
+  (void)ros_message;
+  return cdr_serialize_key_{{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }}(ros_message, cdr);
+}
+
+static size_t _{{ message.type.name }}__get_serialized_size_key(
+  const void * untyped_ros_message)
+{
+  return get_serialized_size_key_{{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }}(
+      untyped_ros_message, 0);
+}
+
+static
+size_t
+_{{ message.type.name }}__max_serialized_size_key(
+  bool & is_unbounded)
+{
+  bool full_bounded;
+  bool is_plain;
+  size_t ret_val;
+
+  ret_val = max_serialized_size_key_{{ package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name }}(
+    full_bounded, is_plain, 0);
+
+  is_unbounded = !full_bounded;
+  return ret_val;
+}
+
+static message_type_support_key_callbacks_t __key_callbacks_{{ message.type.name }} = {
+  _{{ message.type.name }}__max_serialized_size_key,
+  _{{ message.type.name }}__get_serialized_size_key,
+  _{{ message.type.name }}__cdr_serialize_key
+};
+{% endif %}
 
 static bool _{{ message.type.name }}__cdr_serialize(
   const void * untyped_ros_message,
@@ -487,7 +535,11 @@ static message_type_support_callbacks_t __callbacks_{{ message.type.name }} = {
   _{{ message.type.name }}__cdr_deserialize,
   _{{ message.type.name }}__get_serialized_size,
   _{{ message.type.name }}__max_serialized_size,
+{% if has_any_key(message) %}
+  &__key_callbacks_{{ message.type.name }}
+{% else %}
   nullptr
+{% endif %}
 };
 
 static rosidl_message_type_support_t _{{ message.type.name }}__type_support = {

@@ -687,20 +687,19 @@ void GeneratorC::run() {
 
     // Raw source content
     auto it = std::ranges::find_if(m_arguments.ros_interface_files, [&](const auto& v) { return v.ends_with("/" + ros_json["type"]["name"].get<std::string>() + "." + ros_json["type"]["namespaces"].back().get<std::string>()); });
-    if (it != m_arguments.ros_interface_files.end()) {
-      std::ifstream raw_source_file(*it);
-      std::stringstream raw_source_stream;
-      raw_source_stream << raw_source_file.rdbuf();
+    std::string raw_source_file_path = it != m_arguments.ros_interface_files.end() ? *it : full_path;
+    std::ifstream raw_source_file(raw_source_file_path);
+    std::stringstream raw_source_stream;
+    raw_source_stream << raw_source_file.rdbuf();
 
-      // Get the raw source content as a list of lines
-      ros_json["raw_source_content"] = nlohmann::json::array();
-      std::string line;
-      while (std::getline(raw_source_stream, line)) {
-        ros_json["raw_source_content"].push_back(line);
-      }
-    } else {
-      ros_json["raw_source_content"] = "";
+    // Get the raw source content as a list of lines
+    ros_json["raw_source"] = nlohmann::json::object();
+    ros_json["raw_source"]["content"] = nlohmann::json::array();
+    std::string line;
+    while (std::getline(raw_source_stream, line)) {
+      ros_json["raw_source"]["content"].push_back(line);
     }
+    ros_json["raw_source"]["encoding"] = std::filesystem::path(raw_source_file_path).extension().string().substr(1); // Remove the leading dot from the extension
 
     ros_json["package_name"] = m_arguments.package_name;
 
