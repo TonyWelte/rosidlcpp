@@ -103,6 +103,9 @@ GeneratorBase::GeneratorBase() : m_env{} {
 
   // C++ API
   GENERATOR_BASE_REGISTER_FUNCTION("MSG_TYPE_TO_CPP", 1, cpp_typename);
+
+  // Keys
+  GENERATOR_BASE_REGISTER_FUNCTION("has_any_key", 1, has_any_key);
 }
 
 Template GeneratorBase::parse_template(std::string_view template_path) {

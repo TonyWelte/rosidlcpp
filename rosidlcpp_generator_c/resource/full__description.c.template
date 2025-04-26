@@ -106,15 +106,15 @@ const rosidl_runtime_c__type_description__TypeDescription *
 
 {#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<#}
 {# Define individual raw sources #}
-{% if raw_source_content %}
+{% if raw_source.content %}
 static char toplevel_type_raw_source[] =
-{%   for line in span(raw_source_content, 0, length(raw_source_content) - 1) %}
+{%   for line in span(raw_source.content, 0, length(raw_source.content) - 1) %}
   "{{ utf8_encode(escape_tab(line)) }}\n"
 {%   endfor %}
-  "{{ utf8_encode(escape_tab(last(raw_source_content))) }}";
+  "{{ utf8_encode(escape_tab(last(raw_source.content))) }}";
 {% endif %}
 
-static char {{ last(type.namespaces) }}_encoding[] = "{{ last(type.namespaces) }}";
+static char {{ raw_source.encoding }}_encoding[] = "{{ raw_source.encoding }}";
 {% if implicit_type_descriptions %}
 static char implicit_encoding[] = "implicit";
 {% endif %}
@@ -133,10 +133,10 @@ static char implicit_encoding[] = "implicit";
 {%   set contents_var = "" %}
 {%   set contents = [] %}
 {% else %}
-{%   set encoding = last(type.namespaces) %}
+{%   set encoding = raw_source.encoding %}
 {%   set contents_var = "toplevel_type_raw_source" %}
-{%   if raw_source_content %}
-{%     set contents = join(raw_source_content, "\n") + "\n" %}{# No idea why I need one more char here #}
+{%   if raw_source.content %}
+{%     set contents = join(raw_source.content, "\n") + "\n" %}{# No idea why I need one more char here #}
 {%   else %}
 {%     set contents = "" %}
 {%   endif %}

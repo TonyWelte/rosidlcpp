@@ -154,7 +154,11 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMember {{ message.ty
     0,  // upper bound of string
     ::rosidl_typesupport_introspection_cpp::get_message_type_support_handle<{{ join(type_.namespaces, "::") + "::" + type_.name }}>(),  // members of sub message
 {%   endif %}
+{%   if existsIn(member, "key") %}
+    true,  // is key
+{%   else %}
     false,  // is key
+{%   endif %}
 {%   if is_nestedtype(member.type) %}
     true,  // is array
 {%   else %}
@@ -213,7 +217,11 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMembers {{ message.t
   "{{ message.type.name }}",  // message name
   {{ length(message.members) }},  // number of fields
   sizeof({{ package_name + "::" + join(split_string(interface_path.filedir, "/"), "::") }}::{{ message.type.name }}),
+{% if has_any_key(message) %}
+  true,  // has_any_key_member_
+{% else %}
   false,  // has_any_key_member_
+{% endif %}
   {{ message.type.name }}_message_member_array,  // message members
   {{ message.type.name }}_init_function,  // function to initialize message memory (memory has to be allocated)
   {{ message.type.name }}_fini_function  // function to terminate message instance (will not free memory)

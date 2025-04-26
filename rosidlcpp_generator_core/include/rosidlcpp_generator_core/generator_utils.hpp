@@ -94,4 +94,10 @@ auto idl_structure_type_to_c_include_prefix(const nlohmann::json& type, const st
 
 auto cpp_typename(const std::string& idl_typename) -> std::string;
 
+/**
+ * Key
+ */
+
+auto has_any_key(const nlohmann::json& message) -> bool;
+
 }  // namespace rosidlcpp_core

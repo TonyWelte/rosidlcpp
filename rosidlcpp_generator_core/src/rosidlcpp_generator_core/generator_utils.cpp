@@ -151,6 +151,9 @@ auto camel_to_snake(const std::string& input) -> std::string {
  */
 
 auto span(const nlohmann::json& list, int start, int end) -> nlohmann::json {
+  if(start > end) {
+    return nlohmann::json::array();
+  }
   return nlohmann::json(list.begin() + start, list.begin() + end);
 }
 
@@ -367,6 +370,19 @@ auto cpp_typename(const std::string& idl_typename) -> std::string {
   } else {
     return idl_typename;
   }
+}
+
+/**
+ * Key
+ */
+
+auto has_any_key(const nlohmann::json& message) -> bool {
+  for (const auto& member : message["members"]) {
+    if (member.contains("key")) {
+      return true;
+    }
+  }
+  return false;
 }
 
 }  // namespace rosidlcpp_core
