@@ -4,8 +4,8 @@
 		"dockerfile": "Dockerfile"
 	},
 	"runArgs": [
-		// "--cap-add=SYS_PTRACE", // Allows the container to trace processes using ptrace system call
-		// "--security-opt=seccomp=unconfined", // Disables seccomp security profiles for the container
+		"--cap-add=SYS_PTRACE", // Allows the container to trace processes using ptrace system call
+		"--security-opt=seccomp=unconfined", // Disables seccomp security profiles for the container
 		// "--ipc=host", // Shares the host's IPC namespace with the container
 		// "--network=host", // Shares the host's network namespace with the container
 		// "--pid=host", // Shares the host's PID namespace with the container
