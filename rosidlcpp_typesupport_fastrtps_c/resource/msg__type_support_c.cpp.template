@@ -236,7 +236,7 @@ bool cdr_deserialize_{{ package_name + "__" + join(split_string(interface_path.f
       array_ptr[i] = static_cast<char16_t>(tmp);
     }
 {%     else if is_primitive(member.type.value_type) %}
-    cdr.deserialize_array(array_ptr, size);
+    cdr.deserializeArray(array_ptr, size);
 {%     else %}
     for (size_t i = 0; i < size; ++i) {
       cdr_deserialize_{{ join(member.type.value_type.namespaces, "__") + "__" + member.type.value_type.name }}(cdr, &array_ptr[i]);

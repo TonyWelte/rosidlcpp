@@ -22,7 +22,7 @@ endif()
 
 find_package(ament_cmake_ros REQUIRED)
 
-find_package(fastcdr 2 REQUIRED CONFIG)
+find_package(fastcdr REQUIRED CONFIG)
 
 find_package(ament_cmake_python REQUIRED)
 

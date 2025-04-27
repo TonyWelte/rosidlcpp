@@ -2,16 +2,18 @@
 
 #include <nlohmann/json_fwd.hpp>
 
+#include <fmt/core.h>
+
 #include <algorithm>
 #include <cassert>
 #include <cctype>
 #include <charconv>
 #include <cstddef>
 #include <filesystem>
-#include <format>
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -20,6 +22,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <string>
 
 constexpr std::string_view STRING_MODULE = "module";
 constexpr std::string_view STRING_STRUCT = "struct";
@@ -264,7 +267,7 @@ auto parse_string_part_python(std::string_view& content_view) -> std::string {
     string_limit += content_view.substr(string_limit + 1).find_first_of('\'') + 1;
   }
 
-  auto result = std::string{std::format("{}", content_view.substr(0, string_limit))};
+  auto result = std::string{fmt::format("{}", content_view.substr(0, string_limit))};
   content_view.remove_prefix(string_limit + 1);
 
   consume_white_space_and_comment(content_view);
@@ -438,7 +441,7 @@ auto parse_attribute(std::string_view& content_view) -> json {
     content_view.remove_prefix(1);  // Skip "=" sign
     consume_white_space_and_comment(content_view);
     auto value = parse_value(content_view);
-    result["content"][name] = value;
+    result["content"][std::string{name}] = value;
 
     if (content_view[0] == ',') {
       content_view.remove_prefix(1);
@@ -510,7 +513,7 @@ auto parse_structure(std::string_view& content_view, TypedefMap typedefs) -> jso
   while (content_view.front() != '}') {
     if (content_view[0] == '@') {
       auto annotation = parse_attribute(content_view);
-      annotations[annotation["name"]].push_back(annotation["content"]);
+      annotations[annotation["name"].get<std::string>()].push_back(annotation["content"]);
     } else if (content_view.substr(0, STRING_CONST.size()) == STRING_CONST) {
       module_json["constants"].push_back(parse_constant(content_view, typedefs));
       annotations.clear();
@@ -591,7 +594,7 @@ auto parse_module(std::string_view& content_view, TypedefMap typedefs) -> json {
       annotations.clear();
     } else if (content_view[0] == '@') {
       auto annotation = parse_attribute(content_view);
-      annotations[annotation["name"]].push_back(annotation["content"]);
+      annotations[annotation["name"].get<std::string>()].push_back(annotation["content"]);
     } else if (content_view.substr(0, STRING_CONST.size()) == STRING_CONST) {
       module_json["constants"].push_back(parse_constant(content_view, typedefs));
       for (const auto& verbatim : annotations.value("verbatim", json::array())) {
@@ -645,7 +648,7 @@ auto parse_default_list(std::string_view default_value) -> json {
     result.push_back(parse_value(default_value));
 
     if (default_value.front() != ',' && default_value.front() != ')') {
-      throw std::runtime_error(std::format("{}: {}", "Failed to parse default list", default_value));
+      throw std::runtime_error(fmt::format("{}: {}", "Failed to parse default list", default_value));
     }
 
     default_value.remove_prefix(1);
@@ -844,7 +847,7 @@ auto recursive_check(const nlohmann::json& data, Function check_function) -> boo
         }
       }
     } else {
-      if (value.is_string() && check_function(value.get<std::string>())) {
+      if (value.is_string() && check_function(value)) {
         return true;
       }
     }
@@ -862,7 +865,7 @@ std::optional<json> get_constants(const json& current_node, const std::string& m
     for (const auto& module : current_node["modules"]) {
       if (module.contains("name") && module["name"] == message_name + "_Constants") {
         if (module.contains("constants")) {
-          return module["constants"];
+          return {module["constants"]};
         }
       }
     }

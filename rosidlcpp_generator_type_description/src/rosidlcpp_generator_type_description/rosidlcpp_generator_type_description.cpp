@@ -11,8 +11,7 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-#include <rcutils/sha256.h>
-#include <rosidl_runtime_c/type_hash.h>
+#include <rosidlcpp_generator_type_description/sha256.h>
 
 #include <algorithm>
 #include <array>
@@ -64,7 +63,7 @@ void add_message(const nlohmann::json &msg, nlohmann::ordered_json &type_descrip
 }
 
 void add_service(const nlohmann::json &srv, nlohmann::ordered_json &type_description_json) {
-  type_description_json[to_type_name(srv["type"])] = {
+  type_description_json[to_type_name(srv["type"])] = nlohmann::json{
       {"type", srv["type"]},
       {"members",
        {
@@ -79,7 +78,7 @@ void add_service(const nlohmann::json &srv, nlohmann::ordered_json &type_descrip
 }
 
 void add_action(const nlohmann::json &action, nlohmann::ordered_json &type_description_json) {
-  type_description_json[to_type_name(action["type"])] = {{"type", action["type"]},
+  type_description_json[to_type_name(action["type"])] = nlohmann::json{{"type", action["type"]},
                                                          {"members",
                                                           {
                                                               {{"type", action["goal"]["type"]}, {"name", "goal"}},
@@ -399,7 +398,7 @@ auto calculate_type_hash(const nlohmann::ordered_json &type_description) -> std:
   rcutils_sha256_ctx_t sha_ctx;
   rcutils_sha256_init(&sha_ctx);
   rcutils_sha256_update(&sha_ctx, hash_bytes.data(), hash_bytes.size());
-  std::array<uint8_t, ROSIDL_TYPE_HASH_SIZE> output_hash{};
+  std::array<uint8_t, RCUTILS_SHA256_BLOCK_SIZE> output_hash{};
   rcutils_sha256_final(&sha_ctx, output_hash.data());
 
   return fmt::format("RIHS01_{:02x}", fmt::join(output_hash, ""));

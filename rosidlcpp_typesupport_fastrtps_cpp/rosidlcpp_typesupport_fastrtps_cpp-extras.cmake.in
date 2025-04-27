@@ -2,7 +2,7 @@
 # rosidl_typesupport_fastrtps_cpp/
 #   rosidl_typesupport_fastrtps_cpp-extras.cmake.in
 
-find_package(fastcdr 2 REQUIRED CONFIG)
+find_package(fastcdr REQUIRED CONFIG)
 
 if(NOT fastcdr_FOUND)
   message(STATUS

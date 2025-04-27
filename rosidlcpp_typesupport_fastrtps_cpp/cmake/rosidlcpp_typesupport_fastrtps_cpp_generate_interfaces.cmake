@@ -19,7 +19,7 @@ if(NOT TARGET ${rosidl_generate_interfaces_TARGET}__rosidl_generator_cpp)
 endif()
 
 find_package(ament_cmake_ros REQUIRED)
-find_package(fastcdr 2 REQUIRED CONFIG)
+find_package(fastcdr REQUIRED CONFIG)
 find_package(rmw REQUIRED)
 find_package(rosidl_runtime_c REQUIRED)
 find_package(rosidl_runtime_cpp REQUIRED)

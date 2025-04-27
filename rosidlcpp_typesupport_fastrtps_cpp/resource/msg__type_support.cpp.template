@@ -133,7 +133,7 @@ cdr_deserialize(
     ros_message.{{ member.name }}.resize(size);
 {%         if is_primitive(member.type.value_type) and member.type.value_type.name != "boolean" and member.type.value_type.name != "wchar" %}
     if (size > 0) {
-      cdr.deserialize_array(&(ros_message.{{ member.name }}[0]), size);
+      cdr.deserializeArray(&(ros_message.{{ member.name }}[0]), size);
     }
 {%         else %}
     for (size_t i = 0; i < size; i++) {

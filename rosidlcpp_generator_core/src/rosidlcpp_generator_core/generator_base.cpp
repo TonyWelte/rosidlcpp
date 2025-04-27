@@ -191,10 +191,10 @@ GeneratorArguments parse_arguments(const std::string& filepath) {
     result.idl_tuples = parse_pairs(data["idl_tuples"]);
   }
   if (data.contains("ros_interface_files")) {
-    result.ros_interface_files = data["ros_interface_files"];
+    result.ros_interface_files = data["ros_interface_files"].get<std::vector<std::string>>();
   }
   if (data.contains("ros_interface_dependencies")) {
-    result.ros_interface_dependencies = data["ros_interface_dependencies"];
+    result.ros_interface_dependencies = data["ros_interface_dependencies"].get<std::vector<std::string>>();
   }
   if (data.contains("target_dependencies")) {
     result.target_dependencies = parse_pairs(data["target_dependencies"]);
