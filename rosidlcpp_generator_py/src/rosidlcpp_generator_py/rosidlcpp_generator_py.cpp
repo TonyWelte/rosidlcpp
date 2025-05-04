@@ -132,17 +132,29 @@ auto get_imports(const nlohmann::json& members) -> nlohmann::json {
   return result;
 }
 
+std::string escape_string_py(std::string_view str, char quote_char) {
+  std::string result;
+  for (const auto& c : str) {
+    if (c == '\\') {
+      result += "\\\\";
+    } else if (c == quote_char) {
+      result += std::format("\\{}", quote_char);
+    } else {
+      result += c;
+    }
+  }
+  return result;
+}
+
 auto primitive_value_to_py(nlohmann::json type, nlohmann::json value) -> std::string {
   assert(!value.is_null());
 
   if (rosidlcpp_core::is_string(type)) {
     const auto string_value = value.get<std::string>();
-    if (!string_value.contains('\'')) {
-      return std::format("'{}'", string_value);
-    } else if (!string_value.contains('"')) {
-      return std::format("\"{}\"", string_value);
+    if (!string_value.contains('\'') || string_value.contains('"')) {
+      return std::format("'{}'", escape_string_py(string_value, '\''));
     } else {
-      return std::format("'''{}'''", string_value);
+      return std::format("\"{}\"", escape_string_py(string_value, '\"'));
     }
   }
 

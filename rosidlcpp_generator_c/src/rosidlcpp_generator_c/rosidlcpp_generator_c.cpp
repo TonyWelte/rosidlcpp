@@ -608,27 +608,16 @@ auto static_seq(const std::string& varname, const nlohmann::json& value) -> std:
 
 auto utf8_encode(const std::string& value_string) -> std::string {
   std::string utf8_encoded;
-  for (const auto& c : value_string) {
+  for (const auto& c : rosidlcpp_core::escape_string(value_string)) {
     if (static_cast<unsigned char>(c) < 0x80) {
       utf8_encoded += c;
     } else {
       utf8_encoded += fmt::format("\\x{:02x}", static_cast<unsigned char>(c));
     }
   }
-  return rosidlcpp_core::escape_string(utf8_encoded);
+  return utf8_encoded;
 }
 
-auto escape_tab(const std::string& value_string) -> std::string {
-  std::string escaped_string;
-  for (const auto& c : value_string) {
-    if (c == '\t') {
-      escaped_string += "\\t";
-    } else {
-      escaped_string += c;
-    }
-  }
-  return escaped_string;
-}
 auto field_type_id_to_name(int field_type_id) -> std::string {
   return FIELD_TYPE_ID_TO_NAME.at(field_type_id);
 }
@@ -656,7 +645,6 @@ GeneratorC::GeneratorC(rosidlcpp_core::GeneratorArguments generator_arguments, b
   GENERATOR_BASE_REGISTER_FUNCTION("static_seq_n", 2, static_seq_n);
   GENERATOR_BASE_REGISTER_FUNCTION("static_seq", 2, static_seq);
   GENERATOR_BASE_REGISTER_FUNCTION("utf8_encode", 1, utf8_encode);
-  GENERATOR_BASE_REGISTER_FUNCTION("escape_tab", 1, escape_tab);
   GENERATOR_BASE_REGISTER_FUNCTION("FIELD_TYPE_ID_TO_NAME", 1, field_type_id_to_name);
 }
 
