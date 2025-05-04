@@ -1,10 +1,24 @@
-#include <filesystem>
+// Copyright 2025 Anthony Welte
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include <rosidlcpp_generator_core/generator_base.hpp>
 
 #include <algorithm>
 #include <cctype>
 #include <cmath>
 #include <cstddef>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <ostream>
@@ -127,24 +141,24 @@ void GeneratorBase::write_template(const inja::Template& template_object, const 
  * @brief Update the file if the contents are different from the new content.
  */
 bool compare_and_write(const std::filesystem::path& file_path, const std::string& new_content) {
-    std::ifstream in_file(file_path);
-    std::string file_content((std::istreambuf_iterator<char>(in_file)), std::istreambuf_iterator<char>());
+  std::ifstream in_file(file_path);
+  std::string file_content((std::istreambuf_iterator<char>(in_file)), std::istreambuf_iterator<char>());
 
-    if (file_content == new_content) {
-        // Contents are the same, no need to update the file
-        return false;
+  if (file_content == new_content) {
+    // Contents are the same, no need to update the file
+    return false;
+  } else {
+    // Contents are different, update the file
+    std::ofstream out_file(file_path);
+    if (out_file.is_open()) {
+      out_file << new_content;
+      out_file.close();
+      return true;
     } else {
-        // Contents are different, update the file
-        std::ofstream out_file(file_path);
-        if (out_file.is_open()) {
-            out_file << new_content;
-            out_file.close();
-            return true;
-        } else {
-            std::cerr << "Unable to open file for writing: " << file_path << std::endl;
-            return false;
-        }
+      std::cerr << "Unable to open file for writing: " << file_path << std::endl;
+      return false;
     }
+  }
 }
 
 void GeneratorEnvironment::write_template(const inja::Template& template_object, const nlohmann::json& data, std::string_view output_file, bool add_bom_if_needed) {
