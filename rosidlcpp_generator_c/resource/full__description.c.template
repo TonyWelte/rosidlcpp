@@ -109,9 +109,9 @@ const rosidl_runtime_c__type_description__TypeDescription *
 {% if raw_source.content %}
 static char toplevel_type_raw_source[] =
 {%   for line in span(raw_source.content, 0, length(raw_source.content) - 1) %}
-  "{{ utf8_encode(escape_tab(line)) }}\n"
+  "{{ utf8_encode(line) }}\n"
 {%   endfor %}
-  "{{ utf8_encode(escape_tab(last(raw_source.content))) }}";
+  "{{ utf8_encode(last(raw_source.content)) }}";
 {% endif %}
 
 static char {{ raw_source.encoding }}_encoding[] = "{{ raw_source.encoding }}";
