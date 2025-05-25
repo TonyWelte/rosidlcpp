@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>rosidlcpp</name>
+  <version>0.0.0</version>
+  <description>Meta package depending on all rosidlcpp generators</description>
+
+  <maintainer email="tony.welte@gmail.com">Anthony Welte</maintainer>
+
+  <license>Apache License 2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <buildtool_export_depend>ament_cmake_core</buildtool_export_depend>
+  <buildtool_export_depend>rosidlcpp_typesupport_c</buildtool_export_depend>
+  <buildtool_export_depend>rosidlcpp_typesupport_cpp</buildtool_export_depend>
+
+  <buildtool_export_depend>rosidlcpp_generator_c</buildtool_export_depend>
+  <buildtool_export_depend>rosidlcpp_generator_cpp</buildtool_export_depend>
+  <buildtool_export_depend>rosidlcpp_generator_py</buildtool_export_depend>
+  <buildtool_export_depend>rosidlcpp_generator_type_description</buildtool_export_depend>
+  <buildtool_export_depend>rosidlcpp_typesupport_fastrtps_c</buildtool_export_depend>
+  <buildtool_export_depend>rosidlcpp_typesupport_introspection_c</buildtool_export_depend>
+  <buildtool_export_depend>rosidlcpp_typesupport_fastrtps_cpp</buildtool_export_depend>
+  <buildtool_export_depend>rosidlcpp_typesupport_introspection_cpp</buildtool_export_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
