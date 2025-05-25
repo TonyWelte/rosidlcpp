@@ -22,7 +22,7 @@ The idea behind `rosidlcpp` was to reimplement `rosidl` in C++ so that the scrip
 
 ### Slow Python Generators
 
-![flamegraph_rosdil](./rosidlcpp/img/flamegraph_rosidl.jpg)
+![flamegraph_rosdil](./rosidlcpp/doc/img/flamegraph_rosidl.jpg)
 
 Most of the time spent building interface packages is spent on generating files. With the default install, 10 file generators need to run, each generating multiple files per interface:
 1. `rosidl_generator_type_description` (1 file): Generates a JSON file with basic info on the interface and computes the hashes for each interface.
@@ -44,7 +44,7 @@ I suspect there are two reasons for the generators to need this time:
 
 Zooming in on the main compilation section (after the `rosidl_typesupport_`) reveals that some files take over 300ms to compile.
 
-![flamegraph_rosdil_compilation](./rosidlcpp/img/flamegraph_rosidl_compilation.jpg)
+![flamegraph_rosdil_compilation](./rosidlcpp/doc/img/flamegraph_rosidl_compilation.jpg)
 
 Adding [`-ftime-report`](https://gcc.gnu.org/onlinedocs/gcc/Developer-Options.html#index-ftime-report) to one of these build stages reveals that most of the time (around 90%) is spent parsing the file.
 
@@ -80,7 +80,7 @@ The reason parsing the file takes so long is that its includes, once expanded, r
 
 The resulting build is almost entirely spent on actually compiling files:
 
-![flamegraph_rosidlcpp](./rosidlcpp/img/flamegraph_rosidlcpp.jpg)
+![flamegraph_rosidlcpp](./rosidlcpp/doc/img/flamegraph_rosidlcpp.jpg)
 
 ### Replacing rosidl Generators (This is the Jankiest Part of rosidlcpp)
 
