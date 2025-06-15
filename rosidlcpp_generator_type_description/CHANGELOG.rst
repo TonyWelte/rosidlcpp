@@ -2,8 +2,8 @@
 Changelog for package rosidlcpp_generator_type_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.1 (2025-06-15)
+------------------
 * Fix circular dependency caused by ament_cmake_ros dependency (`#4 <https://github.com/TonyWelte/rosidlcpp/issues/4>`_)
 * Contributors: Anthony Welte
 
