@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.12)
 
 project(rosidlcpp_generator_type_description)
 
-find_package(ament_cmake_ros REQUIRED)
+find_package(ament_cmake REQUIRED)
 
 find_package(nlohmann_json REQUIRED)
 find_package(fmt REQUIRED)
