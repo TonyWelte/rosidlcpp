@@ -9,7 +9,8 @@
 
   <license>Apache License 2.0</license>
 
-  <buildtool_depend>ament_cmake_ros</buildtool_depend>
+  <!-- Used in the CMakeLists.txt of this package and only needed by CMake-->
+  <buildtool_depend>ament_cmake</buildtool_depend>
 
   <buildtool_export_depend>ament_cmake_core</buildtool_export_depend>
 
