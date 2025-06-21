@@ -2,8 +2,8 @@
 Changelog for package rosidlcpp_typesupport_fastrtps_c
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.2 (2025-06-21)
+------------------
 * Fix missing fmt dependency in rosidlcpp_generator_core (`#5 <https://github.com/TonyWelte/rosidlcpp/issues/5>`_)
 * Contributors: Anthony Welte
 
