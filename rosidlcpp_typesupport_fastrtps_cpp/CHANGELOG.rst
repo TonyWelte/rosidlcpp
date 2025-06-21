@@ -2,6 +2,11 @@
 Changelog for package rosidlcpp_typesupport_fastrtps_cpp
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fix missing fmt dependency in rosidlcpp_generator_core (`#5 <https://github.com/TonyWelte/rosidlcpp/issues/5>`_)
+* Contributors: Anthony Welte
+
 0.1.1 (2025-06-15)
 ------------------
 * Fix circular dependency caused by ament_cmake_ros dependency (`#4 <https://github.com/TonyWelte/rosidlcpp/issues/4>`_)

@@ -2,6 +2,9 @@
 Changelog for package rosidlcpp_parser
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 0.1.1 (2025-06-15)
 ------------------
 
