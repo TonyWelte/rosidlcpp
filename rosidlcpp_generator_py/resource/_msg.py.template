@@ -277,7 +277,7 @@ string{% if existsIn(type_, "maximum_size") -%}
 {% for member in message.members %}
 {%   if length(message.members) != 1 or member.name != EMPTY_STRUCTURE_REQUIRED_MEMBER_NAME  %}
 {%   if member.type.name == "array" and is_primitive(member.type.value_type) and get_special_nested_basic_type(member.type.value_type) %}
-        if all(self.{{ member.name }} != other.{{ member.name }}):
+        if any(self.{{ member.name }} != other.{{ member.name }}):
 {%   else %}
         if self.{{ member.name }} != other.{{ member.name }}:
 {%   endif %}
