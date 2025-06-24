@@ -2,6 +2,11 @@
 Changelog for package rosidlcpp_typesupport_introspection_c
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.2.0 (2025-06-24)
+------------------
+* Fix shared/static library type for generator_c and introspection_c[pp] (`#6 <https://github.com/TonyWelte/rosidlcpp/issues/6>`_)
+* Contributors: Anthony Welte
+
 0.1.2 (2025-06-21)
 ------------------
 

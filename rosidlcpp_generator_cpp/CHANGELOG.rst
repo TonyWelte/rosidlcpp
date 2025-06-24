@@ -2,6 +2,11 @@
 Changelog for package rosidlcpp_generator_cpp
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.2.0 (2025-06-24)
+------------------
+* Add name and data_type traits for actions (`#7 <https://github.com/TonyWelte/rosidlcpp/issues/7>`_)
+* Contributors: Anthony Welte
+
 0.1.2 (2025-06-21)
 ------------------
 

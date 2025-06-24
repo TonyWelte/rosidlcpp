@@ -2,6 +2,11 @@
 Changelog for package rosidlcpp_generator_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.2.0 (2025-06-24)
+------------------
+* Fix __eq_\_ for Array fields (`#8 <https://github.com/TonyWelte/rosidlcpp/issues/8>`_)
+* Contributors: Anthony Welte
+
 0.1.2 (2025-06-21)
 ------------------
 
