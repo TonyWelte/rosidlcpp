@@ -469,13 +469,15 @@ auto generate_default_string(const nlohmann::json &membset, const std::string &)
     if (member["default_value"].is_array()) {
       if (std::all_of(member["default_value"].begin(),
                       member["default_value"].end(),
-                      [first = member["default_value"]](const auto &value) {
+                      [first = member["default_value"].front()](const auto &value) {
                         return value == first;
                       })) {
-        result.push_back(
-            "this->" + member["name"].get<std::string>() + ".fill(" +
-            msg_type_only_to_cpp(member["type"]["name"]) + "{" +
-            member["default_value"][0].get<std::string>() + "});");
+        result.push_back(std::format("std::fill<typename {}::iterator, {}>(this->{}.begin(), this->{}.end(), {});",
+                                     msg_type_to_cpp(member["type"]),
+                                     msg_type_only_to_cpp(member["type"]),
+                                     member["name"].get<std::string>(),
+                                     member["name"].get<std::string>(),
+                                     member["default_value"][0].get<std::string>()));
       } else {
         for (size_t i = 0; i < member["default_value"].size(); ++i) {
           result.push_back("this->" + member["name"].get<std::string>() +

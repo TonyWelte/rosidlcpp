@@ -87,6 +87,12 @@ auto consume_comment(std::string_view& content_view) -> void {
     } else {
       content_view.remove_prefix(end_of_line + 1);
     }
+  } else if (content_view.substr(0, 2) == "/*") {
+    auto end_of_comment = content_view.find("*/");
+    if (end_of_comment == std::string_view::npos) {
+      throw std::runtime_error("Unterminated comment in content view");
+    }
+    content_view.remove_prefix(end_of_comment + 2);
   }
 }
 
@@ -126,6 +132,11 @@ auto interpret_type(std::string_view type_string, TypedefMap typedefs) -> json {
     type_string.remove_prefix(std::string_view{"string<"}.size());
     type_string.remove_suffix(1);  // Remove last '>'
     result["maximum_size"] = std::stoi(std::string{remove_white_space(type_string)});
+  } else if (type_string.starts_with("wstring<")) {  // wstring<bounds>
+    result["name"] = "wstring";
+    type_string.remove_prefix(std::string_view{"wstring<"}.size());
+    type_string.remove_suffix(1);  // Remove last '>'
+    result["maximum_size"] = std::stoi(std::string{remove_white_space(type_string)});
   } else if (type_string.starts_with("sequence<")) {  // sequence<type> or sequence<type, bounds>
     result["name"] = "sequence";
 
@@ -162,14 +173,31 @@ auto interpret_type(std::string_view type_string, TypedefMap typedefs) -> json {
   return result;
 }
 
-auto parse_type(std::string_view& content_view) -> std::string_view {
+auto parse_type(std::string_view& content_view) -> std::string {
   auto end_of_type = content_view.find_first_not_of(VALID_TYPE_CHAR);
   if (end_of_type == std::string_view::npos) {
     throw std::runtime_error("Malformed type");
   }
 
-  if (content_view.at(end_of_type) == '<') {
-    end_of_type = content_view.find_first_of('>') + 1;
+  std::string type_name{content_view.substr(0, end_of_type)};
+  content_view.remove_prefix(end_of_type);
+  end_of_type = 0;
+
+  consume_white_space_and_comment(content_view);
+
+  if (content_view[0] == '<') {
+    auto tmp_end_of_type = content_view.find_first_of('>') + 1;
+
+    if (tmp_end_of_type == std::string_view::npos) {
+      throw std::runtime_error("Malformed type: missing '>'");
+    }
+
+    // Check if there is a '<' in the type. If there is, we need to find the next '>'
+    if (content_view.substr(end_of_type + 1, tmp_end_of_type - end_of_type).find_first_of('<') != std::string_view::npos) {
+      tmp_end_of_type = content_view.find_first_of('>', tmp_end_of_type) + 1;
+    }
+
+    end_of_type = tmp_end_of_type;
   }
 
   // Handle multi word types
@@ -190,10 +218,10 @@ auto parse_type(std::string_view& content_view) -> std::string_view {
     end_of_type = std::string_view("long double").size();
   }
 
-  auto type_string = content_view.substr(0, end_of_type);
+  type_name += content_view.substr(0, end_of_type);
   content_view.remove_prefix(end_of_type);
 
-  return type_string;
+  return type_name;
 }
 
 auto parse_value_list(std::string_view& content_view) -> json {
@@ -413,11 +441,13 @@ auto parse_member(std::string_view& content_view, TypedefMap typedefs) -> json {
 
   consume_white_space_and_comment(content_view);
 
-  // if (content_view[0] == '=') {
-  //     content_view.remove_prefix(1);
-  //     remove_white_space_and_comment(content_view);
-  //     result["default"] = parse_value(content_view);
-  // }
+  if (content_view[0] == '[') {  // Array definition
+    auto end_of_array_definition = content_view.find_first_of(']') + 1;
+    result["type"]["value_type"] = result["type"];
+    result["type"]["name"] = "array";
+    result["type"]["size"] = std::stoi(std::string{remove_white_space(content_view.substr(1, end_of_array_definition - 2))});
+    content_view.remove_prefix(end_of_array_definition);
+  }
 
   consume_white_space_and_comment(content_view);
 

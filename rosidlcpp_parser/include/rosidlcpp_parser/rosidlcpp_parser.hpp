@@ -39,7 +39,7 @@ auto parse_string(std::string_view& content_view) -> std::string;
 auto parse_string_part(std::string_view& content_view) -> std::string;
 auto parse_string_python(std::string_view& content_view) -> std::string;
 auto interpret_type(std::string_view content_view, TypedefMap typedefs = {}) -> nlohmann::json;
-auto parse_type(std::string_view& content_view) -> std::string_view;
+auto parse_type(std::string_view& content_view) -> std::string;
 auto parse_name(std::string_view& content_view) -> std::string_view;
 auto parse_value(std::string_view& content_view) -> nlohmann::json;
 auto parse_constant(std::string_view& content_view, TypedefMap typedefs = {}) -> nlohmann::json;

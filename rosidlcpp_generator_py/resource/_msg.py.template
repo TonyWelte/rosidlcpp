@@ -163,7 +163,7 @@ string{% if existsIn(type_, "maximum_size") -%}
 {{ get_rosidl_parser_type(member.type) }}({% endif %}
 {{ get_rosidl_parser_type(type_) }}({% if is_primitive(type_) and not is_string(type_) %}
 '{{ type_.name }}'{% else if is_string(type_) and existsIn(type_, "maximum_size") %}
-{{ member.type.maximum_size -}}
+{{ type_.maximum_size -}}
 {% else if existsIn(type_, "namespaces") %}
 [{{ "'" + join(type_.namespaces, "', '") + "'" }}], '{{ type_.name }}'{% endif %}
 ){% if member.type.name == "array" %}

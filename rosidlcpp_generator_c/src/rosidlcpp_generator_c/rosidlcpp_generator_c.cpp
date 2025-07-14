@@ -699,9 +699,13 @@ void GeneratorC::run() {
     ros_json["raw_source"]["content"] = nlohmann::json::array();
     std::string line;
     while (std::getline(raw_source_stream, line)) {
+      // Handle windows-style line endings
+      if (!line.empty() && line.back() == '\r') {
+        line.pop_back();
+      }
       ros_json["raw_source"]["content"].push_back(line);
     }
-    ros_json["raw_source"]["encoding"] = std::filesystem::path(raw_source_file_path).extension().string().substr(1); // Remove the leading dot from the extension
+    ros_json["raw_source"]["encoding"] = std::filesystem::path(raw_source_file_path).extension().string().substr(1);  // Remove the leading dot from the extension
 
     ros_json["package_name"] = m_arguments.package_name;
 
