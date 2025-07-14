@@ -2,6 +2,11 @@
 Changelog for package rosidlcpp_parser
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.2.1 (2025-07-14)
+------------------
+* Fix bounded sequence of bounded strings (`#10 <https://github.com/TonyWelte/rosidlcpp/issues/10>`_)
+* Contributors: Anthony Welte
+
 0.2.0 (2025-06-24)
 ------------------
 

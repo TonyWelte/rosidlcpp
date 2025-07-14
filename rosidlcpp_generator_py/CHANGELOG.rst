@@ -2,6 +2,11 @@
 Changelog for package rosidlcpp_generator_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.2.1 (2025-07-14)
+------------------
+* Fix bounded strings (`#10 <https://github.com/TonyWelte/rosidlcpp/issues/10>`_)
+* Contributors: Anthony Welte
+
 0.2.0 (2025-06-24)
 ------------------
 * Fix __eq_\_ for Array fields (`#8 <https://github.com/TonyWelte/rosidlcpp/issues/8>`_)
