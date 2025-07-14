@@ -156,6 +156,10 @@ auto field_type_type_name(const nlohmann::json &ftype) -> std::string {
     value_type_name = FIELD_VALUE_TYPE_MAP.at(value_type["name"].get<std::string>());
   }
 
+  if (value_type_name.empty()) {
+    throw std::runtime_error("Unknown field type: " + value_type.dump());
+  }
+
   return value_type_name + name_suffix;
 }
 
