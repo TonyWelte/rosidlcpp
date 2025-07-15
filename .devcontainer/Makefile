@@ -15,13 +15,13 @@ clean_all:
 	@$(MAKE) -f $(lastword $(MAKEFILE_LIST)) clean_rosidlcpp_no_precompiled
 
 build_rosidl:
-	@env -i bash -c "source /opt/ros/rolling/setup.bash; colcon build --mixin ninja --packages-select ${PKG} --base-paths src --build-base build_rosidl --install-base install_rosidl --event-handlers=console_direct+"
+	@env -i bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash; colcon build --mixin ninja --packages-select ${PKG} --base-paths src --build-base build_rosidl --install-base install_rosidl --event-handlers=console_direct+"
 
 build_rosidlcpp:
-	@env -i bash -c "source /opt/ros/rolling/setup.bash; source install/setup.bash; colcon build --mixin ninja --packages-select ${PKG} --base-paths src --build-base build_rosidlcpp --install-base install_rosidlcpp --event-handlers=console_direct+"
+	@env -i bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash; source install/setup.bash; colcon build --mixin ninja --packages-select ${PKG} --base-paths src --build-base build_rosidlcpp --install-base install_rosidlcpp --event-handlers=console_direct+"
 
 build_rosidlcpp_no_precompiled:
-	@env -i bash -c "source /opt/ros/rolling/setup.bash; source install/setup.bash; colcon build --mixin ninja --packages-select ${PKG} --base-paths src --build-base build_rosidlcpp_no_precompiled --install-base install_rosidlcpp_no_precompiled --cmake-args -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON"
+	@env -i bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash; source install/setup.bash; colcon build --mixin ninja --packages-select ${PKG} --base-paths src --build-base build_rosidlcpp_no_precompiled --install-base install_rosidlcpp_no_precompiled --cmake-args -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON"
 
 build_all:
 	@$(MAKE) -f $(lastword $(MAKEFILE_LIST)) build_rosidl

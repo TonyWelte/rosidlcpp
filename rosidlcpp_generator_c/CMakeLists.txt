@@ -9,7 +9,11 @@ endif()
 set(CMAKE_CXX_STANDARD 23)
 
 find_package(ament_cmake REQUIRED)
-find_package(ament_cmake_ros_core REQUIRED)
+if($ENV{ROS_DISTRO} STREQUAL "jazzy")
+  find_package(ament_cmake_ros REQUIRED)
+else()
+  find_package(ament_cmake_ros_core REQUIRED)
+endif()
 
 find_package(fmt REQUIRED)
 find_package(nlohmann_json REQUIRED)
