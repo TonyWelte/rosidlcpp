@@ -11,9 +11,10 @@ set(CMAKE_CXX_STANDARD 23)
 find_package(ament_cmake REQUIRED)
 
 find_package(nlohmann_json REQUIRED)
+find_package(fmt REQUIRED)
 
 add_library(rosidlcpp_parser SHARED src/rosidlcpp_parser/rosidlcpp_parser.cpp)
-target_link_libraries(rosidlcpp_parser nlohmann_json::nlohmann_json)
+target_link_libraries(rosidlcpp_parser nlohmann_json::nlohmann_json fmt::fmt)
 target_include_directories(rosidlcpp_parser PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
   "$<INSTALL_INTERFACE:include>")

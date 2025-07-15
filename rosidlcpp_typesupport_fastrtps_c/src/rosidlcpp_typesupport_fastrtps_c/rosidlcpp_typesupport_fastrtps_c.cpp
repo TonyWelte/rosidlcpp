@@ -32,7 +32,6 @@
 #include <cstdlib>
 #include <exception>
 #include <filesystem>
-#include <format>
 #include <iostream>
 #include <ostream>
 #include <string>
@@ -109,7 +108,7 @@ auto generate_member_for_cdr_serialize(const nlohmann::json& member, const std::
 
   if (rosidlcpp_core::is_nestedtype(member["type"])) {
     if (rosidlcpp_core::is_array(member["type"])) {
-      strlist.emplace_back(std::format("  size_t size = {};", member["type"]["size"].get<size_t>()));
+      strlist.emplace_back(fmt::format("  size_t size = {};", member["type"]["size"].get<size_t>()));
       strlist.emplace_back("  auto array_ptr = ros_message->" + member["name"].get<std::string>() + ";");
     } else {
       strlist.emplace_back("  size_t size = ros_message->" + member["name"].get<std::string>() + ".size;");
@@ -373,10 +372,10 @@ void GeneratorTypesupportFastrtpsC::run() {
     const auto msg_type = ros_json["interface_path"]["filename"].get<std::string>();
     std::filesystem::create_directories(m_arguments.output_dir + "/" + msg_directory + "/detail");
     write_template(template_idl, ros_json,
-                   std::format("{}/detail/{}__type_support_c.cpp", msg_directory,
+                   fmt::format("{}/detail/{}__type_support_c.cpp", msg_directory,
                                rosidlcpp_core::camel_to_snake(msg_type)));
     write_template(template_idl_rosidl, ros_json,
-                   std::format("{}/detail/{}__rosidl_typesupport_fastrtps_c.h", msg_directory,
+                   fmt::format("{}/detail/{}__rosidl_typesupport_fastrtps_c.h", msg_directory,
                                rosidlcpp_core::camel_to_snake(msg_type)));
   }
 }
