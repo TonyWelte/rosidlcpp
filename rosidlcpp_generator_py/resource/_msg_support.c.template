@@ -112,6 +112,34 @@ bool {{join(message.type.namespaces, "__") + "__" + convert_camel_case_to_lower_
 {% set full_classname = join(message.type.namespaces, ".") + "." + module_name + "." + message.type.name %}
   // check that the passed message is of the expected Python class
   {
+{% if ROS_DISTRO == "jazzy" %}
+    char full_classname_dest[{{ length(full_classname) + 1}}];
+    {
+      char * class_name = NULL;
+      char * module_name = NULL;
+      {
+        PyObject * class_attr = PyObject_GetAttrString(_pymsg, "__class__");
+        if (class_attr) {
+          PyObject * name_attr = PyObject_GetAttrString(class_attr, "__name__");
+          if (name_attr) {
+            class_name = (char *)PyUnicode_1BYTE_DATA(name_attr);
+            Py_DECREF(name_attr);
+          }
+          PyObject * module_attr = PyObject_GetAttrString(class_attr, "__module__");
+          if (module_attr) {
+            module_name = (char *)PyUnicode_1BYTE_DATA(module_attr);
+            Py_DECREF(module_attr);
+          }
+          Py_DECREF(class_attr);
+        }
+      }
+      if (!class_name || !module_name) {
+        return false;
+      }
+      snprintf(full_classname_dest, sizeof(full_classname_dest), "%s.%s", module_name, class_name);
+    }
+    assert(strncmp("{{ full_classname }}", full_classname_dest, {{ length(full_classname) }}) == 0);
+{% else %}
     PyObject * class_attr = PyObject_GetAttrString(_pymsg, "__class__");
     if (class_attr == NULL) {
       return false;
@@ -135,6 +163,7 @@ bool {{join(message.type.namespaces, "__") + "__" + convert_camel_case_to_lower_
     Py_DECREF(module_attr);
     Py_DECREF(name_attr);
     Py_DECREF(class_attr);
+{% endif %}
   }
   {{ msg_typename }} * ros_message = _ros_message;
 {% for member in message.members %}

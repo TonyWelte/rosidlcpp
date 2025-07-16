@@ -17,6 +17,7 @@
 namespace rosidl_generator_traits
 {
 
+{% if ROS_DISTRO != "jazzy" %}
 template<>
 inline const char * data_type<{{ action_typename }}>()
 {
@@ -29,6 +30,7 @@ inline const char * name<{{ action_typename }}>()
   return "{{ action_fully_qualified_name }}";
 }
 
+{% endif %}
 template<>
 struct is_action<{{ action_typename }}>
   : std::true_type

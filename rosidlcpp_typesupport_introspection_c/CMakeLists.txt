@@ -13,7 +13,11 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 endif()
 
 find_package(ament_cmake REQUIRED)
-find_package(ament_cmake_ros_core REQUIRED)
+if($ENV{ROS_DISTRO} STREQUAL "jazzy")
+  find_package(ament_cmake_ros REQUIRED)
+else()
+  find_package(ament_cmake_ros_core REQUIRED)
+endif()
 
 ament_export_dependencies(rosidl_runtime_c)
 ament_export_dependencies(rosidl_typesupport_interface)

@@ -1,4 +1,6 @@
-FROM osrf/ros:rolling-desktop-full
+ARG ROS_DISTRO=rolling
+
+FROM osrf/ros:${ROS_DISTRO}-desktop-full
 
 SHELL [ "/bin/bash" , "-c" ]
 

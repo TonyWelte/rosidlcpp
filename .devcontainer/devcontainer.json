@@ -1,7 +1,10 @@
 {
 	"name": "osrf/ros:rolling-desktop-full",
 	"build": {
-		"dockerfile": "Dockerfile"
+		"dockerfile": "Dockerfile",
+		"args": {
+			"ROS_DISTRO": "rolling"
+		}
 	},
 	"runArgs": [
 		"--cap-add=SYS_PTRACE", // Allows the container to trace processes using ptrace system call
