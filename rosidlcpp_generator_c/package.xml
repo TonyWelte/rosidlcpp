@@ -13,6 +13,9 @@
   <buildtool_depend condition="$ROS_DISTRO == 'jazzy'">ament_cmake_ros</buildtool_depend>
   <buildtool_depend condition="$ROS_DISTRO >= 'kilted'">ament_cmake_ros_core</buildtool_depend>
 
+  <!-- To use ROS_DISTRO in CMakeLists.txt -->
+  <build_depend>ros_environment</build_depend>
+
   <buildtool_export_depend>ament_cmake_core</buildtool_export_depend>
 
   <depend>nlohmann-json-dev</depend>
