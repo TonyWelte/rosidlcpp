@@ -36,7 +36,6 @@
 #include <cstdlib>
 #include <exception>
 #include <filesystem>
-#include <format>
 #include <iostream>
 #include <limits>
 #include <ostream>
@@ -132,12 +131,12 @@ auto primitive_value_to_cpp(const nlohmann::json &type, const nlohmann::json &va
     return value.is_string() ? value.get<std::string>() : value.dump();
   } else if (type_name == "int32") {
     const int32_t int_value = value.get<int32_t>();
-    return int_value > std::numeric_limits<int32_t>::min() ? std::to_string(int_value) + "l" : std::format("({}l - 1)", int_value + 1);
+    return int_value > std::numeric_limits<int32_t>::min() ? std::to_string(int_value) + "l" : fmt::format("({}l - 1)", int_value + 1);
   } else if (type_name == "uint32") {
     return std::to_string(value.get<uint32_t>()) + "ul";
   } else if (type_name == "int64") {
     const int64_t int_value = value.get<int64_t>();
-    return int_value > std::numeric_limits<int64_t>::min() ? std::to_string(int_value) + "ll" : std::format("({}ll - 1)", int_value + 1);
+    return int_value > std::numeric_limits<int64_t>::min() ? std::to_string(int_value) + "ll" : fmt::format("({}ll - 1)", int_value + 1);
   } else if (type_name == "uint64") {
     return std::to_string(value.get<uint64_t>()) + "ull";
   } else if (type_name == "float") {
@@ -346,7 +345,7 @@ auto msg_type_to_cpp(const nlohmann::json &type) -> std::string {
              "rebind_alloc<" +
              cpp_type + ">>";
     } else if (rosidlcpp_core::is_sequence(type)) {  // Bounded sequence
-      return std::format(
+      return fmt::format(
           "rosidl_runtime_cpp::BoundedVector<{}, {}, typename "
           "std::allocator_traits<ContainerAllocator>::template "
           "rebind_alloc<{}>>",
@@ -472,7 +471,7 @@ auto generate_default_string(const nlohmann::json &membset, const std::string &)
                       [first = member["default_value"].front()](const auto &value) {
                         return value == first;
                       })) {
-        result.push_back(std::format("std::fill<typename {}::iterator, {}>(this->{}.begin(), this->{}.end(), {});",
+        result.push_back(fmt::format("std::fill<typename {}::iterator, {}>(this->{}.begin(), this->{}.end(), {});",
                                      msg_type_to_cpp(member["type"]),
                                      msg_type_only_to_cpp(member["type"]),
                                      member["name"].get<std::string>(),
@@ -591,11 +590,11 @@ void GeneratorCpp::run() {
     const auto msg_type = ros_json["interface_path"]["filename"].get<std::string>();
 
     std::filesystem::create_directories(m_arguments.output_dir + "/" + msg_directory + "/detail");
-    write_template(template_idl_builder, ros_json, std::format("{}/detail/{}__builder.hpp", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
-    write_template(template_idl_struct, ros_json, std::format("{}/detail/{}__struct.hpp", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
-    write_template(template_idl_traits, ros_json, std::format("{}/detail/{}__traits.hpp", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
-    write_template(template_idl_type_support, ros_json, std::format("{}/detail/{}__type_support.hpp", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
-    write_template(template_idl, ros_json, std::format("{}/{}.hpp", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_builder, ros_json, fmt::format("{}/detail/{}__builder.hpp", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_struct, ros_json, fmt::format("{}/detail/{}__struct.hpp", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_traits, ros_json, fmt::format("{}/detail/{}__traits.hpp", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_type_support, ros_json, fmt::format("{}/detail/{}__type_support.hpp", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl, ros_json, fmt::format("{}/{}.hpp", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
   }
 }
 

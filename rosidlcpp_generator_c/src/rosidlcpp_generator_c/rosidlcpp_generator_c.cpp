@@ -34,7 +34,6 @@
 #include <cstring>
 #include <exception>
 #include <filesystem>
-#include <format>
 #include <fstream>
 #include <iostream>
 #include <limits>
@@ -713,13 +712,13 @@ void GeneratorC::run() {
     const auto msg_type = ros_json["interface_path"]["filename"].get<std::string>();
 
     std::filesystem::create_directories(m_arguments.output_dir + "/" + msg_directory + "/detail");
-    write_template(template_idl_description_c, ros_json, std::format("{}/detail/{}__description.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
-    write_template(template_idl_functions_c, ros_json, std::format("{}/detail/{}__functions.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
-    write_template(template_idl_functions_h, ros_json, std::format("{}/detail/{}__functions.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
-    write_template(template_idl_struct_h, ros_json, std::format("{}/detail/{}__struct.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
-    write_template(template_idl_type_support_c, ros_json, std::format("{}/detail/{}__type_support.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
-    write_template(template_idl_type_support_h, ros_json, std::format("{}/detail/{}__type_support.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
-    write_template(template_idl_h, ros_json, std::format("{}/{}.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_description_c, ros_json, fmt::format("{}/detail/{}__description.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_functions_c, ros_json, fmt::format("{}/detail/{}__functions.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_functions_h, ros_json, fmt::format("{}/detail/{}__functions.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_struct_h, ros_json, fmt::format("{}/detail/{}__struct.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_type_support_c, ros_json, fmt::format("{}/detail/{}__type_support.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_type_support_h, ros_json, fmt::format("{}/detail/{}__type_support.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_h, ros_json, fmt::format("{}/{}.h", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
   }
 }
 

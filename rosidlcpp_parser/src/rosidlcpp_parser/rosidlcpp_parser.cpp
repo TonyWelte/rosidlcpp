@@ -16,13 +16,14 @@
 
 #include <nlohmann/json_fwd.hpp>
 
+#include <fmt/format.h>
+
 #include <algorithm>
 #include <cassert>
 #include <cctype>
 #include <charconv>
 #include <cstddef>
 #include <filesystem>
-#include <format>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -306,7 +307,7 @@ auto parse_string_part_python(std::string_view& content_view) -> std::string {
     string_limit += content_view.substr(string_limit + 1).find_first_of('\'') + 1;
   }
 
-  auto result = std::string{std::format("{}", content_view.substr(0, string_limit))};
+  auto result = std::string{fmt::format("{}", content_view.substr(0, string_limit))};
   content_view.remove_prefix(string_limit + 1);
 
   consume_white_space_and_comment(content_view);
@@ -689,7 +690,7 @@ auto parse_default_list(std::string_view default_value) -> json {
     result.push_back(parse_value(default_value));
 
     if (default_value.front() != ',' && default_value.front() != ')') {
-      throw std::runtime_error(std::format("{}: {}", "Failed to parse default list", default_value));
+      throw std::runtime_error(fmt::format("{}: {}", "Failed to parse default list", default_value));
     }
 
     default_value.remove_prefix(1);
@@ -888,7 +889,7 @@ auto recursive_check(const nlohmann::json& data, Function check_function) -> boo
         }
       }
     } else {
-      if (value.is_string() && check_function(value.get<std::string>())) {
+      if (value.is_string() && check_function(value.template get<std::string>())) {
         return true;
       }
     }

@@ -32,7 +32,6 @@
 #include <cstdint>
 #include <exception>
 #include <filesystem>
-#include <format>
 #include <iostream>
 #include <limits>
 #include <ostream>
@@ -138,7 +137,7 @@ std::string escape_string_py(std::string_view str, char quote_char) {
     if (c == '\\') {
       result += "\\\\";
     } else if (c == quote_char) {
-      result += std::format("\\{}", quote_char);
+      result += fmt::format("\\{}", quote_char);
     } else {
       result += c;
     }
@@ -152,9 +151,9 @@ auto primitive_value_to_py(nlohmann::json type, nlohmann::json value) -> std::st
   if (rosidlcpp_core::is_string(type)) {
     const auto string_value = value.get<std::string>();
     if (!string_value.contains('\'') || string_value.contains('"')) {
-      return std::format("'{}'", escape_string_py(string_value, '\''));
+      return fmt::format("'{}'", escape_string_py(string_value, '\''));
     } else {
-      return std::format("\"{}\"", escape_string_py(string_value, '\"'));
+      return fmt::format("\"{}\"", escape_string_py(string_value, '\"'));
     }
   }
 
@@ -164,13 +163,13 @@ auto primitive_value_to_py(nlohmann::json type, nlohmann::json value) -> std::st
 
   if (type["name"] == "octet") {
     if (std::isprint(value.get<int>())) {
-      return std::format("b'{}'", static_cast<char>(value.get<int>()));
+      return fmt::format("b'{}'", static_cast<char>(value.get<int>()));
     }
-    return std::format("b'\\x{:02x}'", value.get<int>());
+    return fmt::format("b'\\x{:02x}'", value.get<int>());
   }
 
   if (type["name"] == "char") {
-    return std::format("'{}'", static_cast<char>(value.get<int>()));
+    return fmt::format("'{}'", static_cast<char>(value.get<int>()));
   }
 
   if (rosidlcpp_core::is_signed_integer(type)) {
@@ -206,14 +205,14 @@ auto constant_value_to_py(const nlohmann::json& type, const nlohmann::json& valu
     }
 
     if (type["name"] == "char") {
-      return std::format("'{}'", static_cast<char>(value.get<int>()));
+      return fmt::format("'{}'", static_cast<char>(value.get<int>()));
     }
 
     if (type["name"] == "octet") {
       if (std::isprint(value.get<int>())) {
-        return std::format("b'{}'", static_cast<char>(value.get<int>()));
+        return fmt::format("b'{}'", static_cast<char>(value.get<int>()));
       }
-      return std::format("b'\\x{:02x}'", value.get<int>());
+      return fmt::format("b'\\x{:02x}'", value.get<int>());
     }
 
     if (rosidlcpp_core::is_float(type)) {
@@ -224,11 +223,11 @@ auto constant_value_to_py(const nlohmann::json& type, const nlohmann::json& valu
 
   if (rosidlcpp_core::is_string(type)) {
     if (!value.get<std::string>().contains('\'')) {
-      return std::format("'{}'", value.get<std::string>());
+      return fmt::format("'{}'", value.get<std::string>());
     } else if (!value.get<std::string>().contains('"')) {
-      return std::format("\"{}\"", value.get<std::string>());
+      return fmt::format("\"{}\"", value.get<std::string>());
     } else {
-      return std::format("'''{}'''", value.get<std::string>());
+      return fmt::format("'''{}'''", value.get<std::string>());
     }
   }
 
@@ -526,8 +525,8 @@ void GeneratorPython::run() {
     const auto msg_type = ros_json["interface_path"]["filename"].get<std::string>();
 
     std::filesystem::create_directories(m_arguments.output_dir + "/" + msg_directory);
-    write_template(template_idl_py, ros_json, std::format("{}/_{}.py", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)), false);
-    write_template(template_idl_support_c, ros_json, std::format("{}/_{}_s.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl_py, ros_json, fmt::format("{}/_{}.py", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)), false);
+    write_template(template_idl_support_c, ros_json, fmt::format("{}/_{}_s.c", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
 
     // Add to the combined ros_json
     for (const auto& msg : ros_json.value("messages", nlohmann::json::array())) {
@@ -557,7 +556,7 @@ void GeneratorPython::run() {
     }
 
     for (const auto& type_suffix : type_suffixes) {
-      init_py[msg_directory].push_back(std::format(
+      init_py[msg_directory].push_back(fmt::format(
           "from {}.{}._{} import {}{}  # noqa: F401", m_arguments.package_name,
           msg_directory, rosidlcpp_core::camel_to_snake(msg_type), msg_type,
           type_suffix));
@@ -567,7 +566,7 @@ void GeneratorPython::run() {
   // Generate package files
   for (const auto& typesupport : m_typesupport_implementations) {
     pkg_json["typesupport_impl"] = typesupport;
-    write_template(template_idl_pkg_typesupport, pkg_json, std::format("_{}_s.ep.{}.c", m_arguments.package_name, typesupport));
+    write_template(template_idl_pkg_typesupport, pkg_json, fmt::format("_{}_s.ep.{}.c", m_arguments.package_name, typesupport));
   }
 
   // Generate __init__.py
@@ -575,7 +574,7 @@ void GeneratorPython::run() {
     std::ranges::sort(imports);
     nlohmann::json init_py_json;
     init_py_json["imports"] = imports;
-    write_template(template_init, init_py_json, std::format("{}/__init__.py", msg_directory), false);
+    write_template(template_init, init_py_json, fmt::format("{}/__init__.py", msg_directory), false);
   }
 }
 

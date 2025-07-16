@@ -31,7 +31,6 @@
 #include <cstdlib>
 #include <exception>
 #include <filesystem>
-#include <format>
 #include <iostream>
 #include <ostream>
 #include <string>
@@ -370,10 +369,10 @@ void GeneratorTypesupportFastrtpsCpp::run() {
     const auto msg_type = ros_json["interface_path"]["filename"].get<std::string>();
     std::filesystem::create_directories(m_arguments.output_dir + "/" + msg_directory + "/detail/dds_fastrtps");
     write_template(template_idl, ros_json,
-                   std::format("{}/detail/dds_fastrtps/{}__type_support.cpp", msg_directory,
+                   fmt::format("{}/detail/dds_fastrtps/{}__type_support.cpp", msg_directory,
                                rosidlcpp_core::camel_to_snake(msg_type)));
     write_template(template_idl_rosidl, ros_json,
-                   std::format("{}/detail/{}__rosidl_typesupport_fastrtps_cpp.hpp", msg_directory,
+                   fmt::format("{}/detail/{}__rosidl_typesupport_fastrtps_cpp.hpp", msg_directory,
                                rosidlcpp_core::camel_to_snake(msg_type)));
   }
 }

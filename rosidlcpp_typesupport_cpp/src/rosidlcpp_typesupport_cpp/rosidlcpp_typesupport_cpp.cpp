@@ -25,7 +25,6 @@
 #include <cstdlib>
 #include <exception>
 #include <filesystem>
-#include <format>
 #include <iostream>
 #include <ostream>
 #include <string>
@@ -57,7 +56,7 @@ void GeneratorTypesupportCpp::run() {
     const auto msg_directory = ros_json["interface_path"]["filedir"].get<std::string>();
     const auto msg_type = ros_json["interface_path"]["filename"].get<std::string>();
     std::filesystem::create_directories(m_arguments.output_dir + "/" + msg_directory);
-    write_template(template_idl, ros_json, std::format("{}/{}__type_support.cpp", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
+    write_template(template_idl, ros_json, fmt::format("{}/{}__type_support.cpp", msg_directory, rosidlcpp_core::camel_to_snake(msg_type)));
   }
 }
 
