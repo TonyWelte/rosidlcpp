@@ -2,6 +2,11 @@
 Changelog for package rosidlcpp_typesupport_fastrtps_c
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.3.0 (2025-07-21)
+------------------
+* Fix compilation on RHEL9 (`#12 <https://github.com/TonyWelte/rosidlcpp/issues/12>`_)
+* Contributors: Anthony Welte
+
 0.2.1 (2025-07-14)
 ------------------
 

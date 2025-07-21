@@ -2,6 +2,11 @@
 Changelog for package rosidlcpp_generator_core
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.3.0 (2025-07-21)
+------------------
+* Add jazzy support (`#11 <https://github.com/TonyWelte/rosidlcpp/issues/11>`_)
+* Contributors: Anthony Welte
+
 0.2.1 (2025-07-14)
 ------------------
 

@@ -2,6 +2,9 @@
 Changelog for package rosidlcpp_generator_type_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.3.0 (2025-07-21)
+------------------
+
 0.2.1 (2025-07-14)
 ------------------
 * Several small bugfixes after the first public release (`#10 <https://github.com/TonyWelte/rosidlcpp/issues/10>`_)
