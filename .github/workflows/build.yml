@@ -1,0 +1,35 @@
+on: [push, pull_request]
+
+jobs:
+  jazzy_from_source:
+    runs-on: ubuntu-latest
+    container:
+      image: rostooling/setup-ros-docker:ubuntu-noble-latest
+    steps:
+      - name: Build and run tests
+        uses: ros-tooling/action-ros-ci@v0.4
+        with:
+          package-name: rosidlcpp
+          target-ros2-distro: jazzy
+
+  kilted_from_source:
+    runs-on: ubuntu-latest
+    container:
+      image: rostooling/setup-ros-docker:ubuntu-noble-latest
+    steps:
+      - name: Build and run tests
+        uses: ros-tooling/action-ros-ci@v0.4
+        with:
+          package-name: rosidlcpp
+          target-ros2-distro: kilted
+
+  rolling_from_source:
+    runs-on: ubuntu-latest
+    container:
+      image: rostooling/setup-ros-docker:ubuntu-noble-latest
+    steps:
+      - name: Build and run tests
+        uses: ros-tooling/action-ros-ci@v0.4
+        with:
+          package-name: rosidlcpp
+          target-ros2-distro: rolling
