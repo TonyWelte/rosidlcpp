@@ -173,6 +173,7 @@ namespace rosidl_generator_traits
 {
 
 {% set message_namespace = join(message.type.namespaces, "::") %}
+{% if ROS_DISTRO == "jazzy" or ROS_DISTRO == "kilted" %}
 [[deprecated("use {{ message_namespace }}::to_block_style_yaml() instead")]]
 inline void to_yaml(
   const {{ message_typename }} & msg,
@@ -187,6 +188,7 @@ inline std::string to_yaml(const {{ message_typename }} & msg)
   return {{ message_namespace }}::to_yaml(msg);
 }
 
+{% endif %}
 template<>
 inline const char * data_type<{{ message_typename }}>()
 {
