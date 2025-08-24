@@ -12,6 +12,9 @@
 
 #include <algorithm>
 #include <array>
+{% if ROS_DISTRO != "jazzy" and ROS_DISTRO != "kilted" %}
+#include <cstdint>
+{% endif %}
 #include <memory>
 #include <string>
 #include <vector>
