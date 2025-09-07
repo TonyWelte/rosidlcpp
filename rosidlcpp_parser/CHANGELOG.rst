@@ -2,6 +2,9 @@
 Changelog for package rosidlcpp_parser
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.4.0 (2025-09-07)
+------------------
+
 0.3.0 (2025-07-21)
 ------------------
 * Fix compilation on RHEL9 (`#12 <https://github.com/TonyWelte/rosidlcpp/issues/12>`_)

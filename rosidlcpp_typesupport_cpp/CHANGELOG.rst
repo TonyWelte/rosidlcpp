@@ -2,6 +2,9 @@
 Changelog for package rosidlcpp_typesupport_cpp
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.4.0 (2025-09-07)
+------------------
+
 0.3.0 (2025-07-21)
 ------------------
 * Add ros_environment dependency to fix missing ROS_DISTRO variable (`#13 <https://github.com/TonyWelte/rosidlcpp/issues/13>`_)

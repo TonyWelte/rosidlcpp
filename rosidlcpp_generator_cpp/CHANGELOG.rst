@@ -2,6 +2,12 @@
 Changelog for package rosidlcpp_generator_cpp
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.4.0 (2025-09-07)
+------------------
+* Port rosidl`#864 <https://github.com/ros2/rosidl/pull/864>`_ (`#16 <https://github.com/TonyWelte/rosidlcpp/issues/16>`_)
+* Port rosidl`#863 <https://github.com/ros2/rosidl/pull/863>`_ (`#15 <https://github.com/TonyWelte/rosidlcpp/issues/15>`_)
+* Contributors: Anthony Welte
+
 0.3.0 (2025-07-21)
 ------------------
 * Fix compilation on RHEL9 (`#12 <https://github.com/TonyWelte/rosidlcpp/issues/12>`_)

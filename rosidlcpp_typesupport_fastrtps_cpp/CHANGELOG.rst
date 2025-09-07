@@ -2,6 +2,11 @@
 Changelog for package rosidlcpp_typesupport_fastrtps_cpp
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.4.0 (2025-09-07)
+------------------
+* Port rosidl_typesupport_fastrtps`#130 <https://github.com/ros2/rosidl_typesupport_fastrtps/pull/130>`_ (`#14 <https://github.com/TonyWelte/rosidlcpp/issues/14>`_)
+* Contributors: Anthony Welte
+
 0.3.0 (2025-07-21)
 ------------------
 * Fix compilation on RHEL9 (`#12 <https://github.com/TonyWelte/rosidlcpp/issues/12>`_)
