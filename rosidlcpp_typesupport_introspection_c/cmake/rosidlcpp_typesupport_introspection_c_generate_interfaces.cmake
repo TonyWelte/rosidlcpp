@@ -83,6 +83,7 @@ add_custom_command(
   DEPENDS ${target_dependencies}
   COMMENT "Generating C introspection for ROS interfaces"
   VERBATIM
+  DEPENDS_EXPLICIT_ONLY
 )
 
 # generate header to switch between export and import for a specific package

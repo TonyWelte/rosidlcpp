@@ -70,6 +70,7 @@ add_custom_command(
   DEPENDS ${target_dependencies}
   COMMENT "Generating type hashes for ROS interfaces"
   VERBATIM
+  DEPENDS_EXPLICIT_ONLY
 )
 
 set(_target "${rosidl_generate_interfaces_TARGET}__rosidl_generator_type_description")
