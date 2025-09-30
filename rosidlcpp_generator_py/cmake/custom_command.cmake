@@ -28,6 +28,7 @@ add_custom_command(
   DEPENDS ${target_dependencies} ${rosidl_generate_interfaces_TARGET}
   COMMENT "Generating Python code for ROS interfaces"
   VERBATIM
+  DEPENDS_EXPLICIT_ONLY
 )
 
 if(TARGET ${rosidl_generate_interfaces_TARGET}${_target_suffix})

@@ -80,6 +80,7 @@ add_custom_command(
   DEPENDS ${target_dependencies}
   COMMENT "Generating C type support dispatch for ROS interfaces"
   VERBATIM
+  DEPENDS_EXPLICIT_ONLY
 )
 
 set(_target_suffix "__rosidl_typesupport_c")

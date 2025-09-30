@@ -101,6 +101,7 @@ add_custom_command(
   DEPENDS ${target_dependencies}
   COMMENT "Generating C++ code for ROS interfaces"
   VERBATIM
+  DEPENDS_EXPLICIT_ONLY
 )
 
 # INTERFACE libraries can't have file-level dependencies in CMake,
