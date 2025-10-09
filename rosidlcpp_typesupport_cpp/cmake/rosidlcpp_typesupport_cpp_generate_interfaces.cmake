@@ -67,6 +67,12 @@ rosidl_write_generator_arguments(
   TARGET_DEPENDENCIES ${target_dependencies}
 )
 
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.27)
+  set(_dep_explicit_only DEPENDS_EXPLICIT_ONLY)
+else()
+  set(_dep_explicit_only "")
+endif()
+
 get_used_typesupports(typesupports "rosidl_typesupport_cpp")
 add_custom_command(
   OUTPUT ${_generated_sources}
@@ -77,7 +83,7 @@ add_custom_command(
   DEPENDS ${target_dependencies}
   COMMENT "Generating C++ type support dispatch for ROS interfaces"
   VERBATIM
-  DEPENDS_EXPLICIT_ONLY
+  ${_dep_explicit_only}
 )
 
 set(_target_suffix "__rosidl_typesupport_cpp")

@@ -85,6 +85,12 @@ rosidl_write_generator_arguments(
   TARGET_DEPENDENCIES ${target_dependencies}
 )
 
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.27)
+  set(_dep_explicit_only DEPENDS_EXPLICIT_ONLY)
+else()
+  set(_dep_explicit_only "")
+endif()
+
 # Add a command that invokes generator at build time
 add_custom_command(
   OUTPUT ${_generated_files}
@@ -94,7 +100,7 @@ add_custom_command(
   DEPENDS ${target_dependencies}
   COMMENT "Generating C++ type support for eProsima Fast-RTPS"
   VERBATIM
-  DEPENDS_EXPLICIT_ONLY
+  ${_dep_explicit_only}
 )
 
 # generate header to switch between export and import for a specific package
