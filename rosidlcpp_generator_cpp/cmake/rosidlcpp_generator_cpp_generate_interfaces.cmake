@@ -93,6 +93,12 @@ rosidl_write_generator_arguments(
   TYPE_DESCRIPTION_TUPLES "${${rosidl_generate_interfaces_TARGET}__DESCRIPTION_TUPLES}"
 )
 
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.27)
+  set(_dep_explicit_only DEPENDS_EXPLICIT_ONLY)
+else()
+  set(_dep_explicit_only "")
+endif()
+
 add_custom_command(
   OUTPUT ${_generated_headers}
   COMMAND ${rosidlcpp_generator_cpp_BIN}
@@ -101,7 +107,7 @@ add_custom_command(
   DEPENDS ${target_dependencies}
   COMMENT "Generating C++ code for ROS interfaces"
   VERBATIM
-  DEPENDS_EXPLICIT_ONLY
+  ${_dep_explicit_only}
 )
 
 # INTERFACE libraries can't have file-level dependencies in CMake,
