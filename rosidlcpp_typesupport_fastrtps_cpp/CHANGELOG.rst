@@ -2,6 +2,12 @@
 Changelog for package rosidlcpp_typesupport_fastrtps_cpp
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.5.0 (2026-01-26)
+------------------
+* Fix build with cmake version before 3.27 (`#18 <https://github.com/TonyWelte/rosidlcpp/issues/18>`_)
+* Remove implicit dependencies blocking the start of the generators (`#17 <https://github.com/TonyWelte/rosidlcpp/issues/17>`_)
+* Contributors: Anthony Welte
+
 0.4.0 (2025-09-07)
 ------------------
 * Port rosidl_typesupport_fastrtps`#130 <https://github.com/ros2/rosidl_typesupport_fastrtps/pull/130>`_ (`#14 <https://github.com/TonyWelte/rosidlcpp/issues/14>`_)

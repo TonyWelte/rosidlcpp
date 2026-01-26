@@ -2,6 +2,13 @@
 Changelog for package rosidlcpp_generator_cpp
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.5.0 (2026-01-26)
+------------------
+* Backport `#16 <https://github.com/TonyWelte/rosidlcpp/issues/16>`_ (`#19 <https://github.com/TonyWelte/rosidlcpp/issues/19>`_)
+* Fix build with cmake version before 3.27 (`#18 <https://github.com/TonyWelte/rosidlcpp/issues/18>`_)
+* Remove implicit dependencies blocking the start of the generators (`#17 <https://github.com/TonyWelte/rosidlcpp/issues/17>`_)
+* Contributors: Anthony Welte
+
 0.4.0 (2025-09-07)
 ------------------
 * Port rosidl`#864 <https://github.com/ros2/rosidl/pull/864>`_ (`#16 <https://github.com/TonyWelte/rosidlcpp/issues/16>`_)

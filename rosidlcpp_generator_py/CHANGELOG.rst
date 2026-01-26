@@ -2,6 +2,13 @@
 Changelog for package rosidlcpp_generator_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.5.0 (2026-01-26)
+------------------
+* Port rosidl_python`#232 <https://github.com/TonyWelte/rosidlcpp/issues/232>`_ (`#20 <https://github.com/TonyWelte/rosidlcpp/issues/20>`_)
+* Fix build with cmake version before 3.27 (`#18 <https://github.com/TonyWelte/rosidlcpp/issues/18>`_)
+* Remove implicit dependencies blocking the start of the generators (`#17 <https://github.com/TonyWelte/rosidlcpp/issues/17>`_)
+* Contributors: Anthony Welte
+
 0.4.0 (2025-09-07)
 ------------------
 
