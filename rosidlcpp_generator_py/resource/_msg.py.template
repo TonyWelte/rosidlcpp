@@ -218,8 +218,7 @@ string{% if existsIn(type_, "maximum_size") -%}
         if '{{ member.name }}' not in kwargs:
             self.{{ member.name }} = numpy.zeros({{ member.type.size }}, dtype={{ get_special_nested_basic_type(member.type.value_type).dtype }})
         else:
-            self.{{ member.name }} = numpy.array(kwargs.get('{{ member.name}}'), dtype={{ get_special_nested_basic_type(member.type.value_type).dtype }})
-            assert self.{{ member.name }}.shape == ({{ member.type.size }}, )
+            self.{{ member.name }} = kwargs.get('{{ member.name }}')
 {%         else %}
         self.{{ member.name }} = kwargs.get(
             '{{ member.name }}',
