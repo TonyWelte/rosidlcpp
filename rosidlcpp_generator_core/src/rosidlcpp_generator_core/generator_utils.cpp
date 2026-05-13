@@ -32,6 +32,18 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
+namespace nlohmann {
+
+std::string format_as(const json& j) {
+  return j.dump();
+}
+
+std::string format_as(const detail::iter_impl<const json>& j) {
+  return j->dump();
+}
+
+}  // namespace nlohmann
+
 namespace rosidlcpp_core {
 
 /**
@@ -165,7 +177,7 @@ auto camel_to_snake(const std::string& input) -> std::string {
  */
 
 auto span(const nlohmann::json& list, int start, int end) -> nlohmann::json {
-  if(start > end) {
+  if (start > end) {
     return nlohmann::json::array();
   }
   return nlohmann::json(list.begin() + start, list.begin() + end);

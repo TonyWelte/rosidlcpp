@@ -20,7 +20,15 @@
 #include <string_view>
 #include <vector>
 
+#include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
+
+namespace nlohmann {
+
+std::string format_as(const json& j);
+std::string format_as(const detail::iter_impl<const json>& j);
+
+}  // namespace nlohmann
 
 namespace rosidlcpp_core {
 
