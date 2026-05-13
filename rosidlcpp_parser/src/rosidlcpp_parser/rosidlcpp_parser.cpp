@@ -907,7 +907,7 @@ std::optional<json> get_constants(const json& current_node, const std::string& m
     for (const auto& module : current_node["modules"]) {
       if (module.contains("name") && module["name"] == message_name + "_Constants") {
         if (module.contains("constants")) {
-          return module["constants"];
+          return module["constants"].get<json>();
         }
       }
     }
