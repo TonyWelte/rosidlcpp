@@ -2,6 +2,11 @@
 Changelog for package rosidlcpp_generator_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.6.0 (2026-05-18)
+------------------
+* Fix json formatting with fmt version 10 (`#22 <https://github.com/TonyWelte/rosidlcpp/issues/22>`_)
+* Contributors: Anthony Welte
+
 0.5.0 (2026-01-26)
 ------------------
 * Port rosidl_python`#232 <https://github.com/TonyWelte/rosidlcpp/issues/232>`_ (`#20 <https://github.com/TonyWelte/rosidlcpp/issues/20>`_)

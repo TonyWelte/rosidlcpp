@@ -2,6 +2,9 @@
 Changelog for package rosidlcpp_typesupport_fastrtps_c
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.6.0 (2026-05-18)
+------------------
+
 0.5.0 (2026-01-26)
 ------------------
 * Fix build with cmake version before 3.27 (`#18 <https://github.com/TonyWelte/rosidlcpp/issues/18>`_)

@@ -2,6 +2,9 @@
 Changelog for package rosidlcpp_generator_cpp
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.6.0 (2026-05-18)
+------------------
+
 0.5.0 (2026-01-26)
 ------------------
 * Backport `#16 <https://github.com/TonyWelte/rosidlcpp/issues/16>`_ (`#19 <https://github.com/TonyWelte/rosidlcpp/issues/19>`_)

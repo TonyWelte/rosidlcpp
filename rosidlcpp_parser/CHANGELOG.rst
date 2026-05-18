@@ -2,6 +2,11 @@
 Changelog for package rosidlcpp_parser
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.6.0 (2026-05-18)
+------------------
+* Fix rosidlcpp_parser build failures for Lyrical (`#21 <https://github.com/TonyWelte/rosidlcpp/issues/21>`_)
+* Contributors: Michael Carroll
+
 0.5.0 (2026-01-26)
 ------------------
 
