@@ -27,6 +27,14 @@ install(TARGETS ${PROJECT_NAME}
 
 install(DIRECTORY include/ DESTINATION include)
 
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+
+  ament_add_gtest(rosidlcpp_generator_core_test test/unit/rosidlcpp_generator_core_test.cpp)
+  target_link_libraries(rosidlcpp_generator_core_test ${PROJECT_NAME})
+  target_include_directories(rosidlcpp_generator_core_test PUBLIC include)
+endif()
+
 ament_export_include_directories("include/${PROJECT_NAME}")
 ament_export_libraries(${PROJECT_NAME})
 
