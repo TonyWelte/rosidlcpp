@@ -35,11 +35,13 @@
 namespace nlohmann {
 
 std::string format_as(const json& j) {
-  return j.dump();
+  // dump() would wrap strings in double quotes, which is never what the generators want when
+  // interpolating names and namespaces into generated code.
+  return j.is_string() ? j.get<std::string>() : j.dump();
 }
 
 std::string format_as(const detail::iter_impl<const json>& j) {
-  return j->dump();
+  return format_as(*j);
 }
 
 }  // namespace nlohmann
