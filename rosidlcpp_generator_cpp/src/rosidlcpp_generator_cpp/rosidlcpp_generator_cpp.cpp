@@ -22,6 +22,7 @@
 
 #include <fmt/core.h>
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include <inja/inja.hpp>
 
