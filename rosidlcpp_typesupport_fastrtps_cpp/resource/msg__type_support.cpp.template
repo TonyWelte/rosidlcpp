@@ -1,7 +1,7 @@
 {% set include_directives = get_global_variable("include_directives") -%}
 {% set forward_declared_types = get_global_variable("forward_declared_types") -%}
 {% set include_base = package_name + "/" + interface_path.filedir + "/detail/" + convert_camel_case_to_lower_case_underscore(interface_path.filename) %}
-{% set header_files = ["cstddef", "limits", "stdexcept", "string", "rosidl_typesupport_cpp/message_type_support.hpp", "rosidl_typesupport_fastrtps_cpp/identifier.hpp", "rosidl_typesupport_fastrtps_cpp/message_type_support.h", "rosidl_typesupport_fastrtps_cpp/message_type_support_decl.hpp", "rosidl_typesupport_fastrtps_cpp/serialization_helpers.hpp", "rosidl_typesupport_fastrtps_cpp/wstring_conversion.hpp", "fastcdr/Cdr.h"] %}
+{% set header_files = ["cstddef", "limits", "stdexcept", "string", "rosidl_typesupport_cpp/message_type_support.hpp", "rosidl_typesupport_fastrtps_cpp/identifier.hpp", "rosidl_typesupport_fastrtps_cpp/message_type_support.h", "rosidl_typesupport_fastrtps_cpp/message_type_support_decl.hpp", "rosidl_typesupport_fastrtps_cpp/serialization_helpers.hpp", "fastcdr/Cdr.h"] %}
 {# #}
 {% set function_prefix = package_name + "__" + join(split_string(interface_path.filedir, "/"), "__") + "__" + message.type.name + "__rosidl_typesupport_introspection_c" %}
 {# #}

@@ -1,6 +1,6 @@
 {% set include_directives = get_global_variable("include_directives") -%}
 {% set include_base = package_name + "/" + interface_path.filedir + "/detail/" + convert_camel_case_to_lower_case_underscore(interface_path.filename) %}
-{% set header_files = ["cassert", "cstddef", "limits", "string", "rosidl_typesupport_fastrtps_c/identifier.h", "rosidl_typesupport_fastrtps_c/serialization_helpers.hpp", "rosidl_typesupport_fastrtps_c/wstring_conversion.hpp", "rosidl_typesupport_fastrtps_cpp/message_type_support.h"] %}
+{% set header_files = ["cassert", "cstddef", "limits", "string", "rosidl_typesupport_fastrtps_c/identifier.h", "rosidl_typesupport_fastrtps_c/serialization_helpers.hpp", "rosidl_typesupport_fastrtps_cpp/message_type_support.h"] %}
 {% set header_files = push_back(header_files, package_name + "/msg/rosidl_typesupport_fastrtps_c__visibility_control.h") %}
 {% set header_files = push_back(header_files, include_base + "__struct.h") %}
 {% set header_files = push_back(header_files, include_base + "__functions.h") %}

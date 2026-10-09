@@ -130,7 +130,6 @@ target_precompile_headers(${rosidl_generate_interfaces_TARGET}${_target_suffix}
     [["rosidl_typesupport_fastrtps_cpp/message_type_support.h"]]
     [["rosidl_typesupport_fastrtps_cpp/message_type_support_decl.hpp"]]
     [["rosidl_typesupport_fastrtps_cpp/serialization_helpers.hpp"]]
-    [["rosidl_typesupport_fastrtps_cpp/wstring_conversion.hpp"]]
     [["fastcdr/Cdr.h"]]
     # msg__rosidl_typesupport_fastrtps_cpp.hpp.em
     <cstddef>
