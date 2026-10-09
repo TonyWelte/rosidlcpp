@@ -18,7 +18,7 @@ if(NOT TARGET ${rosidl_generate_interfaces_TARGET}__rosidl_generator_c)
     "'rosidl_typesupport_fastrtps_c' extension.")
 endif()
 
-find_package(ament_cmake_ros REQUIRED)
+find_package(ament_cmake_ros_core REQUIRED)
 find_package(fastcdr 2 REQUIRED CONFIG)
 find_package(rosidl_typesupport_interface REQUIRED)
 find_package(rosidl_typesupport_fastrtps_cpp REQUIRED)

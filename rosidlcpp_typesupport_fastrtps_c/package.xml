@@ -14,7 +14,7 @@
   <buildtool_depend>ament_cmake_python</buildtool_depend>
 
   <!-- Used in the projectConfig.cmake or generator extension and only needed by CMake -->
-  <buildtool_export_depend>ament_cmake_ros</buildtool_export_depend>
+  <buildtool_export_depend>ament_cmake_ros_core</buildtool_export_depend>
 
   <!-- Generator depends on output of this other generator -->
   <buildtool_export_depend>rosidl_generator_c</buildtool_export_depend>
