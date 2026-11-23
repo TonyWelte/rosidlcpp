@@ -193,9 +193,9 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMember {{ message.ty
     fetch_function__{{ message.type.name }}__{{ member.name }},  // fetch(index, &value) function pointer
     assign_function__{{ message.type.name }}__{{ member.name }},  // assign(index, value) function pointer
 {%     if member.type.name == "sequence" %}
-    resize_function__{{ message.type.name }}__{{ member.name }}  // resize(index) function pointer
+    resize_function__{{ message.type.name }}__{{ member.name }},  // resize(index) function pointer
 {%     else %}
-    nullptr  // resize(index) function pointer
+    nullptr,  // resize(index) function pointer
 {%     endif %}
 {%   else %}
     nullptr,  // size() function pointer
@@ -203,8 +203,9 @@ static const ::rosidl_typesupport_introspection_cpp::MessageMember {{ message.ty
     nullptr,  // get(index) function pointer
     nullptr,  // fetch(index, &value) function pointer
     nullptr,  // assign(index, value) function pointer
-    nullptr  // resize(index) function pointer
+    nullptr,  // resize(index) function pointer
 {%   endif %}
+    false  // is_rosidl_buffer
   }{% if not loop.is_last %},
 {% else %}
 

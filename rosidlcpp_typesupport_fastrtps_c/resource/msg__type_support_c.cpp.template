@@ -546,10 +546,13 @@ static message_type_support_callbacks_t __callbacks_{{ message.type.name }} = {
   _{{ message.type.name }}__get_serialized_size,
   _{{ message.type.name }}__max_serialized_size,
 {% if has_any_key(message) %}
-  &__key_callbacks_{{ message.type.name }}
+  &__key_callbacks_{{ message.type.name }},
 {% else %}
-  nullptr
+  nullptr,
 {% endif %}
+  false,
+  nullptr,
+  nullptr
 };
 
 static rosidl_message_type_support_t _{{ message.type.name }}__type_support = {
